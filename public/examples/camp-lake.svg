@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 1200" width="1500" height="1200">
+  <!-- Illustration for the example recap (SPEC M2.5 P2): a morning at the camp's lake. No people. -->
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7CC6F2"/>
+      <stop offset="0.7" stop-color="#BFE6F7"/>
+      <stop offset="1" stop-color="#E8F6FB"/>
+    </linearGradient>
+    <linearGradient id="lake" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3FA7D6"/>
+      <stop offset="1" stop-color="#1E78B4"/>
+    </linearGradient>
+  </defs>
+  <rect width="1500" height="1200" fill="url(#sky)"/>
+  <circle cx="1170" cy="230" r="96" fill="#FFD54F"/>
+  <circle cx="1170" cy="230" r="150" fill="#FFE58A" opacity="0.35"/>
+  <!-- clouds -->
+  <g fill="#FFFFFF">
+    <path d="M180 250 Q200 190 270 205 Q300 150 370 180 Q440 170 445 235 Q470 270 420 280 H200 Q150 275 180 250 Z"/>
+    <path d="M760 150 Q775 110 825 120 Q850 85 900 108 Q950 104 952 150 Q970 175 935 182 H778 Q740 178 760 150 Z" opacity="0.9"/>
+  </g>
+  <!-- far hills -->
+  <path d="M0 560 Q220 400 470 500 Q700 380 980 480 Q1240 400 1500 500 V700 H0 Z" fill="#8CC9A0"/>
+  <path d="M0 640 Q300 530 640 600 Q980 520 1500 610 V720 H0 Z" fill="#5BAE7A"/>
+  <!-- pines on the far shore -->
+  <g fill="#2F7D55">
+    <path d="M90 690 L140 520 L190 690 Z"/><path d="M170 700 L230 480 L290 700 Z"/><path d="M270 690 L315 540 L360 690 Z"/>
+    <path d="M1120 690 L1170 510 L1220 690 Z"/><path d="M1200 700 L1265 470 L1330 700 Z"/><path d="M1310 690 L1360 530 L1410 690 Z"/>
+    <path d="M1390 700 L1440 550 L1490 700 Z"/>
+  </g>
+  <!-- lake -->
+  <path d="M0 690 Q750 660 1500 690 V1200 H0 Z" fill="url(#lake)"/>
+  <g stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" opacity="0.55">
+    <path d="M260 800 H380"/><path d="M620 760 H700"/><path d="M980 830 H1120"/><path d="M420 920 H520"/><path d="M1180 960 H1260"/>
+  </g>
+  <!-- sun's reflection -->
+  <g fill="#FFE58A" opacity="0.7">
+    <rect x="1110" y="720" width="120" height="10" rx="5"/><rect x="1130" y="752" width="80" height="9" rx="4.5"/><rect x="1145" y="782" width="50" height="8" rx="4"/>
+  </g>
+  <!-- canoe -->
+  <g transform="translate(560 880) rotate(-4)">
+    <path d="M0 0 Q200 70 400 0 Q380 40 200 52 Q20 40 0 0 Z" fill="#E8573A"/>
+    <path d="M30 6 Q200 50 370 6" fill="none" stroke="#B83E26" stroke-width="8"/>
+    <path d="M150 -60 L250 70" stroke="#8A5A2B" stroke-width="10" stroke-linecap="round"/>
+    <ellipse cx="258" cy="80" rx="18" ry="34" fill="#8A5A2B" transform="rotate(-38 258 80)"/>
+  </g>
+  <!-- near shore with tents -->
+  <path d="M0 1010 Q260 960 560 1000 Q700 1020 760 1200 H0 Z" fill="#E9C98B"/>
+  <path d="M0 1080 Q300 1030 520 1070 Q640 1100 680 1200 H0 Z" fill="#7BBF6A"/>
+  <g transform="translate(90 820)">
+    <path d="M0 230 L130 20 L260 230 Z" fill="#FFB43A"/>
+    <path d="M130 20 L180 230 H80 Z" fill="#E08E14"/>
+    <path d="M130 20 L130 -20" stroke="#5A3A1A" stroke-width="7" stroke-linecap="round"/>
+    <path d="M130 -20 L180 -6 L130 6 Z" fill="#E8573A"/>
+  </g>
+  <g transform="translate(360 870)">
+    <path d="M0 190 L105 20 L210 190 Z" fill="#4560FF"/>
+    <path d="M105 20 L145 190 H65 Z" fill="#2C43C9"/>
+  </g>
+  <!-- dock -->
+  <g fill="#8A5A2B">
+    <rect x="860" y="1010" width="420" height="26" rx="6"/>
+    <rect x="890" y="1036" width="18" height="90" rx="4"/><rect x="1060" y="1036" width="18" height="90" rx="4"/><rect x="1230" y="1036" width="18" height="90" rx="4"/>
+  </g>
+  <g fill="#A9773F">
+    <rect x="880" y="1010" width="6" height="26"/><rect x="960" y="1010" width="6" height="26"/><rect x="1040" y="1010" width="6" height="26"/>
+    <rect x="1120" y="1010" width="6" height="26"/><rect x="1200" y="1010" width="6" height="26"/>
+  </g>
+  <!-- ring buoy on the dock -->
+  <circle cx="1180" cy="990" r="34" fill="none" stroke="#FFFFFF" stroke-width="18"/>
+  <path d="M1180 956 A34 34 0 0 1 1214 990" fill="none" stroke="#E8573A" stroke-width="18"/>
+  <path d="M1146 990 A34 34 0 0 1 1180 1024" fill="none" stroke="#E8573A" stroke-width="18"/>
+  <!-- reeds -->
+  <g stroke="#3F8F4E" stroke-width="8" stroke-linecap="round">
+    <path d="M1380 1200 Q1370 1080 1390 1010"/><path d="M1410 1200 Q1420 1090 1440 1040"/><path d="M1350 1200 Q1330 1110 1320 1060"/>
+  </g>
+  <g fill="#7A4B22"><ellipse cx="1390" cy="1012" rx="9" ry="26"/><ellipse cx="1320" cy="1062" rx="8" ry="22"/></g>
+</svg>

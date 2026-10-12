@@ -1,0 +1,195 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * The shadcn-vue style in components/ui writes its states as data-checked,
+ * data-active, data-open… but reka-ui marks them with data-state="checked",
+ * "active", "open"… (M2.10: checkboxes, switches, radios and active tabs
+ * weren't showing their state). These variants match either.
+ */
+@custom-variant data-checked (&:where([data-state="checked"], [data-checked]:not([data-checked="false"])));
+@custom-variant data-unchecked (&:where([data-state="unchecked"], [data-unchecked]));
+@custom-variant data-active (&:where([data-state="active"], [data-active]:not([data-active="false"])));
+@custom-variant data-open (&:where([data-state="open"], [data-open]:not([data-open="false"])));
+@custom-variant data-closed (&:where([data-state="closed"], [data-closed]:not([data-closed="false"])));
+
+/* Fonts are self-hosted by @nuxt/fonts (see nuxt.config.ts → fonts). Same pairing as the portfolio. */
+@theme {
+  --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "Google Sans Code", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+@theme inline {
+  --font-heading: var(--font-sans);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --color-subtle: var(--subtle);
+  --color-ok: var(--ok);
+  --color-ok-text: var(--ok-text);
+  --color-primary-hover: var(--primary-hover);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+/*
+ * The app's tokens (sign-in, home, workspace) follow the landing page since
+ * 2026-10-11: its ink, greys and blue, pill buttons, soft corners and the
+ * shape palette. Recaps don't read these; they bring their business's colours.
+ */
+:root {
+  --radius: 0.875rem;
+  --background: #FFFFFF;
+  --foreground: #222222;
+  --card: #FFFFFF;
+  --card-foreground: #222222;
+  --popover: #FFFFFF;
+  --popover-foreground: #222222;
+  /* the landing's "Try the demo" blue: 4.8:1 with white text */
+  --primary: #4560FF;
+  --primary-foreground: #FFFFFF;
+  --primary-hover: #3550F5;
+  --secondary: #F2F2F2;
+  --secondary-foreground: #222222;
+  --muted: #F2F2F2;
+  --muted-foreground: #6F6F6F;
+  --accent: #F2F2F2;
+  --accent-foreground: #222222;
+  --destructive: #D2371F;
+  --border: #E7E7E7;
+  --input: #E2E2E2;
+  --ring: #4560FF;
+  /* very light surface for hover rows and the grid header */
+  --subtle: #F7F7F7;
+  /* status: ready and published (3:1 against white as a dot) */
+  --ok: #00A372;
+  --ok-text: #00744F;
+  /* the landing's shapes */
+  --shape-green: #00C28A;
+  --shape-marigold: #FFB43A;
+  --shape-poppy: #FF5B42;
+  --shape-blue: #4560FF;
+  --shape-violet: #8F66F6;
+}
+
+.dark {
+  --background: #141414;
+  --foreground: #F2F2F2;
+  --card: #1C1C1C;
+  --card-foreground: #F2F2F2;
+  --popover: #1E1E1E;
+  --popover-foreground: #F2F2F2;
+  --primary: #4560FF;
+  --primary-foreground: #FFFFFF;
+  --primary-hover: #5A72FF;
+  --secondary: #262626;
+  --secondary-foreground: #F2F2F2;
+  --muted: #262626;
+  --muted-foreground: #A3A3A3;
+  --accent: #2A2A2A;
+  --accent-foreground: #F2F2F2;
+  --destructive: #FF6B55;
+  --border: rgb(255 255 255 / 10%);
+  --input: rgb(255 255 255 / 15%);
+  --ring: #7086FF;
+  --subtle: #1A1A1A;
+  --ok: #2BD39E;
+  --ok-text: #2BD39E;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-size: 0.875rem; /* 14px: the workspace is a dense tool, not a reading page */
+    line-height: 1.5;
+  }
+
+  a[href],
+  area[href],
+  button:not(:disabled),
+  summary,
+  label[for],
+  select:not(:disabled),
+  input:is([type="button"], [type="submit"], [type="reset"], [type="image"], [type="checkbox"], [type="radio"], [type="file"], [type="color"], [type="range"]):not(:disabled),
+  :is([role="button"], [role="link"], [role="tab"], [role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"], [role="option"], [role="switch"], [role="checkbox"], [role="radio"]):not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+
+  input:not(:disabled)::file-selector-button {
+    cursor: pointer;
+  }
+
+  /* Visible, monochrome focus ring everywhere */
+  :focus-visible {
+    outline: 2px solid var(--foreground);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  ::selection {
+    background: var(--foreground);
+    color: var(--background);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Grid cell states (SPEC §6.2): faint tint + bottom rule; colour only for problems. */
+@layer components {
+  .cell-error {
+    background: color-mix(in oklab, var(--destructive) 9%, transparent);
+    box-shadow: inset 0 -2px 0 var(--destructive);
+  }
+  .cell-warning {
+    background: color-mix(in oklab, var(--color-amber-500) 10%, transparent);
+    box-shadow: inset 0 -2px 0 var(--color-amber-500);
+  }
+}

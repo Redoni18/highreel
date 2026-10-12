@@ -1,0 +1,4 @@
+-- No seed data since M2a: every business belongs to a signed-in user, and a
+-- new user's business and first campaign are created on their first visit
+-- (GET /api/workspace). Use "Try it without an account" on /login, then
+-- "Use sample data", for the demo.

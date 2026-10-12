@@ -1,0 +1,225 @@
+/*
+ * Recap scenes (SPEC M2.5 P1), shared by every slide. Not scoped: the
+ * transitions style the slide roots from the player, and scenes share the
+ * text roles below.
+ *
+ * Rules every scene follows:
+ * - Only transform and opacity animate, so motion runs on the compositor.
+ * - An element's base style is its end state; keyframes only describe how it
+ *   gets there. So `animation: none` (reduced motion) shows the finished scene.
+ * - Timing comes from data (CSS variables set by the scene), never from
+ *   clocks or random numbers, so the same recap always plays the same way.
+ */
+
+.recap {
+  /* 1u = 1/100 of the 9:16 frame's width, on a phone, a desktop or the 380 px preview */
+  --u: min(1cqw, 0.5625cqh);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  /* Springs; cubic-bezier stand-ins where linear() isn't supported (Safari < 17.2) */
+  --ease-pop: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-soft: cubic-bezier(0.25, 1.15, 0.5, 1);
+  --ease-drop: cubic-bezier(0.3, 1.45, 0.55, 1);
+}
+@supports (animation-timing-function: linear(0, 1)) {
+  .recap {
+    /* stiffness 320, damping 17: settles in ~770 ms, 18 % overshoot */
+    --ease-pop: linear(0, 0.06, 0.204, 0.382, 0.572, 0.76, 0.912, 1.031, 1.113, 1.163, 1.181, 1.176, 1.154, 1.123, 1.089, 1.053, 1.024, 1.001, 0.983, 0.972, 0.968, 0.967, 0.971, 0.976, 0.982, 0.988, 0.994, 0.999, 1.002, 1.005, 1.006, 1.006, 1.006, 1.005, 1.004, 1.002, 1.001, 1, 1, 0.999, 1);
+    /* stiffness 200, damping 22: a 2 % settle */
+    --ease-soft: linear(0, 0.027, 0.088, 0.171, 0.264, 0.362, 0.458, 0.549, 0.632, 0.706, 0.774, 0.829, 0.875, 0.912, 0.942, 0.966, 0.984, 0.997, 1.007, 1.013, 1.017, 1.019, 1.019, 1.019, 1.018, 1.016, 1.014, 1.013, 1.011, 1.009, 1.007, 1.006, 1.004, 1.003, 1.003, 1.002, 1.001, 1.001, 1, 1, 1);
+    /* stiffness 420, damping 19: a landing bounce */
+    --ease-drop: linear(0, 0.084, 0.269, 0.496, 0.721, 0.913, 1.056, 1.145, 1.186, 1.188, 1.163, 1.126, 1.082, 1.04, 1.007, 0.983, 0.969, 0.964, 0.965, 0.971, 0.979, 0.987, 0.995, 1.001, 1.005, 1.007, 1.007, 1.006, 1.005, 1.003, 1.002, 1.001, 1, 0.999, 0.999, 0.999, 0.999, 0.999, 0.999, 1, 1);
+  }
+}
+/* Paper: calmer. No overshoot. */
+.recap.theme-paper {
+  --ease-pop: var(--ease-out);
+  --ease-soft: var(--ease-out);
+  --ease-drop: var(--ease-out);
+}
+
+/* Hold to pause: everything in the slide freezes, like a story. */
+.recap.is-held .slide *,
+.recap.is-held .slide *::before,
+.recap.is-held .slide *::after {
+  animation-play-state: paused !important;
+}
+
+/* Reduced motion: no animation at all, so every scene shows its end state. */
+.recap.is-reduced .slide *,
+.recap.is-reduced .slide *::before,
+.recap.is-reduced .slide *::after {
+  animation: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .recap .slide *,
+  .recap .slide *::before,
+  .recap .slide *::after {
+    animation: none !important;
+  }
+}
+
+/* --- Slide frame --------------------------------------------------------------- */
+
+.recap .slide {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+/* --recap-inset-top: room for a phone's status bar when a page frames the
+   recap (the landing's PhoneFrame); the slide's colour still runs behind it. */
+.recap .slide-inner {
+  position: absolute;
+  inset: var(--recap-inset-top, 0px) 0 0 0;
+}
+.recap .s-body {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: calc(16 * var(--u)) calc(8 * var(--u)) calc(18 * var(--u));
+}
+
+/* --- Text roles ---------------------------------------------------------------- */
+
+.recap .s-kicker {
+  font-size: calc(3.8 * var(--u));
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+.recap .s-line {
+  font-size: calc(7.4 * var(--u));
+  line-height: 1.12;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+.recap .big {
+  font-weight: 700;
+  line-height: 0.95;
+  letter-spacing: -0.05em;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.recap .big-text {
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
+}
+.recap .s-small {
+  font-size: calc(4.4 * var(--u));
+  font-weight: 500;
+  opacity: 0.78;
+}
+.recap .paper .big {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  letter-spacing: -0.06em;
+}
+.recap .paper .s-kicker,
+.recap .paper .s-small {
+  font-family: var(--font-mono);
+  letter-spacing: 0.02em;
+}
+
+/* Rise into place; --d is the delay. */
+.recap .rise {
+  animation: rcp-rise 700ms var(--ease-out) both;
+  animation-delay: var(--d, 0ms);
+}
+@keyframes rcp-rise {
+  from { opacity: 0; transform: translateY(calc(5 * var(--u))); }
+}
+.recap .fade-in {
+  animation: rcp-fade 600ms ease-out both;
+  animation-delay: var(--d, 0ms);
+}
+@keyframes rcp-fade {
+  from { opacity: 0; }
+}
+
+/* Words that rise behind a mask (cover title, the "since" date). */
+.recap .mask {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: top;
+  /* room for descenders inside the mask */
+  padding-bottom: 0.12em;
+  margin-bottom: -0.12em;
+}
+.recap .mask > .wi {
+  display: inline-block;
+  animation: rcp-mask-rise 760ms var(--ease-out) both;
+  animation-delay: var(--d, 0ms);
+}
+@keyframes rcp-mask-rise {
+  from { transform: translateY(112%); }
+}
+
+/* --- Transitions between slides (named by the incoming scene) ------------------- */
+
+.recap .t-wipe-enter-active,
+.recap .t-wipe-enter-active .slide-inner,
+.recap .t-wipe-leave-active {
+  transition: transform 640ms var(--ease-out);
+}
+.recap .t-wipe-enter-active,
+.recap .t-push-enter-active,
+.recap .t-zoom-enter-active,
+.recap .t-flood-enter-active,
+.recap .t-rise-enter-active {
+  z-index: 1;
+}
+.recap .t-wipe-enter-from { transform: translateX(100%); }
+.recap .t-wipe-enter-from .slide-inner { transform: translateX(-100%); }
+.recap .t-wipe-leave-to { transform: translateX(-25%); }
+
+.recap .t-push-enter-active,
+.recap .t-push-leave-active {
+  transition: transform 620ms var(--ease-out), opacity 620ms var(--ease-out);
+}
+.recap .t-push-enter-from { transform: translateX(100%); }
+.recap .t-push-leave-to { transform: translateX(-35%); opacity: 0.4; }
+
+.recap .t-zoom-enter-active,
+.recap .t-zoom-leave-active {
+  transition: transform 560ms var(--ease-out), opacity 420ms ease-out;
+}
+.recap .t-zoom-enter-from { transform: scale(1.14); opacity: 0; }
+.recap .t-zoom-leave-to { transform: scale(0.92); opacity: 0; }
+
+/* Colour flood: the next slide's colour spreads out from the middle. */
+.recap .t-flood-enter-active {
+  transition: clip-path 720ms var(--ease-in-out);
+}
+.recap .t-flood-enter-active .slide-inner {
+  transition: opacity 420ms ease-out 260ms;
+}
+.recap .t-flood-enter-from { clip-path: circle(0% at 50% 55%); }
+.recap .t-flood-enter-to { clip-path: circle(120% at 50% 55%); }
+.recap .t-flood-enter-from .slide-inner { opacity: 0; }
+.recap .t-flood-leave-active { transition: transform 720ms var(--ease-out); }
+.recap .t-flood-leave-to { transform: scale(0.94); }
+
+.recap .t-rise-enter-active,
+.recap .t-rise-leave-active {
+  transition: transform 700ms var(--ease-soft), opacity 500ms ease-out;
+}
+.recap .t-rise-enter-from { transform: translateY(100%); }
+.recap .t-rise-leave-to { transform: translateY(-12%) scale(0.96); opacity: 0.3; }
+
+.recap .t-fade-enter-active,
+.recap .t-fade-leave-active,
+.recap .t-back-enter-active,
+.recap .t-back-leave-active {
+  transition: opacity 300ms ease;
+}
+.recap .t-fade-enter-from,
+.recap .t-fade-leave-to,
+.recap .t-back-enter-from,
+.recap .t-back-leave-to {
+  opacity: 0;
+}

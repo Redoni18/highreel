@@ -1,0 +1,203 @@
+// Landing (SPEC M2.5 P2, restyled after trysundrop.app): server-rendered
+// headline and price, all five examples play on a shape in their business's
+// colour (rendered once near the screen), the steps pop in as they scroll
+// into view, the sticky Try the demo, self-hosted Outfit and Caveat subset,
+// Open it full screen, no horizontal scroll at 390 px, reduced motion, no
+// third-party requests, link-preview image; search: canonical links,
+// structured data, robots.txt, the sitemap, icons, noindex on private pages.
+import { BASE, expect, finish, launch, watchErrors } from './lib.mjs'
+
+// Mirrors app/data/examples.ts
+const EXAMPLES = [
+  { label: 'App', business: 'Habitly', accent: '#4F46E5' },
+  { label: 'Newsletter', business: 'The Weekly Bite', accent: '#C8341B' },
+  { label: 'Online shop', business: 'Bean & Leaf', accent: '#1F6F4A' },
+  { label: 'Fitness studio', business: 'Forma Studio', accent: '#E2457A' },
+  { label: 'Summer camp', business: 'Sunny Hill Camp', accent: '#F5C518' },
+]
+
+const html = await (await fetch(BASE)).text()
+const plain = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ')
+expect(/Give every customer their year(?:'|&#39;)s highlight reel\./.test(plain), 'headline is in the server-rendered HTML')
+expect(plain.includes('$99') && plain.includes('per campaign'), 'the $99 price is in the server-rendered HTML')
+expect(!html.includes('aria-roledescription="story"') && !html.includes('v-sheet'), 'the phone\'s recap and the step pictures render near the screen, not in the server HTML')
+// Named Highreel on 2026-10-12: the title and both wordmarks say so; "recap" is only the word for what customers get.
+expect(html.includes('<title>Highreel · '), 'the page title names Highreel', html.match(/<title>[^<]*/)?.[0])
+expect((html.match(/class="[^"]*\bwordmark\b[^"]*"[^>]*>highreel</g) ?? []).length === 2, 'both wordmarks read highreel')
+// The page speaks to any business: example businesses only appear inside the phone.
+const named = EXAMPLES.map(e => e.business).concat(['Farm', 'goat', 'barn']).filter(n => plain.toLowerCase().includes(n.toLowerCase()))
+expect(!named.length, 'the page around the phone names no example business', named)
+expect(EXAMPLES.every(e => plain.includes(e.label)), 'the switcher names five kinds of business')
+
+// Search (SPEC M2.11): canonical and link previews name the public site; the
+// structured data says what the page says; robots.txt, the sitemap and icons.
+const SITE = 'https://highreel.app'
+const attr = (re) => html.match(re)?.[1]
+expect(attr(/<link rel="canonical" href="([^"]+)"/) === `${SITE}/` && attr(/<meta property="og:url" content="([^"]+)"/) === `${SITE}/`, 'canonical and og:url name the public site')
+const desc = attr(/<meta name="description" content="([^"]+)"/) ?? ''
+expect(desc.length >= 70 && desc.length <= 160, 'the description fits a search result (70–160 characters)', desc.length)
+expect(!/<meta name="robots"[^>]*noindex/.test(html) && (html.match(/<h1\b/g) ?? []).length === 1, 'the landing is indexable and has one h1')
+const ld = JSON.parse(attr(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/) ?? '{}')
+const graph = Object.fromEntries((ld['@graph'] ?? []).map(n => [n['@type'], n]))
+const questions = [...html.matchAll(/<summary[^>]*>([\s\S]*?)<\/summary>/g)].map(m => m[1].replace(/<[^>]+>/g, '').trim())
+expect(graph.Organization?.legalName === 'HighReel' && graph.Organization.email === 'hello@highreel.app' && graph.WebSite && graph.FAQPage?.mainEntity.map(q => q.name).join('|') === questions.join('|'), 'structured data: the organisation (legal name, contact), the site and the questions as shown', questions)
+expect(graph.SoftwareApplication?.offers.map(o => o.price).join(',') === '99,399,799' && graph.SoftwareApplication.offers.every(o => o.priceCurrency === 'USD'), 'structured data: the three prices', graph.SoftwareApplication?.offers)
+const robots = await (await fetch(`${BASE}/robots.txt`)).text()
+expect(/^Disallow: \/app$/m.test(robots) && !/^Disallow: \/(r\/?)?$/m.test(robots) && robots.includes(`Sitemap: ${SITE}/sitemap.xml`), 'robots.txt keeps search out of the workspace, not recaps, and names the sitemap', robots)
+const sitemap = await (await fetch(`${BASE}/sitemap.xml`)).text()
+const listed = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map(m => m[1].replace(SITE, ''))
+const live = await Promise.all(listed.map(async u => (await fetch(`${BASE}${u}`)).status))
+expect(listed[0] === '/' && listed.length === 8 && listed.includes('/terms') && listed.includes('/privacy') && live.every(st => st === 200), 'the sitemap lists the landing, the five examples, the terms and privacy, all live', listed)
+const icons = await Promise.all([['/favicon.ico', 'image/vnd.microsoft.icon'], ['/icon.svg', 'image/svg+xml'], ['/apple-touch-icon.png', 'image/png'], ['/icon-512.png', 'image/png']]
+  .map(async ([u, type]) => { const r = await fetch(`${BASE}${u}`); return r.status === 200 && r.headers.get('content-type') === type }))
+const manifest = await (await fetch(`${BASE}/site.webmanifest`)).json()
+expect(icons.every(Boolean) && html.includes('rel="icon" href="/icon.svg"') && html.includes('rel="apple-touch-icon"') && manifest.name === 'Highreel' && manifest.icons.length === 3, 'favicon, SVG icon, touch icon and web manifest', icons)
+const noindex = await Promise.all(['/login', '/app', '/r/nope'].map(async u => (await fetch(`${BASE}${u}`, { redirect: 'manual' })).headers.get('x-robots-tag')))
+expect(noindex.every(h => h === 'noindex'), 'sign-in, the workspace and recaps tell search engines not to index them', noindex)
+const exampleHtml = await (await fetch(`${BASE}/example/camp`)).text()
+expect(exampleHtml.includes(`<link rel="canonical" href="${SITE}/example/camp">`) && exampleHtml.includes('>← highreel<'), 'an example has its canonical link and the Highreel wordmark')
+
+const browser = await launch()
+const errors = []
+const thirdParty = []
+async function newPage(opts) {
+  const page = await (await browser.newContext(opts)).newPage()
+  // the unknown-example check below expects a 404
+  watchErrors(page, errors, /status of 404/)
+  page.on('request', (r) => {
+    const u = r.url()
+    if (!u.startsWith(BASE) && !/^(data|blob):/.test(u))
+      thirdParty.push(u)
+  })
+  return page
+}
+
+// Desktop
+const page = await newPage({ viewport: { width: 1280, height: 800 } })
+await page.goto(BASE, { waitUntil: 'networkidle' })
+expect((await page.locator('h1.headline').innerText()).replace(/\s+/g, ' ') === 'Give every customer their year\'s highlight reel.', 'the headline reads right')
+const fonts = await page.evaluate(async () => {
+  await document.fonts.ready
+  return document.fonts.check('600 40px Outfit') && document.fonts.check('400 24px "Recap Notes"')
+})
+expect(fonts, 'Outfit and the Caveat subset load (self-hosted)')
+expect(!(await page.locator('.sticky-cta').isVisible()), 'no sticky button while the hero\'s is on screen')
+// The hero moves on its own: blobs morph (SMIL), lines draw, pieces float; it all stops off screen.
+const hero = await page.evaluate(() => ({
+  blobs: document.querySelectorAll('.hero svg.blob animate[attributeName="d"]').length,
+  paused: [...document.querySelectorAll('.hero svg.blob')].some(s => s.animationsPaused()),
+  lines: document.querySelectorAll('.hero .doodle path').length,
+  flowers: document.querySelectorAll('.hero .bits > svg use').length,
+}))
+expect(hero.blobs >= 4 && !hero.paused && hero.lines >= 3 && hero.flowers === 0, 'the hero has morphing blobs and drawn lines, no flower shapes', hero)
+// The example sits in an iPhone: island and status bar over a recap that fills the screen.
+await page.evaluate(() => document.querySelector('#examples').scrollIntoView({ block: 'start', behavior: 'instant' }))
+await page.waitForSelector('#examples .phone .recap')
+await page.waitForTimeout(600)
+const frame = await page.evaluate(() => {
+  const glass = document.querySelector('#examples .phone .glass').getBoundingClientRect()
+  const recap = document.querySelector('#examples .phone .recap').getBoundingClientRect()
+  return {
+    island: !!document.querySelector('#examples .phone .island'),
+    fills: Math.abs(glass.width - recap.width) < 1 && Math.abs(glass.height - recap.height) < 1,
+    morphPaused: [...document.querySelectorAll('.hero svg.blob')].every(s => s.animationsPaused()),
+  }
+})
+expect(frame.island && frame.fills, 'the example recap fills an iPhone screen under its Dynamic Island', frame)
+expect(frame.morphPaused, 'the hero\'s blobs stop morphing off screen')
+await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }))
+const phone = page.locator('#examples .phone .recap')
+for (const ex of EXAMPLES) {
+  await page.locator('.switcher button', { hasText: ex.label }).click()
+  await page.waitForTimeout(800) // the shape swap
+  const label = await phone.getAttribute('aria-label')
+  await phone.evaluate(el => el.scrollIntoView({ block: 'center', behavior: 'instant' }))
+  const box = await phone.boundingBox()
+  await page.mouse.click(box.x + box.width * 0.8, box.y + box.height / 2)
+  await page.waitForTimeout(150)
+  await page.mouse.click(box.x + box.width * 0.8, box.y + box.height / 2)
+  await page.waitForTimeout(150)
+  const progress = await page.locator('#examples .phone .sr-only[aria-live]').innerText()
+  const scene = await page.locator('#examples .phone .slide').last().getAttribute('data-scene')
+  const shape = await page.evaluate(() => {
+    const on = document.querySelectorAll('#examples .stage-shape.on')
+    return { count: on.length, color: on[0] && getComputedStyle(on[0]).color, opacity: on[0] && getComputedStyle(on[0]).opacity }
+  })
+  const hex = ex.accent.toLowerCase()
+  const rgb = `rgb(${[1, 3, 5].map(i => Number.parseInt(hex.slice(i, i + 2), 16)).join(', ')})`
+  expect(label.includes(ex.business) && progress.startsWith('Slide 3 of') && scene !== 'cover', `${ex.label} example plays (${ex.business}, ${progress}, ${scene})`)
+  expect(shape.count === 1 && shape.color === rgb && shape.opacity === '1', `${ex.label}: the phone sits on ${ex.accent}`, shape)
+}
+
+// How it works: each step waits below the fold, then pops in with its picture.
+expect(await page.locator('.step.gate').count() === 3, 'the steps wait below the fold')
+for (const [i, name] of ['sheet', 'brand', 'share'].entries()) {
+  await page.evaluate(i => document.querySelectorAll('.step')[i].scrollIntoView({ block: 'center' }), i)
+  await page.waitForTimeout(1300)
+  const step = await page.evaluate((i) => {
+    const el = document.querySelectorAll('.step')[i]
+    return { in: el.classList.contains('in'), window: getComputedStyle(el.querySelector('.window')).opacity, pictures: el.querySelectorAll('.v-sheet, .v-brand, .v-share').length }
+  }, i)
+  expect(step.in && step.window === '1' && step.pictures === 1, `step ${i + 1} (${name}) pops in with its picture`, step)
+}
+expect(await page.locator('.sticky-cta').isVisible(), 'the sticky Try the demo shows once the hero\'s button is gone')
+expect(await page.locator('.qa').count() === 4, 'four questions under the price')
+const tiers = (await page.locator('.tier').allInnerTexts()).map(t => t.replace(/\s+/g, ' '))
+expect(tiers.length === 3 && tiers[0].includes('Up to 1,000 customers') && tiers[0].includes('$99') && tiers[0].includes('$199') && tiers[1].includes('$399') && tiers[2].includes('$799') && tiers.every(t => t.includes('for the whole campaign')),
+  'three list sizes, each one price for the whole campaign', tiers)
+// The step pictures use the same phone as the example.
+expect(await page.locator('.v-brand .iphone').count() === 1 && await page.locator('.v-share .iphone').count() === 3, 'the step pictures use the iPhone frame')
+await page.locator('.closing .btn').scrollIntoViewIfNeeded()
+await page.waitForTimeout(500)
+expect(!(await page.locator('.sticky-cta').isVisible()), 'the sticky button hides at the closing one')
+const og = await page.locator('meta[property="og:image"]').getAttribute('content')
+const ogRes = await fetch(`${BASE}/og.png`)
+expect(og === `${SITE}/og.png` && ogRes.status === 200 && ogRes.headers.get('content-type') === 'image/png', 'the landing has a link-preview image', og)
+
+// See an example
+await page.evaluate(() => window.scrollTo(0, 0))
+await page.locator('.switcher button', { hasText: 'Summer camp' }).click()
+await page.getByRole('link', { name: 'Open it full screen' }).click()
+await page.waitForURL('**/example/camp')
+await page.waitForSelector('.recap')
+expect((await page.locator('.recap').getAttribute('aria-label')).includes('Sunny Hill Camp'), 'Open it full screen opens the camp recap')
+const missing = await page.goto(`${BASE}/example/nope`)
+expect(missing.status() === 404, 'unknown examples are 404s', missing.status())
+
+// Phone
+const m = await newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 })
+await m.goto(BASE, { waitUntil: 'networkidle' })
+const widths = await m.evaluate(async () => {
+  const out = []
+  for (const y of [0, 900, 2000, 3500, 5000, document.body.scrollHeight]) {
+    window.scrollTo(0, y)
+    await new Promise(r => setTimeout(r, 120))
+    out.push(document.documentElement.scrollWidth)
+  }
+  return out
+})
+expect(widths.every(w => w <= 390), 'no horizontal scroll at 390 px', widths)
+const pieces = await m.evaluate(() => [...document.querySelectorAll('.hero .bit')].filter(el => getComputedStyle(el).display !== 'none').length)
+expect(pieces > 0 && pieces < 12, 'phones get fewer pieces around the hero', pieces)
+expect(await m.locator('.step .window').nth(2).isVisible(), 'phones get every step with its picture')
+
+// Reduced motion: still headline, still pictures.
+const rm = await newPage({ viewport: { width: 1280, height: 800 }, reducedMotion: 'reduce' })
+await rm.goto(BASE, { waitUntil: 'networkidle' })
+const running = await rm.evaluate(() => ({
+  pieces: [...document.querySelectorAll('.pop, .rise')].reduce((n, el) => n + el.getAnimations().length, 0),
+  vignettes: [...document.querySelectorAll('.v-sheet *, .v-brand *, .v-share *')].reduce((n, el) => n + el.getAnimations().length, 0),
+  gated: document.querySelectorAll('.gate').length,
+  closing: getComputedStyle(document.querySelector('.closing-title')).opacity,
+  ambient: [...document.querySelectorAll('.hero .spin, .hero .doodle path, .hero .piece > span')].reduce((n, el) => n + el.getAnimations().length, 0),
+  morphing: [...document.querySelectorAll('.hero svg.blob')].some(s => !s.animationsPaused()),
+}))
+expect(running.pieces === 0 && running.vignettes === 0 && running.ambient === 0 && !running.morphing && running.gated === 0 && running.closing === '1', 'reduced motion: nothing animates or waits on the page', running)
+await rm.locator('.switcher button', { hasText: 'Shop' }).click()
+await rm.waitForTimeout(60)
+const swap = await rm.evaluate(() => getComputedStyle(document.querySelector('#examples .stage-shape.on')).opacity)
+expect(swap === '1', 'reduced motion: switching examples swaps the shape at once', swap)
+
+expect(thirdParty.length === 0, 'no third-party requests', thirdParty.slice(0, 3))
+await browser.close()
+finish(errors)

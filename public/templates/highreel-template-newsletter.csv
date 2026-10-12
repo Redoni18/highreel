@@ -1,0 +1,3 @@
+subscriber_id,first_name,email,phone,subscribed_since,issues_opened,links_clicked,favorite_issue_title,reading_streak_weeks,referrals,top_percent,personal_note
+sub_001,Ana,ana@example.com,+44 7700 900001,2024-05-02,48,96,Soup season,19,3,,
+sub_002,Liam,liam@example.com,,2026-02-11,12,4,,4,0,,

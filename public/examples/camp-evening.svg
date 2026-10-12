@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1500" width="1200" height="1500">
+  <!-- Illustration for the example recap (SPEC M2.5 P2): the last evening at camp. No people. -->
+  <defs>
+    <linearGradient id="dusk" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2B2D6E"/>
+      <stop offset="0.45" stop-color="#C35C7A"/>
+      <stop offset="0.75" stop-color="#F59E5B"/>
+      <stop offset="1" stop-color="#FFD27A"/>
+    </linearGradient>
+    <radialGradient id="glow">
+      <stop offset="0" stop-color="#FFE9A8" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#FFE9A8" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="fire">
+      <stop offset="0" stop-color="#FFC163" stop-opacity="0.85"/>
+      <stop offset="1" stop-color="#FF7A3D" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="1500" fill="url(#dusk)"/>
+  <g fill="#FFFFFF">
+    <circle cx="140" cy="120" r="4"/><circle cx="320" cy="210" r="3"/><circle cx="520" cy="90" r="5"/><circle cx="760" cy="170" r="3"/>
+    <circle cx="980" cy="110" r="4"/><circle cx="1080" cy="260" r="3"/><circle cx="420" cy="300" r="3"/><circle cx="880" cy="330" r="2.5"/>
+  </g>
+  <circle cx="860" cy="250" r="64" fill="#FFF3D6"/>
+  <path d="M0 900 Q300 800 600 860 T1200 820 V1500 H0 Z" fill="#6E3B5C"/>
+  <!-- pines -->
+  <g fill="#3A2240">
+    <path d="M40 980 L120 640 L200 980 Z"/><path d="M150 1000 L250 560 L350 1000 Z"/><path d="M300 990 L370 700 L440 990 Z"/>
+    <path d="M880 990 L950 690 L1020 990 Z"/><path d="M960 1010 L1060 580 L1160 1010 Z"/><path d="M1100 990 L1160 720 L1220 990 Z"/>
+  </g>
+  <path d="M0 1040 Q360 970 760 1020 T1200 1000 V1500 H0 Z" fill="#3E2747"/>
+  <!-- string lights between the pines -->
+  <path d="M250 760 Q600 900 1060 740" fill="none" stroke="#2A1B33" stroke-width="4"/>
+  <g>
+    <circle cx="340" cy="808" r="34" fill="url(#glow)"/><circle cx="340" cy="808" r="9" fill="#FFE39A"/>
+    <circle cx="450" cy="845" r="34" fill="url(#glow)"/><circle cx="450" cy="845" r="9" fill="#FFB8A0"/>
+    <circle cx="560" cy="862" r="34" fill="url(#glow)"/><circle cx="560" cy="862" r="9" fill="#FFE39A"/>
+    <circle cx="670" cy="860" r="34" fill="url(#glow)"/><circle cx="670" cy="860" r="9" fill="#A8E6FF"/>
+    <circle cx="780" cy="840" r="34" fill="url(#glow)"/><circle cx="780" cy="840" r="9" fill="#FFE39A"/>
+    <circle cx="890" cy="806" r="34" fill="url(#glow)"/><circle cx="890" cy="806" r="9" fill="#FFB8A0"/>
+    <circle cx="990" cy="768" r="34" fill="url(#glow)"/><circle cx="990" cy="768" r="9" fill="#FFE39A"/>
+  </g>
+  <!-- tents, lit from inside -->
+  <g transform="translate(90 930)">
+    <path d="M0 250 L170 20 L340 250 Z" fill="#2A1B33"/>
+    <path d="M170 20 L220 250 H120 Z" fill="#F9C46B"/>
+  </g>
+  <g transform="translate(830 960)">
+    <path d="M0 220 L150 20 L300 220 Z" fill="#2A1B33"/>
+    <path d="M150 20 L192 220 H108 Z" fill="#F59E5B"/>
+  </g>
+  <!-- campfire -->
+  <circle cx="600" cy="1250" r="300" fill="url(#fire)"/>
+  <g transform="translate(600 1290)">
+    <path d="M-120 40 L110 -10" stroke="#5A3420" stroke-width="34" stroke-linecap="round"/>
+    <path d="M-110 -10 L120 40" stroke="#6E4027" stroke-width="34" stroke-linecap="round"/>
+    <path d="M0 -10 Q-90 -90 -30 -190 Q-20 -120 10 -130 Q0 -200 60 -250 Q50 -170 90 -120 Q120 -60 60 -10 Z" fill="#FF7A3D"/>
+    <path d="M10 -14 Q-40 -70 0 -140 Q10 -90 40 -90 Q70 -50 40 -14 Z" fill="#FFC163"/>
+    <path d="M18 -18 Q0 -50 20 -82 Q40 -52 30 -18 Z" fill="#FFF2A8"/>
+  </g>
+  <!-- sparks -->
+  <g fill="#FFE39A">
+    <circle cx="560" cy="1000" r="5"/><circle cx="640" cy="950" r="4"/><circle cx="600" cy="900" r="3"/><circle cx="680" cy="1020" r="4"/>
+  </g>
+  <!-- log benches -->
+  <g fill="#24162C">
+    <rect x="250" y="1330" width="200" height="44" rx="22"/>
+    <rect x="760" y="1330" width="200" height="44" rx="22"/>
+  </g>
+  <path d="M0 1400 Q600 1370 1200 1410 V1500 H0 Z" fill="#24162C"/>
+  <!-- fireflies -->
+  <g fill="#FFF2A8" opacity="0.9">
+    <circle cx="160" cy="1180" r="5"/><circle cx="1060" cy="1200" r="5"/><circle cx="300" cy="1460" r="5"/><circle cx="1040" cy="1470" r="5"/>
+  </g>
+</svg>

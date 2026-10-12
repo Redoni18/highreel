@@ -1,0 +1,3 @@
+participant_id,first_name,email,phone,visit_date,days,activities_done,highlight,badge,personal_note
+kid_001,Arta,parent@example.com,+44 7700 900001,2026-07-14,2,14,The treasure hunt,Brave swimmer,You were so brave on the climbing wall!
+kid_002,Dren,,,2026-07-14,1,6,Campfire songs,,
