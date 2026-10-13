@@ -38,10 +38,15 @@ jobs:
             exit 1
           fi
       - uses: actions/checkout@v5
+      # No package-manager cache: setup-node would look for pnpm before
+      # corepack (next step) provides it, and fail.
       - uses: actions/setup-node@v5
         with:
           node-version-file: .node-version
+          package-manager-cache: false
       - run: corepack enable
+        env:
+          COREPACK_ENABLE_DOWNLOAD_PROMPT: 0
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm test
