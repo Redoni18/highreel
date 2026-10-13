@@ -11,6 +11,13 @@
   // node:net, node:tls and node:dns (resolve*, not lookup) come from workerd itself:
   // nodemailer talks SMTP through them.
   "compatibility_flags": ["nodejs_compat"],
+  // Served on highreel.app only (P7): no workers.dev address or preview URLs, so
+  // there's one origin for links, sign-in and Turnstile (its widget allows highreel.app).
+  "routes": [{ "pattern": "highreel.app", "custom_domain": true }],
+  "workers_dev": false,
+  "preview_urls": false,
+  // Workers Logs: requests and the jobs' counts (the app logs no addresses or names).
+  "observability": { "enabled": true },
   "assets": {
     "directory": ".output/public",
     "binding": "ASSETS",
@@ -22,9 +29,9 @@
     {
       "binding": "DB",
       "database_name": "highreel",
-      // Placeholder until P7 creates the database (`wrangler d1 create highreel
-      // --jurisdiction=eu`) and its id goes here. Local development doesn't need a real one.
-      "database_id": "00000000-0000-4000-8000-000000000000",
+      // Made 2026-10-13 in the EU jurisdiction (`wrangler d1 create highreel
+      // --jurisdiction eu`). Local development uses its own copy (.wrangler/state/v3).
+      "database_id": "8eb220db-ac4a-49be-afa4-66a08da5444e",
       "migrations_dir": "migrations"
     }
   ],

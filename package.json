@@ -17,6 +17,9 @@
     "check:isolation": "node scripts/check-isolation.mjs",
     "db:migrate": "wrangler d1 migrations apply highreel --local",
     "db:reset": "rm -rf .wrangler/state/v3/d1 && wrangler d1 migrations apply highreel --local",
+    "db:migrate:remote": "wrangler d1 migrations apply highreel --remote",
+    "deploy": "nuxt build && wrangler deploy",
+    "mail": "command -v mailpit >/dev/null || { echo 'Mailpit is the local test inbox: brew install mailpit' >&2; exit 1; }; mailpit --listen 127.0.0.1:54424 --smtp 127.0.0.1:54425 --smtp-disable-rdns",
     "e2e": "node tests/e2e/run-all.mjs"
   },
   "dependencies": {

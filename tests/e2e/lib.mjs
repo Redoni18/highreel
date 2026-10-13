@@ -1,9 +1,10 @@
 // Shared helpers for the browser checks in tests/e2e. They drive the
 // installed Google Chrome headless through playwright-core (no browser
 // download), against the dev server on :3040. Emails (sign-in links, recap
-// emails) land in Mailpit, which runs with local Supabase until M2.14 P5.
+// emails) land in Mailpit, the local test inbox.
 //
-//   supabase start && corepack pnpm dev      # in another terminal
+//   corepack pnpm mail                       # in one terminal (brew install mailpit)
+//   corepack pnpm dev                        # in another
 //   corepack pnpm e2e                        # all checks
 //   node tests/e2e/recap.mjs                 # one check
 //

@@ -7,7 +7,7 @@
 // recap from the business's address, with an unsubscribe link and the
 // one-click headers. Nothing goes twice, the account's daily limit holds, and
 // deleting the recap keeps the log. The email preview sits in an iPhone with
-// nothing clickable. Mailpit (local Supabase's SMTP on 54425) receives it all.
+// nothing clickable. Mailpit (`corepack pnpm mail`, SMTP on 54425) receives it all.
 import { BASE, campaignId, demoSession, expect, finish, keepWork, launch, mailpitHeaders, mailpitMessage, mailpitSearch, publish, rowsOf, sql, tab, tokenFor, watchErrors } from './lib.mjs'
 
 const startedAt = Date.now() - 1000

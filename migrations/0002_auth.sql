@@ -28,10 +28,10 @@ create index "verification_identifier_idx" on "verification" ("identifier");
 -- businesses.owner_id becomes a reference to the user, so deleting a user
 -- (a demo after it's kept or cleaned up, an account deletion) deletes the
 -- business and, by cascade, everything in it. SQLite can't add a foreign key
--- to an existing table, so the table is made again. The rows there were owned
--- by Supabase Auth's users, which don't exist here: nothing is live (SPEC
--- M2.14), so local data goes (campaigns and the rest cascade). A business's
--- files in R2 stay behind; `corepack pnpm db:reset` users can ignore them.
+-- to an existing table, so the table is made again. Its earlier rows had no
+-- user in this database and go (nothing was live, SPEC M2.14), their
+-- campaigns and the rest by cascade. Their files in R2 stay behind;
+-- `corepack pnpm db:reset` users can ignore them.
 delete from businesses;
 drop table businesses;
 create table businesses (

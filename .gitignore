@@ -30,10 +30,6 @@ logs
 .wrangler
 .dev.vars*
 
-# Supabase local
-supabase/.branches
-supabase/.temp
-
 # Browser checks (tests/e2e)
 tests/e2e/.out
 tests/e2e/.fixtures

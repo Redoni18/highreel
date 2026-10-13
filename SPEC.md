@@ -208,18 +208,21 @@ Changed 2026-10-11 at the owner's ask: past the landing the app "looked very ind
 
 ## 7. Architecture
 
-### 7.1 Stack (verified 2026-10-11)
+### 7.1 Stack (checked 2026-10-13)
 
-- Nuxt **4.6.1** (`app/` directory), Vue 3.5, TypeScript strict.
-- shadcn-vue via `shadcn-nuxt` **2.8.2** (style `reka-vega`, components in `app/components/ui`, reka-ui 2.11). Installed: button, badge, input, tooltip, separator, dialog, sheet, dropdown-menu, sonner (`vue-sonner` 2), toggle-group, label, textarea. `components.json` has no `font` key on purpose: with one, `shadcn-vue add` injects a Google Fonts `@import` into `main.css`, a third-party request on recap pages. Fonts stay self-hosted by `@nuxt/fonts`.
-- Tailwind v4 via `@tailwindcss/vite`, `tw-animate-css`, `@nuxtjs/color-mode`, `@nuxt/fonts`, `@lucide/vue` icons.
-- Added in M1: `@tanstack/vue-table` **9** (v9 API: `useTable` + `tableFeatures({ columnSizingFeature, columnResizingFeature })`; only sizing is used, filtering is done before the data reaches the table), `@tanstack/vue-virtual` 3, `papaparse`, `nanoid` 6, `@supabase/supabase-js` 2.117, `vitest` (`corepack pnpm test`).
-- Supabase (Postgres, Auth, Storage), local in development via the Supabase CLI (2.107 installed; Docker is running on this Mac). Since M2a: `@nuxtjs/supabase` 2.0 for cookie sessions; workspace routes query as the signed-in user (`requireUser()` in `server/utils/auth.ts`), only token-addressed recap routes use the secret key (`tokenClient()`).
-- Added in M2: `@nuxtjs/supabase`, `read-excel-file` 9 (`.xlsx`), `@resvg/resvg-wasm` 2.6 + `geist` (TTFs copied to `server/assets/fonts` for link previews).
-- Since M2.5 P1: the module's eager client plugin is removed (`app:resolve` hook in `nuxt.config.ts`); `app/plugins/supabase-lazy.client.ts` loads it only off `/` and `/r/*`, so recap pages and the landing don't ship supabase-js or wait for `getSession()`. Toasts and tooltips live in `app/layouts/default.vue`; `/` and `/r/[token]` use `layout: false`. `nitro.compressPublicAssets` is on (for the Node build only since M2.14 P0: the Worker gets Cloudflare's compression).
-- Since M2.5 P2: no prefetch hints (`build:manifest` hook sets `prefetch: false`). The landing and recaps were prefetching supabase-js and workspace chunks they never use; on Slow 4G that cost Lighthouse ~8 points. Chunks still load when a route needs them.
-- Payments: Whop (M3). Hosting: Cloudflare Pages + hosted Supabase (M3).
-- Package manager: **pnpm via corepack** (`corepack pnpm …`; plain `pnpm` is not on PATH). Dev server port **3040**.
+- Nuxt **4.6** (`app/` directory), Vue 3.5, TypeScript strict. Nitro 2.13 with the `cloudflare_module` preset: the whole app is **one Cloudflare Worker** (`wrangler.jsonc`, wrangler 4.149, `nodejs_compat`), its static files served as Workers assets (SPEC M2.14).
+- Data: **D1** (SQLite), database `highreel`, binding `DB`; schema in `migrations/` (§7.4). No ORM: all SQL lives in the data layer (`server/utils/db.ts` for the workspace, `recap.ts` and `unsubscribe.ts` for token routes, `auth.ts`, `cleanup.ts`).
+- Files: **R2** bucket `highreel-media` (EU), binding `MEDIA`: logos, photos and link previews; browsers only get signed `/media/` links.
+- Sign-in: **Better Auth 1.7.7** (pinned; read its changelog before updating), running inside the Worker with its tables in D1: email links, demo sessions (its anonymous users), Turnstile on both, Google wired but off. No client library: `useAuth()` calls `/api/auth/*` with `$fetch`.
+- Email: sign-in emails through Cloudflare **Email Sending** (binding `EMAIL`, from hello@highreel.app); Highreel emails through each business's own SMTP account with nodemailer 7 over sockets the app opens (`server/utils/mail.ts`).
+- Scheduled jobs: **Cron Triggers** run Nitro tasks (`server/tasks`, `server/schedule.ts`).
+- Link previews: `@resvg/resvg-wasm` 2.6 (a `?module` wasm import) with the Geist TTFs in `server/assets/fonts`.
+- UI: shadcn-vue via `shadcn-nuxt` 2.8 (style `reka-vega`, components in `app/components/ui`, reka-ui 2.11). `components.json` has no `font` key on purpose: with one, `shadcn-vue add` injects a Google Fonts `@import` into `main.css`, a third-party request on recap pages. Fonts stay self-hosted by `@nuxt/fonts`. Tailwind v4 via `@tailwindcss/vite`, `tw-animate-css`, `@nuxtjs/color-mode`, `@lucide/vue` icons.
+- Sheets: `@tanstack/vue-table` **9** (v9 API: `useTable` + `tableFeatures({ columnSizingFeature, columnResizingFeature })`; only sizing is used, filtering is done before the data reaches the table), `@tanstack/vue-virtual` 3, `papaparse`, `read-excel-file` 9 (`.xlsx`), `nanoid` 6 (recap tokens). Saving images: `modern-screenshot` (imported only by `RecapSaver`).
+- Since M2.5: toasts and tooltips live in `app/layouts/default.vue`; `/` and `/r/[token]` use `layout: false`. No prefetch hints (`build:manifest` hook sets `prefetch: false`): the landing and recaps were prefetching workspace chunks they never use, which cost Lighthouse about 8 points on Slow 4G. Chunks still load when a route needs them.
+- Tests: vitest 5 (`corepack pnpm test`), `playwright-core` driving the installed Google Chrome (§7.6).
+- Payments: Whop (M3). Hosting: Cloudflare, in the account that runs Forevermore (Workers Paid is already paid there).
+- Package manager: **pnpm via corepack** (`corepack pnpm …`; plain `pnpm` is not on PATH). Dev server port **3040**; the built Worker on **3047**.
 
 ### 7.2 Code layout
 
@@ -248,7 +251,10 @@ app/
                              SceneBadge, SceneRank, SceneTimeline, SceneDate (M2.7), SceneNote (note + "since"), ScenePhoto,
                              SceneLine, SceneBackdrop
   layouts/default.vue        toasts + tooltips (workspace, sign-in), the app's font (Outfit on body.app-ui), handwritten notes, the shape sprite; recaps and landing go without
-  plugins/supabase-lazy.client.ts   Supabase browser client only where it's used
+  composables/useAuth.ts     M2.14 P3: who's signed in (/api/session), demo, email link, Google, sign out, all with $fetch
+  middleware/auth.global.ts  M2.14 P3: /app/** needs a session (→ /login?next=, ?expired=1 when it ended)
+  components/BotCheck.vue    M2.14 P3: Turnstile, loaded only on /login and by the demo banner
+  plugins/scroll-instant.client.ts   page changes scroll instantly (the landing and legal pages glide)
   components/grid/ColumnMenu.vue   M2.7: type and Remove for the recap's own columns (in DataGrid's header)
   components/landing/LandingPlayer.vue   the landing's lazy recap player (lazy-importing RecapPlayer itself
                              put a bundler helper, and 21 KB of workspace code, on /r)
@@ -285,7 +291,13 @@ shared/
   utils/suggest.ts           business recap suggestions from customer campaigns' totals
 server/
   api/…                      routes below
-  utils/auth.ts              requireUser() (user session, RLS, the account's email) and tokenClient() (secret key)
+  api/auth/[...all].ts       M2.14 P3: Better Auth's routes; session.get.ts who's signed in; account/keep.post.ts "Keep my work" on another device
+  api/media.post.ts, media.delete.ts   M2.14 P2: uploads (type sniffed, ≤ 5 MB) and deletes in the business's R2 folder
+  routes/media/[...path].get.ts   M2.14 P2: serves a file from R2 for a signed, unexpired link
+  utils/auth.ts              Better Auth's setup (authFor), requireUser() (the user, their business and its `db`), tokenDb() for token routes, "Keep my work"
+  utils/signin.ts            M2.14 P3: the sign-in email (Email Sending; Mailpit in dev)
+  utils/cloudflare.ts        M2.14: bindings(event) (DB, MEDIA, EMAIL), taskBindings(context) for scheduled jobs
+  utils/sheet.ts             M2.14 P1: checks a sheet a page at a time (publish, the column menu)
   utils/mail.ts, send.ts, unsubscribe.ts   M2.9: SMTP through the business's account (nodemailer; SMTP ports only, no private addresses); who gets an email and today's count; the unsubscribe target
   utils/secrets.ts           M2.9: AES-256-GCM for the saved SMTP passwords (NUXT_SECRETS_KEY)
   utils/bounces.ts           M2.11: what a mail server's answer means (bounce, retry, stop), provider typos, MX checks, the pause rule
@@ -296,39 +308,43 @@ modules/landing-first-paint/ M2.11: rewrites the prerendered landing's HTML at b
 modules/cloudflare-headers/  M2.14 P0: orders the Worker's `_headers` so overlapping rules don't join their values
 wrangler.jsonc               M2.14 P0: the Worker (compatibility date, nodejs_compat, assets, DB, MEDIA, EMAIL; P4: Cron Triggers)
   utils/brand.ts             brand checks (name, colour, website, logo folder) for both brand routes; signedBusiness()
-  utils/db.ts, media.ts, recap.ts, og.ts   queries, signed URLs, public payload, link-preview renderer
+  utils/db.ts, media.ts, recap.ts, og.ts   all workspace SQL (every statement filtered by the business), R2 and signed /media links, public payload, link-preview renderer
   assets/fonts/              Geist TTFs + OFL licence (link previews)
 migrations/                  D1: 0001_init (M2.14 P1), 0002_auth (Better Auth's tables, P3), 0003_cleanup (account_deletions, P4)
-supabase/config.toml         only for Mailpit (`supabase start`) until M2.14 P5; the Supabase migrations were deleted 2026-10-13 (git history has them)
 public/templates/            template + sample CSVs per template
-scripts/generate-sample.mjs, check-isolation.mjs (M2.14 P1, replaced check-rls.mjs), perf-home.mjs (home under 300 ms at 100k rows), og-landing.mjs (public/og.png), subset-caveat.py (public/fonts/caveat-notes.woff2), brand.mjs (the logo's outlines and SVGs: icon, app icon, wordmark light/dark/animated), icons.mjs (M2.11: favicon, icon.svg, touch and manifest icons, site.webmanifest; since 2026-10-12 also `brand/`, the logo files), worker-sheets.mjs (M2.14 P0: big sheets on the built Worker, time, CPU and heap)
-tests/                       vitest: validators, templates, mapping, scenes; e2e/ browser checks
+scripts/generate-sample.mjs, check-isolation.mjs (M2.14 P1: two businesses through the API), perf-home.mjs (home under 300 ms at 100k rows), og-landing.mjs (public/og.png), subset-caveat.py (public/fonts/caveat-notes.woff2), brand.mjs (the logo's outlines and SVGs: icon, app icon, wordmark light/dark/animated), icons.mjs (M2.11: favicon, icon.svg, touch and manifest icons, site.webmanifest; since 2026-10-12 also `brand/`, the logo files), worker-sheets.mjs (M2.14 P0: big sheets on the built Worker, time, CPU and heap)
+tests/                       vitest: validators, templates, mapping, scenes, isolation (the data layer's SQL), auth, cleanup; e2e/ browser checks
 ```
 
 ### 7.3 API (Nitro routes)
 
-Workspace routes need a session (401 otherwise) and run as that user, so RLS limits them to the user's own business. The `/api/r/*` routes are public and token-addressed.
+Workspace routes need a session (401 otherwise) and reach only the signed-in user's business: they pass `requireUser()`'s `db` to the data layer, whose every statement filters by that business (§7.5). The `/api/r/*` routes are public and token-addressed. Sign-in is Better Auth's own routes under `/api/auth/*` (email link, demo, Google's callback, sign out).
 
 | Method & path | Does |
 |---|---|
+| `GET /api/session` | M2.14 P3: `{ user, ended }`: who's signed in, and whether this browser's session ended (expired, deleted, cleaned up) |
+| `POST /api/account/keep` | M2.14 P3: `{ token }`, "Keep my work" opened on another device: the demo that asked for this link moves into the signed-in account |
+| `POST /api/media?kind=logo\|photo&campaign=` | M2.14 P2: the file's bytes → its key in the business's R2 folder (PNG, JPEG or WebP by their first bytes; logos PNG; ≤ 5 MB) |
+| `DELETE /api/media` | M2.14 P2: `{ paths }` (≤ 50, the business's own folder) |
+| `GET /media/*?exp=&sig=` | M2.14 P2: a file from R2 for a signed, unexpired link (1 h in the workspace, 24 h on recaps); 404 otherwise |
 | `GET /api/workspace` | the user's business and campaigns (with row counts); creates the business on the first visit (campaigns start from the home since M2.5 P3) |
 | `GET /api/home?year=` | the home: business, years, the year's campaigns with counts (`campaign_stats`), recent activity (`recent_activity`), campaigns in any year |
 | `GET /api/business` | Your brand: `{ business (signed logo), anonymous }` (M2.6) |
 | `PATCH /api/business` | Your brand `{ name, accent_color, website_url, logo_path }` (any of them; the logo must be in the business's folder); the home's first-run name too |
 | `POST /api/campaigns` | new campaign `{ name, year, template_key, starter? }`; `kind` follows the template; a business-type template (§4.6) sets the sheet, wording, theme and, on a default-coloured business, the colour |
-| `POST /api/campaigns/:id/duplicate` | `{ name, year }`: same template, kind, settings, photos copied in Storage; no rows (a business recap keeps its form) |
+| `POST /api/campaigns/:id/duplicate` | `{ name, year }`: same template, kind, settings, photos copied in R2; no rows (a business recap keeps its form) |
 | `PUT /api/campaigns/:id/business` | a business recap's form `{ raw }` → its one row (validated; a published one only accepts a valid form and keeps its link) |
 | `GET /api/campaigns/:id/suggestions` | business recap suggestions from the year's customer campaigns (`campaign_sums`) |
 | `GET /api/campaigns/:id` | campaign + brand + settings, logo and photos with 1 h signed URLs |
 | `PATCH /api/campaigns/:id` | name; settings (labels, copy, CTA, photos, theme, share-image toggle, `photos_consent`, `guess_first`, M2.7: `columns` (a column keeps its type here), `slides`; M2.8: `email { subject, body }`, `email_consent`); brand (name, accent, website, `logo_path`). Media paths must be inside the user's folders |
-| `PATCH /api/campaigns/:id/columns` | M2.7, the Sheet's column menu: `{ key, type }` or `{ key, remove: true }` for one of the recap's own columns; slides keep what still fits (`changeColumn`), every row is validated again; returns `{ settings, recipients }` |
-| `DELETE /api/campaigns/:id` | deletes the campaign, its rows and its photo folder |
+| `PATCH /api/campaigns/:id/columns` | M2.7, the Sheet's column menu: `{ key, type }` or `{ key, remove: true }` for one of the recap's own columns; slides keep what still fits (`changeColumn`), every row is validated again, a page at a time; returns `{ settings }` and the browser reloads the rows |
+| `DELETE /api/campaigns/:id` | deletes the campaign, its rows and its R2 folder (photos, link previews) |
 | `DELETE /api/campaigns/:id/recipients` | clears a draft's rows |
-| `POST /api/campaigns/:id/import` | body: parsed rows, and (M2.7) the recap's own `columns` and `slides` after this sheet, saved first; replaces all recipients of a draft campaign; server re-validates; returns `{ recipients, settings }` |
-| `GET /api/campaigns/:id/recipients` | all rows with errors and status |
+| `POST /api/campaigns/:id/import` | a sheet in parts of up to 5,000 rows `{ part, parts, rows }` (M2.14 P1; part 0 clears the old rows and saves (M2.7) the recap's own `columns` and `slides`; each part one transaction; an unfinished upload blocks publish); server re-validates; returns `{ total, errors, settings }` |
+| `GET /api/campaigns/:id/recipients?after=` | up to 5,000 rows with errors and status after row `after`, and where the next page starts (M2.14 P1) |
 | `PATCH /api/recipients/:id` | one cell edit; re-validates that row and duplicates; returns the row |
-| `POST /api/campaigns/:id/publish` | computes `top_percent`, assigns tokens (nanoid 12) to valid rows without one, sets status |
-| `GET /api/campaigns/:id/export.csv` | `customer_id, first_name, email, recap_url` for valid published rows |
+| `POST /api/campaigns/:id/publish` | checks the rows a page at a time, computes `top_percent`, assigns tokens (nanoid 12) to valid rows without one, sets status, in one transaction; returns `{ published, skipped }` |
+| `GET /api/campaigns/:id/export.csv` | the links file (the id column, `first_name`, `email`, `link`) for valid published rows, streamed a page at a time |
 | `GET /api/campaigns/:id/send` | M2.8/M2.9: sending status (the connected account or none, pending, sent, failed, without email, unsubscribed, today, the account's limit) |
 | `POST /api/campaigns/:id/send` | M2.8/M2.9: `{ test?, recipient_id?, retry? }` → emails up to 25 rows through the business's account `{ sent, failed, remaining, waiting }`, or a test to the owner; 400 without a connected account |
 | `GET`/`PUT`/`DELETE /api/business/email` | M2.9: the business's email account without its password / connect or change it (login checked and a test sent first) / disconnect |
@@ -336,110 +352,65 @@ Workspace routes need a session (401 otherwise) and run as that user, so RLS lim
 | `GET`/`POST /api/r/:token/unsubscribe` | M2.8: the unsubscribe page's details / opt this address out of the business's recap emails (one-click or the page's form) |
 | `GET /api/r/:token` | public recap payload (first name, the template's slide values, brand, copy, 24 h signed photo/logo URLs, no storage paths); 404 unless published |
 | `GET /api/r/:token/og.png` | 1200×630 link-preview PNG; same checks |
-| `POST /api/r/:token/event` | `{ type: 'view' | 'share' | 'save' | 'cta' }` → counters (`record_recap_event` RPC, one atomic update) |
+| `POST /api/r/:token/event` | `{ type: 'view' | 'share' | 'save' | 'cta' }` → counters (one atomic update by token) |
 
 `PATCH /api/recipients/:id` takes `{ column, value }` and returns `{ row, others }`: `others` are rows whose duplicate error changed (if row 2 takes row 3's id, row 3 becomes the duplicate and is returned in `others`). Editing a published row's id to one another published row uses returns 409.
 
-### 7.4 Data model (Supabase migration)
+### 7.4 Data model (D1)
 
-```sql
-create table businesses (
-  id uuid primary key default gen_random_uuid(),
-  owner_id uuid references auth.users(id),          -- null for the M1 demo
-  name text not null,
-  accent_color text not null default '#111111',
-  logo_url text,
-  website_url text,
-  created_at timestamptz not null default now()
-);
+The schema is `migrations/` (`corepack pnpm db:migrate` locally, `wrangler d1 migrations apply highreel --remote` at deploy); the files carry their own notes and are the source of truth. In short:
 
-create table campaigns (
-  id uuid primary key default gen_random_uuid(),
-  business_id uuid not null references businesses(id) on delete cascade,
-  name text not null,                                -- "2026 recap"
-  template_key text not null default 'app',
-  year int not null,
-  settings jsonb not null default '{}'::jsonb,       -- items_label, slide copy, founder_note, cta_label, cta_url
-  status text not null default 'draft' check (status in ('draft', 'published', 'archived')),
-  published_at timestamptz,
-  created_at timestamptz not null default now()
-);
+| Table | Holds | Belongs to |
+|---|---|---|
+| `businesses` | one per user: name, accent colour, logo path and shape, website | `owner_id` → Better Auth's `user`: deleting the user deletes the business and everything below |
+| `campaigns` | a Highreel: name, template, kind (`customers` or `business`), year, `settings` (JSON: labels, copy, theme, photos and their consent, the recap's own columns and slides, the email, Guess first), status, `import_next` (an unfinished upload), published, created and updated times (the data layer sets `updated_at`) | `business_id` |
+| `recipients` | a sheet row: its order, customer id, first name, email, `raw` (the cells as uploaded or edited), `data` (parsed values), `errors` and `has_errors`, the token set at publish, the view/save/share/tap counters, emailed and WhatsApp marks | `campaign_id`, through its campaign's business |
+| `email_connections` | the business's own SMTP account; the password encrypted by the server (`server/utils/secrets.ts`) and never returned | `business_id` |
+| `email_sends` | every email sent, for the account's daily limit; holds no addresses; never changed or cleared | `business_id` |
+| `email_optouts`, `email_bounces` | addresses this business never emails again (lowercased) | `business_id` |
+| `user`, `session`, `account`, `verification`, `rateLimit` | Better Auth's tables (camelCase columns; `tests/auth.test.ts` runs its own schema check against the migrations) | |
+| `account_deletions` | addresses the owner was asked to delete (M2.14 P4); the one table without a business | read and written only by the `accounts:delete` job |
 
-create table recipients (
-  id uuid primary key default gen_random_uuid(),
-  campaign_id uuid not null references campaigns(id) on delete cascade,
-  row_index int not null,                            -- order in the uploaded sheet
-  customer_id text not null,
-  first_name text,
-  email text,
-  raw jsonb not null default '{}'::jsonb,            -- cells exactly as uploaded/edited (what the grid shows)
-  data jsonb not null default '{}'::jsonb,           -- parsed, typed values (what the recap uses)
-  errors jsonb not null default '{}'::jsonb,         -- { column: message }
-  token text unique,                                 -- set at publish
-  view_count int not null default 0,
-  first_viewed_at timestamptz,
-  saved_at timestamptz,
-  shared_at timestamptz,
-  cta_clicked_at timestamptz,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-create index on recipients (campaign_id, row_index);
--- duplicates are allowed in drafts (so the grid can show them); never among published rows
-create unique index recipients_published_customer on recipients (campaign_id, customer_id) where token is not null;
-
-alter table businesses enable row level security;
-alter table campaigns  enable row level security;
-alter table recipients enable row level security;
--- M1: no policies (server uses the service role). M2: owner policies via businesses.owner_id = auth.uid().
-```
-
-The real migration (`supabase/migrations/20261011120000_init.sql`) also has an index on `(campaign_id, customer_id)`, the `record_recap_event(token, type)` function, and explicit `grant select, insert, update, delete … to service_role`: the current Supabase CLI no longer grants new tables to the API roles, and without it every query fails with "permission denied".
-
-Since M2 (`20261011180000_accounts_rls.sql`, `20261011200000_media.sql`):
-- `businesses.owner_id` is required (default `auth.uid()`, cascade on user delete), unique (one business per user); `logo_url` renamed `logo_path`.
-- RLS policies: a user reaches their business → its campaigns → their recipients; nothing else. `authenticated` gets table grants; on `recipients` only these columns are updatable: row_index, customer_id, first_name, email, raw, data, errors, token, updated_at (counters are server-only). `anon` gets nothing.
-- `bulk_update_recipients(jsonb)` (security invoker) writes publish results in one statement as the user.
-- Storage bucket `media` (private, 5 MB, JPEG/PNG/WebP); policies require the first path folder to be a business the user owns.
-- `campaigns.settings` also holds `photos`, `photo_in_share_image`, `photos_consent_at`, `theme`, and since M2.5 P1 `guess_first` (Brand panel checkbox, off by default).
-- `corepack pnpm check:isolation` (since M2.14 P1; it replaced `check:rls`) runs two demo sessions through the API: B calls every workspace route with A's ids, then A's data, files and email account are checked unchanged (M2.14 P1).
-
-Since M2.8/M2.9 (`20261012150000_email.sql`, `20261012170000_email_connections.sql`): `recipients.emailed_at`, `email_error`, `whatsapp_at` (owner-updatable); `email_optouts` (owner reads, the token route writes); `email_sends` (append-only log, no addresses); `email_connections` (one per business: provider, host, port, secure, username, `password_enc` (AES-GCM by the server), from email and name, reply-to, daily limit, verified at; owner only).
-
-Since M2.5 P3/P4 (`20261011220000_home.sql`, `20261011230000_business_recap.sql`):
-- `campaigns.kind` (`customers` | `business`, default `customers`) and `campaigns.updated_at` (trigger on update).
-- `campaign_stats(year)`: per campaign of the year: rows, need fixing, published (a link and no errors), opened, views, saved, shared, clicked, last change. `recent_activity(year, limit)`: first views, saves, shares and button taps with first names. `campaign_sums(year)`: per customer campaign, published count and the sum of every numeric `data` value over published rows. All `security invoker` (RLS applies), execute for `authenticated` only.
+Conventions: ids are text from `crypto.randomUUID()` (Better Auth's user ids aren't UUIDs); times are ISO 8601 text from `toISOString()`, so they sort and compare as text; JSON is text with `check (json_valid(…))`; booleans are 0/1. Indexes worth knowing: `recipients_order` (campaign and row: the grid's page cursor), `recipients_home` (the home's counts read only this covering index), `recipients_published_customer` (no repeated ids among published rows; drafts may have them so the grid can show them), `user_demo_created` (the demo cleanup). D1 takes at most 100 bound values per statement and 2 MB per string, so many rows go in one JSON parameter (`json_each(?)`, `jsonChunks`), and one change's statements go in one `batch()`, which is a transaction. The rule that matters most, every business seeing only its own rows, lives in the data layer (§7.5).
 
 ### 7.5 Privacy and security
 
 - Recap URLs use unguessable tokens (nanoid 12 ≈ 71 bits); `/r/*` sends `X-Robots-Tag: noindex`, and so do `/unsubscribe/*`, `/login`, `/confirm` and `/app/**` (M2.11). robots.txt blocks `/app` and `/api/` but not `/r` or `/api/r/`: a blocked page can't say "noindex", and link previews need the recap and its image.
-- Public payload contains first name, stats and brand only.
+- Public payload contains the first name, the slides' values and the brand only (`toRecapRecipient`): never an email, phone number or customer id.
 - Counters are first-party; no analytics scripts on recap pages.
-- Recommend businesses omit emails (join on `customer_id`). Deleting a campaign deletes its rows (cascade).
-- The secret key never reaches the client, and is only used on token-addressed routes.
-- Every business sees only its own data: RLS on tables and Storage, workspace queries run as the user (M2). `requireUser()` checks the user with Supabase Auth on every call, so deleted users and signed-out sessions get a 401 and the browser is sent to sign in.
-- Group photos: consent checkbox before the first upload; off the public share image by default; deleted with the campaign. Recap pages get signed URLs, never paths.
+- Recommend businesses omit emails (join on `customer_id`). Deleting a campaign deletes its rows (cascade) and its files.
+- Every business sees only its own data. No browser talks to the database: every workspace route passes the signed-in user's `db` to the data layer, whose every statement filters by that business, on updates and deletes too; token routes look rows up by token only (M2.14 P1; `tests/isolation.test.ts` reads the SQL, `corepack pnpm check:isolation` tries every route with another business's ids). What a business mustn't change (counters, the send log, opt-outs, bounces) has no route at all.
+- Sessions are checked in D1 on every request (no cookie cache), so a deleted user or a cleaned-up demo gets a 401 and the browser is sent to sign in. Email links are one-time, stored hashed, last an hour, at most 5 an hour per address, and are used from `/confirm`'s script (link scanners can't use them up); demos and email links need Turnstile; per-IP limits are kept in D1.
+- Files: the R2 bucket is private; browsers get `/media/` links signed with an HMAC (from `NUXT_SECRETS_KEY`), 1 h in the workspace and 24 h on recaps, never storage paths. Uploads are checked by their first bytes and capped at 5 MB.
+- Secrets (`NUXT_SECRETS_KEY`, `NUXT_AUTH_SECRET`, the Turnstile secret) are Worker secrets. Saved SMTP passwords are encrypted with AES-256-GCM and never returned; the server connects only to SMTP ports and never to private addresses.
+- Retention, as the privacy policy says: demos go 30 days after they start, accounts within 30 days of asking, a session's records when it ends and rate-limit counts within the hour (the scheduled jobs, M2.14 P4); D1's Time Travel keeps 30 days of backups.
+- Group photos: consent checkbox before the first upload; off the public share image by default; deleted with the campaign.
 
 ### 7.6 Local development
 
 ```bash
 corepack pnpm install
-corepack pnpm sample            # regenerate template + sample CSVs
-supabase start                  # first run pulls Docker images
+corepack pnpm db:migrate        # the local D1 database (.wrangler/state/v3); `db:reset` wipes it first (stop the dev server)
+corepack pnpm mail              # Mailpit, the local test inbox, in its own terminal (once: brew install mailpit)
 corepack pnpm dev               # http://localhost:3040 → "Try the demo"
+corepack pnpm sample            # regenerate template + sample CSVs
 corepack pnpm test              # vitest
-corepack pnpm check:isolation   # isolation checks through the API (needs the dev server)
+corepack pnpm check:isolation   # isolation through the API (needs the dev server)
 ```
 
-Other projects on this Mac (forevermore, trueroute) use local Supabase on 543xx. This one uses **544xx**: API 54421, DB 54422, shadow 54420, Studio 54423, Inbucket 54424, pooler 54429, analytics 54427 (realtime, edge runtime and analytics are switched off until needed). `.env` (see `.env.example`): `SUPABASE_URL=http://127.0.0.1:54421`, `SUPABASE_KEY` = the **Publishable** key, `SUPABASE_SECRET_KEY` = the **Secret** key (`sb_secret_…`), all from `supabase status`. `supabase db reset` re-applies the migrations (and wipes local users). Local auth: anonymous sign-ins on, email confirmations on (like production), email rate limit raised to 30/h; sign-in emails land in Mailpit at http://127.0.0.1:54424. Google sign-in is wired but off: create a Google OAuth client, set `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID`/`_SECRET`, set `enabled = true` under `[auth.external.google]`, and `NUXT_PUBLIC_AUTH_GOOGLE=true`.
+No Docker. `corepack pnpm dev` emulates the Worker's bindings (D1, R2, Email Sending) through wrangler's `getPlatformProxy`, with their state in `.wrangler/state/v3`; `sql()` in `tests/e2e/lib.mjs` (`wrangler d1 execute highreel --local`) reads and writes the same database, and so does the built Worker on `wrangler dev`. `.env` (see `.env.example`): `NUXT_SECRETS_KEY`, `NUXT_AUTH_SECRET`, Cloudflare's Turnstile test keys (they always pass, in headless Chrome too) and `NUXT_AUTH_RATE_LIMIT=false` (the tests start many demos from one address). Google sign-in is wired but off: create a Google OAuth client (redirect URI `<site>/api/auth/callback/google`), set `NUXT_GOOGLE_CLIENT_ID` and `NUXT_GOOGLE_CLIENT_SECRET`, and `NUXT_PUBLIC_AUTH_GOOGLE=true`.
+
+Mailpit (`corepack pnpm mail`, M2.14 P5): the inbox at http://127.0.0.1:54424 and SMTP on 54425, on this machine only; its messages go when it stops. The dev server sends sign-in emails to it over SMTP (the built Worker on `wrangler dev` sends them to the emulated `EMAIL` binding instead, so they don't arrive there). Highreel emails go through the business's own account: locally connect **Local test inbox (Mailpit)** on Your brand, and everything lands in Mailpit; nothing leaves the machine. Mailpit is for development only: production sends sign-in emails with Email Sending and Highreel emails through each business's account.
+
+Scheduled jobs (M2.14 P4): the dev server runs them on their schedule, and `curl -X POST http://localhost:3040/_nitro/tasks/cleanup:demo` (or `cleanup:auth`, `accounts:delete`) runs one now. On the built Worker, start `wrangler dev` with `--test-scheduled` and open `/__scheduled?cron=0+3+*+*+*` to fire a trigger the way Cloudflare does.
+
+Ports: dev server 3040, the built Worker 3047 (its inspector 9339), Mailpit 54424 and 54425.
 
 10,000-row check: `node scripts/generate-sample.mjs --rows 10000 --out /tmp/sample-10000.csv`, then upload it.
 
-Recap emails (M2.9) go through the business's own SMTP account. Locally connect **Local test inbox (Mailpit)** on Your brand: Mailpit's SMTP is on 54425 (`smtp_port` in `supabase/config.toml`, so after changing it run `supabase stop && supabase start`), and every email lands in its inbox at http://127.0.0.1:54424; nothing leaves the machine. The saved passwords are encrypted with `NUXT_SECRETS_KEY` (required in production; locally a key is derived from the Supabase secret key).
+Browser checks: `corepack pnpm e2e` runs `tests/e2e/*.mjs` (27 checks; M2.14 added `cleanup` (the scheduled jobs) and grew `session` (a deleted user, an expired session, an email link over a dead cookie), `auth` (Turnstile, keeping a demo, on another device too) and `media` (signed links); M2.12 added `legal` (footer and sign-in links, title, canonical, description, HighReel and the address, the contents list, the two pages linking each other, no sideways scroll, no third parties); M2.11 added `unsaved` (leaving Design with edits asks: keep, discard, save and leave; the browser's prompt on close) and `bounces` (a fake SMTP server in the test answers like real ones: typo held, dead address remembered, busy retried, quota stops the run, too many bounces pause it), and `landing` checks canonical links, structured data, robots.txt, the sitemap, icons and noindex; M2.10 added `library` (every scene for numbers, words, top %, dates and lists in Design with the value showing, then played on a published recap); M2.9 added `whatsapp` and rewrote `send` for connected accounts; M2.8 added `editor` (no page scroll, the rail's drag/keys/eye/chips, Your brand, the recap page's backdrop and controls) and `send` (demo refused, test, unsubscribe with and without JavaScript, 193 sends in Mailpit with links and headers, nothing sent twice, the daily limit, deleting with a log): M1 done-when incl. 10k rows, recap player, scenes and Guess first, demo/404/reduced motion/link preview, the landing (P2), accounts and isolation, logo and photos, engagement, visit template, .xlsx mapping, Paper, stale sessions, the home (P3), the business recap (P4), templates, tabs (M2.6), own columns and the scene library (M2.7)) in headless **installed Google Chrome** via `playwright-core` (no browser download). It needs `corepack pnpm dev` and `corepack pnpm mail`, generates its fixtures on first run (drawn images, a farm .xlsx via python3 + openpyxl, the 10k sheet) and writes screenshots to `tests/e2e/.out`. `node tests/e2e/run-all.mjs recap media` runs a subset. Claude in Chrome on the owner's Mac often has the window hidden, which freezes animation frames, so timing checks belong in these headless runs.
 
-Browser checks: `corepack pnpm e2e` runs `tests/e2e/*.mjs` (24 checks; M2.12 added `legal` (footer and sign-in links, title, canonical, description, HighReel and the address, the contents list, the two pages linking each other, no sideways scroll, no third parties); M2.11 added `unsaved` (leaving Design with edits asks: keep, discard, save and leave; the browser's prompt on close) and `bounces` (a fake SMTP server in the test answers like real ones: typo held, dead address remembered, busy retried, quota stops the run, too many bounces pause it), and `landing` checks canonical links, structured data, robots.txt, the sitemap, icons and noindex; M2.10 added `library` (every scene for numbers, words, top %, dates and lists in Design with the value showing, then played on a published recap); M2.9 added `whatsapp` and rewrote `send` for connected accounts; M2.8 added `editor` (no page scroll, the rail's drag/keys/eye/chips, Your brand, the recap page's backdrop and controls) and `send` (demo refused, test, unsubscribe with and without JavaScript, 193 sends in Mailpit with links and headers, nothing sent twice, the daily limit, deleting with a log): M1 done-when incl. 10k rows, recap player, scenes and Guess first, demo/404/reduced motion/link preview, the landing (P2), accounts and isolation, logo and photos, engagement, visit template, .xlsx mapping, Paper, stale sessions, the home (P3), the business recap (P4), templates, tabs (M2.6), own columns and the scene library (M2.7)) in headless **installed Google Chrome** via `playwright-core` (no browser download). It needs `corepack pnpm dev` and `supabase start`, generates its fixtures on first run (drawn images, a farm .xlsx via python3 + openpyxl, the 10k sheet) and writes screenshots to `tests/e2e/.out`. `node tests/e2e/run-all.mjs recap media` runs a subset. Claude in Chrome on the owner's Mac often has the window hidden, which freezes animation frames, so timing checks belong in these headless runs.
-
-Recap budgets (M2.5 P1) need a production build, not the dev server: `corepack pnpm build` (the Worker), then `corepack pnpm exec wrangler dev --port 3047 --inspector-port 9339` (3041 is taken by another project; it serves brotli like Cloudflare), then `E2E_BASE=http://localhost:3047 node tests/e2e/budgets.mjs` (JS weight, first slide on Slow 4G + 4× CPU, frame times per scene at 4× CPU). Build a copy outside the repo (or stop `pnpm dev` first): `nuxt build` and the dev server share `.nuxt`. Lighthouse (P2 done-when) on the same production build: `npx lighthouse@12.8.2 http://localhost:3047/ --form-factor=mobile --throttling-method=simulate --chrome-flags="--headless=new"` and again with `--preset=desktop` (not a project dependency; set `CHROME_PATH` to the installed Chrome). Since M2.11 every category must be 100 on both; `budgets.mjs` also checks the landing's first paint (served compressed, CSS inline, two fonts preloaded, scripts after the largest paint). A copy built with a symlinked `node_modules` needs `buildDir` inside the copy (Nuxt's production build dir is `node_modules/.cache/nuxt/.nuxt`, and prerendering imports from it). `node scripts/perf-home.mjs` seeds 10 campaigns × 10,000 rows for a throwaway demo user and times the home's queries. `node tests/e2e/record.mjs` writes phone-size MP4s of an app and a visit recap to `tests/e2e/.out` (Chrome screencast + the system ffmpeg; point `E2E_BASE` at a production build to hide the devtools pill).
+Recap budgets (M2.5 P1) need a production build, not the dev server: `corepack pnpm build` (the Worker), then `corepack pnpm exec wrangler dev --port 3047 --inspector-port 9339 --test-scheduled` (3041 is taken by another project; it serves brotli like Cloudflare), then `E2E_BASE=http://localhost:3047 node tests/e2e/budgets.mjs` (JS weight, first slide on Slow 4G + 4× CPU, frame times per scene at 4× CPU). Build a copy outside the repo (or stop `pnpm dev` first): `nuxt build` and the dev server share `.nuxt`. Lighthouse (P2 done-when) on the same production build: `npx lighthouse@12.8.2 http://localhost:3047/ --form-factor=mobile --throttling-method=simulate --chrome-flags="--headless=new"` and again with `--preset=desktop` (not a project dependency; set `CHROME_PATH` to the installed Chrome). Since M2.11 every category must be 100 on both; `budgets.mjs` also checks the landing's first paint (served compressed, CSS inline, two fonts preloaded, scripts after the largest paint). A copy built with a symlinked `node_modules` needs `buildDir` inside the copy (Nuxt's production build dir is `node_modules/.cache/nuxt/.nuxt`, and prerendering imports from it). `node scripts/perf-home.mjs` seeds 10 campaigns × 10,000 rows for a throwaway demo user and times the home's queries. `node tests/e2e/record.mjs` writes phone-size MP4s of an app and a visit recap to `tests/e2e/.out` (Chrome screencast + the system ffmpeg; point `E2E_BASE` at a production build to hide the devtools pill).
 
 ## 8. Milestones
 
@@ -991,26 +962,39 @@ As built (2026-10-13):
 - e2e: `lib.mjs` gets an `sql()` helper (`wrangler d1 execute highreel --local --json`) for what tests did through PostgREST or the Auth admin API: `session.mjs` (delete the newest user), `send.mjs` (fill and clear the send log, read the stored ciphertext), `bounces.mjs`, `media.mjs`. The Better Auth cookie replaces `sb-…-auth-token`. All 30 checks pass.
 - Production-like runs (budgets, Lighthouse, `record.mjs`) use the built Worker on `wrangler dev` or a preview URL instead of `node .output/server/index.mjs` (built by `corepack pnpm build:node` since P0), and `build:node` goes (done 2026-10-13: budgets and Lighthouse passed on `wrangler dev`, so `build:node` and the Node preset are gone); "served compressed" is checked on the preview, where Cloudflare compresses. Landing, terms and privacy stay at 100 everywhere; `/r` JS stays ≤ 150 KB gzipped.
 
+As built (2026-10-13): Mailpit runs on its own (`brew install mailpit`, then `corepack pnpm mail`: `mailpit --listen 127.0.0.1:54424 --smtp 127.0.0.1:54425 --smtp-disable-rdns`, the one setting Supabase ran it with; the script says to install it when it's missing), on the same ports, so the "Local test inbox" preset, `signin.ts` and the tests didn't change. `corepack pnpm e2e` checks Mailpit answers before starting. The rest of P5 was already done: `sql()` (P1), the Better Auth cookie (P3), budgets and Lighthouse on the built Worker (2026-10-13). Checked: the build doesn't take `.env` in (the runtime config's defaults in `.output` are empty and the rate limit on; Worker vars and secrets fill them, and `wrangler dev` reads `.env` locally), so P0's "the build bakes in `.env`" no longer holds.
+
 **P6. Docs, legal, cleanup.**
 - Privacy policy: the providers become Cloudflare (hosting, database, files, sign-in emails and the sign-in bot check; data stored in the EU), Whop, and Google once its sign-in is on; Supabase goes. This also settles M2.12's "name the sign-in email provider". Update `LEGAL_UPDATED` and `legal.mjs`'s list of names.
 - Rewrite the CLAUDE.md rules for the new stack: the isolation rule (data layer, business filter, `check:isolation`); bindings instead of the secret key; new tables need their business filter and an isolation check (instead of policies and grants); the commands. Rewrite SPEC §7 (stack, code layout, API with `/api/auth/*`, `/api/media` and `/media/*`, data model, privacy and security, local development) and the M3 list.
 - Delete `supabase/`, the Supabase keys in `.env.example` (add `NUXT_AUTH_SECRET` and the Turnstile keys), stop this project's local Supabase. Other projects' local Supabase (forevermore, trueroute on 543xx) is untouched.
+
+As built (2026-10-13, with P5): this project's local Supabase stopped (`supabase stop`; its Docker volumes are kept, `docker volume ls --filter label=com.supabase.cli.project=recap`), `supabase/` deleted (config and the CLI's cache), its `.gitignore` lines gone, the orphaned Supabase packages removed from `node_modules/.pnpm`. No code, config, test or script names Supabase any more: the comments in the migrations, `check-isolation.mjs`, `signin.ts`'s Mailpit error and the e2e headers say what's there now, and `legal.mjs` no longer checks for the name. CLAUDE.md's opening describes the stack instead of the move, its commands run Mailpit with `corepack pnpm mail`. §7 rewritten for the Worker (stack, code layout, API with `/api/auth/*`, `/api/session`, `/api/media` and `/media/*`, the D1 data model, privacy and security, local development) and the M3 list updated. Only §8's milestone write-ups and §12 still name Supabase, as history. Already done earlier: the privacy policy's providers (P3) and `.env.example` (P3). Other projects' local Supabase (forevermore, trueroute) untouched.
 
 **P7. Deploy (part of M3's launch).**
 - Create D1 `highreel` with `--jurisdiction=eu` and R2 `highreel-media` in the EU jurisdiction (neither can change later), apply the migrations remotely, set the Worker's secrets (`NUXT_SECRETS_KEY`, `NUXT_AUTH_SECRET`, the Turnstile secret, Google's later), make a Turnstile widget for highreel.app, onboard highreel.app for Email Sending (its DNS records), forward hello@highreel.app to the owner with Email Routing (it's the contact address on the terms), point the custom domain highreel.app at the Worker, turn Workers Logs on (logs carry no addresses or names), turn Email Address Obfuscation off (M2.12).
 - Turnstile is done (2026-10-13): the owner made the widget (Managed, hostname highreel.app). Its site key is in `wrangler.jsonc`'s `vars` (public; `.env`'s test key overrides it locally); its secret, checked against siteverify, waits in `.secrets.production.json` (gitignored). Add `NUXT_SECRETS_KEY` and `NUXT_AUTH_SECRET` (new random values) to that file, then `corepack pnpm exec wrangler secret bulk .secrets.production.json`. To try a preview on workers.dev before the domain points at the Worker, add that hostname to the widget too.
 - Done when, on highreel.app: a demo, an email sign-in, a published reel with a photo opened on a phone, its link preview, a test email through a real business account, and the cleanup job's first run in the logs.
 
+As built (2026-10-13; the owner: "make sure it goes live to highreel.app", the email setup is theirs):
+- **Made on Cloudflare** (the Forevermore account): D1 `highreel` with `--jurisdiction eu` (region EEUR; its id in `wrangler.jsonc`) and R2 `highreel-media` with `--jurisdiction eu`; migrations 0001–0003 applied remotely (`corepack pnpm db:migrate:remote`; 13 tables).
+- **Secrets**: `NUXT_SECRETS_KEY` and `NUXT_AUTH_SECRET`, new random values (32 bytes, base64), added to `.secrets.production.json` beside the Turnstile secret and uploaded with the first deploy (`wrangler deploy --secrets-file`); `wrangler secret list` shows the three. Checked first: the build takes nothing from `.env` (P5), and a dry run lists only the Turnstile site key as a var.
+- **`wrangler.jsonc`**: `routes` highreel.app as a custom domain (Cloudflare made its DNS record and certificate; the domain had no records before), `workers_dev` and `preview_urls` off (one origin: Turnstile's widget allows highreel.app only, and links, sign-in emails and Better Auth's trusted origins come from the request's origin, so `NUXT_PUBLIC_SITE_URL` isn't set), `observability` on (Workers Logs). Releases: `corepack pnpm run deploy` (`run`: pnpm has its own `deploy`).
+- **Found:** wrangler keeps the local D1 copy per `database_id`, so the real id started an empty local database; the old local file was moved under the new id's name (`.wrangler/state/v3/d1/miniflare-D1DatabaseObject/`), keeping local data.
+- **Found: Cloudflare Web Analytics injects its beacon** (`static.cloudflareinsights.com/beacon.min.js` and `/cdn-cgi/rum`) into every HTML page a browser gets, recaps included (plain curl requests don't get it). The privacy policy says no third-party trackers or analytics on any page, so it has to go: the owner turns off automatic setup for highreel.app (Analytics & Logs → Web Analytics → the site → Manage site; the deploy token can't change zone settings). `Cache-Control: no-transform` would also stop it, but it stops Cloudflare compressing those pages too, so it isn't used.
+- **Checked on highreel.app:** every public page 200 and brotli; `/login`, `/app` and `/r/*` noindex; canonical https://highreel.app/; robots.txt and sitemap.xml; the dev task endpoint is a 404; the contact links aren't rewritten by Email Address Obfuscation; Lighthouse desktop 89 performance (FCP 1.3 s, with the beacon and a real network) and 100 for the rest (mobile wasn't measured: its run failed twice without a report). Turnstile (Managed) shows "Verify you are human" to headless Chrome, so the browser checks can't sign in there, and writing test rows into production was ruled out: the owner checks a demo, an email sign-in, publishing, a recap and its link preview in a real browser.
+- **Left for the owner:** turn off Web Analytics' injection (above); Email Routing for hello@highreel.app (the root has no MX, so mail to the terms' and policy's contact address bounces); a sign-in email to a real inbox and a test email through a real business account; www.highreel.app (no record: add a redirect if wanted); real phones; Search Console and Bing.
+
 **Risks to watch.** Email Sending is in beta (the SMTP fallback is a config change). D1's one query at a time (P1's indexes and narrow reads, `perf-home.mjs` on the deployed database). Workers' memory with 50,000-row sheets (P0 measured it: P1 pages every big route). Better Auth is a library we upgrade ourselves: pin the version and read its changelog before updating.
 
 ### M3 — launch
 
-~~Product name + domain~~ (done 2026-10-12: Highreel, highreel.app); landing page with a live demo recap; Whop checkout (§10); deploy (Cloudflare Pages + hosted Supabase); ~~terms and privacy pages~~ (done 2026-10-12, M2.12) (incl. that businesses confirm consent for photos, and a data-processing note: Kosovo's data-protection law follows GDPR); the "Made with" link pointing to the landing page; outreach to 50–100 founders and local businesses (camps, farms, clubs).
+~~Product name + domain~~ (done 2026-10-12: Highreel, highreel.app); landing page with a live demo recap; Whop checkout (§10); deploy (one Cloudflare Worker with D1 and R2: M2.14 P7); ~~terms and privacy pages~~ (done 2026-10-12, M2.12) (incl. that businesses confirm consent for photos, and a data-processing note: Kosovo's data-protection law follows GDPR); the "Made with" link pointing to the landing page; outreach to 50–100 founders and local businesses (camps, farms, clubs).
 
-Since 2026-10-12 the deploy is a Cloudflare Worker with D1 and R2 instead of Pages + hosted Supabase: M2.14 covers the CAPTCHA, sign-in emails, the resvg wasm import, the demo cleanup job, the sign-in email provider in the privacy policy, and the deploy steps (P7). The bullets below keep their history; where they say Supabase, M2.14 wins.
+Since 2026-10-12 the deploy is a Cloudflare Worker with D1 and R2 (M2.14): it covers the bot check on sign-in, sign-in emails, the resvg wasm import, the cleanup jobs, the sign-in email provider in the privacy policy, and the deploy steps (P7).
 
 Carried over from M2, needed for launch:
-- ~~Hosted Supabase: run the five migrations; turn on anonymous sign-ins **with CAPTCHA** (Turnstile) so bots can't mint demo users; keep email confirmations on; set site URL and redirect URLs (`/confirm`); custom SMTP for sign-in emails.~~ Replaced by M2.14 P3 and P7.
+- ~~The hosted database and sign-in: migrations, demo sessions behind a bot check, email confirmations, the site's URLs, sign-in emails.~~ Done in M2.14 P3 (Better Auth, Turnstile, Email Sending); the remote database is P7.
 - Cloudflare: ~~load resvg's wasm with a Nitro wasm import instead of `serverAssets` (and check the worker size)~~ (M2.14 P0); set `NUXT_PUBLIC_SITE_URL` so exported links use the real domain (`NUXT_PUBLIC_SITE_ORIGIN` already defaults to https://highreel.app). The prerendered landing, robots.txt and sitemap.xml are static files there. Submit the sitemap in Google Search Console and Bing Webmaster Tools once the domain is live.
 - Terms and privacy are live (M2.12). Keep their promises: ~~a job that deletes demo sessions never kept after 30 days (below), account deletion within 30 days of an email request~~ (M2.14 P4), ~~the sign-in email provider added to the privacy policy's providers~~ (M2.14 P3), Cloudflare's Email Address Obfuscation off (Scrape Shield), and a lawyer's read before the first paid campaign.
 - ~~Clean up demo sessions: delete anonymous users (and their businesses, by cascade) older than 30 days. The privacy policy promises it.~~ Done 2026-10-13 (M2.14 P4: a daily Cron Trigger, files too); its first run in the logs is part of P7.
@@ -1094,3 +1078,8 @@ One-time per campaign on **Whop**: founding price **$99** (up to 1,000 recipient
 | 2026-10-13 | **Logo canvas, round 3: a capital H.** Owner: sketch a couple of logos on the canvas, and try a capital H with the play between its two stems, which may read more like an H. Drew from Outfit Bold's "H" (stems 68–225 and 505–663, 706 tall, its crossbar removed; "ighreel" moves 158 units right): "Capital H, play between the stems" (a play 230 × 320 floating where the crossbar was) and "Capital H, play as the crossbar" (a bigger play joining both stems, the strongest H, and an icon that reads like a media control), plus "Play h, rounder" (the site now) for comparison; each board as the canvas's others (wordmark, icon at 104/32/20/16, on ink, on colour, accent options). Also tried and left off the canvas: the play hung from the h's shoulder, tilted 15° and 25° (open at the bottom where a "b" would close), which reads as "lv". The capital H changes the lowercase wordmark to "Highreel". Nothing in the app changed. Canvas: https://claude.ai/artifact/RHEhJUkVVDgXNjR3TLsrZ3 (row "Round 3"). **Next: the owner's pick, then M2.14 P4.** |
 | 2026-10-13 | **Capital H's crossbar play fits flush.** Owner: in "Capital H, play as the crossbar" the play was so big it overlapped both stems instead of sitting flush between them. It was 318 wide across a 280 gap (20 units into each stem). Now its box is exactly the gap, x 225–505: the flat side against the left stem's inner edge, the rounded tip touching the right one; 334 tall (the same play shape, smaller; 380 tall at that width came out pointy), corners rounded 40, centred at the cap height's middle (y -353). Canvas board updated. **Next: the owner's pick, then M2.14 P4.** |
 | 2026-10-13 | **Capital H chosen, then back to the highlighter; both kept behind one switch.** Owner: go with the capital H (play fitted between the stems) for the logo and favicon, keeping the highlighter in the brand files for an easy change later; then, on the favicon, make the H bigger and the play noticeable (a white play between white stems merged into one shape at tab size); then "take it back to what we had before. Leave these versions in the codebase but go back to the previous highlight version". Built: `LOGO` in `app/data/brand.ts` picks the site's logo; `scripts/brand.mjs` has both logos as `logos['capital-h']` and `logos.highlighter` (icons, app icons, wordmarks, `place()` for the link preview); `Wordmark.vue` draws either (the capital H as two masks over a transparent "H"); `icons.mjs` writes `brand/capital-h/`, `brand/highlighter/` and `brand/README.md` (how to switch); the lowercase Play h is gone. Capital H icon: the H at 0.5 scale (69 % of the square, was 51 %) with a marigold play (#FFB43A; compared yellow, marigold and a white square with an ink H at 16/32/64 px on light and dark tab bars, `tests/e2e/.out/favicon-options.png`), the app icon at 0.42 to stay inside round masks. `LOGO` is "highlighter": the site's favicon, icons, manifest and `og.png` are byte-identical to before the day's logo work, and the wordmark looks as it did. Proved the switch: flipped to "capital-h", `wordmark.mjs` ran the capital H's checks and passed; flipped back, the files matched again. Tests: `brand.test.ts` (both logos against `brand.mjs`, 5), `wordmark.mjs` dispatches by `LOGO`, `landing.mjs` accepts either; 287 vitest, typecheck, `landing`, `legal`, `wordmark`; Lighthouse 100 in all four on `/` and `/terms`, mobile and desktop, on the built Worker. Nothing committed. **Next: M2.14 P4.** |
+| 2026-10-13 | **M2.14 P4 done: scheduled jobs.** Owner: continue with P4. Built as planned (details in §8 M2.14 P4's "As built"): Nitro tasks (`experimental.tasks`) in `server/tasks/` (`cleanup:demo`, `cleanup:auth`, `accounts:delete`), all their SQL in `server/utils/cleanup.ts`, `server/schedule.ts` read by `nitro.scheduledTasks`, the same expressions in `wrangler.jsonc`'s `triggers.crons`, bindings through `taskBindings(context)`. `migrations/0003_cleanup.sql`: `account_deletions` (the owner inserts an address with `wrangler d1 execute --remote`; the migration has the commands) and an index for old demos. Beyond the plan: sign-in records clean up hourly, not daily (a daily run could keep a rate-limit count just over the policy's day); at most 1,000 demos a run (subrequests); files go before the user, so a failed R2 delete is retried the next day; done deletion requests are kept 30 days to confirm them, then removed, and the privacy policy's retention list now says so (`LEGAL_UPDATED` stays 13 October 2026). Checks: typecheck; 300 vitest (new `cleanup.test.ts`, 7, the jobs on the migrations in SQLite; isolation cases for `cleanup.ts`; the crons against the schedule; planted bugs failed each); e2e 27/27 (486 checks) on the dev server, with the new `cleanup.mjs` (a demo backdated 35 days gone with its Highreel, logo and link, a 29-day one kept, a requested account gone, sign-in records); `check:isolation` 45/45. On the built Worker (`wrangler dev --test-scheduled`): `cleanup.mjs` passes through `/__scheduled?cron=`, the path Cloudflare takes, and the Worker has no task endpoint (404); one run deleted 1,000 old demos (20,000 Highreels, 100,000 rows) in 1.6 s; Lighthouse 100 in all four on `/privacy`, mobile and desktop. Not done: the first real run in Cloudflare's logs (P7). The owner committed the work as `6c39fa8` while the e2e ran; this row came after it. **Next: M2.14 P5 (Mailpit on its own, tests and tooling).** |
+| 2026-10-13 | **M2.14 P5 and P6 done: no Supabase anywhere.** Owner: do P5, then remove every piece of code that references Supabase once `supabase start` isn't needed; asked whether Mailpit is needed in production (no: it's the local test inbox; production sends sign-in emails with Email Sending and Highreel emails through each business's account). Built (details in §8 M2.14 P5's and P6's "As built"): `brew install mailpit`, `corepack pnpm mail` on the same ports (54424/54425) with the one setting Supabase ran it with, the e2e runner checks Mailpit first; this project's local Supabase stopped (volumes kept), `supabase/` and its `.gitignore` lines deleted, orphaned Supabase packages out of `node_modules`; the mentions in migrations, `check-isolation.mjs`, `signin.ts` and the e2e files reworded; CLAUDE.md's opening describes the stack; SPEC §7 rewritten for the Worker (stack, layout, API, D1 data model, privacy and security, local development) and the M3 list updated; only history in §8 and §12 names Supabase. Checked: the build takes nothing from `.env`. Checks: typecheck; 300 vitest; e2e 27/27 (486 checks) with the standalone Mailpit and Supabase stopped; `check:isolation` 45/45. |
+| 2026-10-13 | **M2.14 P7: Highreel is live on https://highreel.app.** Owner: "make sure it goes live to highreel.app"; email setup (Email Routing) is theirs. Done (details in §8 M2.14 P7's "As built"): D1 `highreel` and R2 `highreel-media` made in the EU jurisdiction, migrations applied remotely, two new secrets with the Turnstile one uploaded with the first deploy, the Worker on highreel.app as a custom domain (workers.dev and preview URLs off), Workers Logs on, both Cron Triggers registered (01:45 UTC); `corepack pnpm run deploy` and `db:migrate:remote` for releases; the local D1 file moved under the new database id. Checked live: pages, compression, noindex, canonical, robots, sitemap, no task endpoint, contact links intact; Lighthouse desktop 89/100/100/100. Found: Cloudflare Web Analytics injects its beacon into every page (recaps too), against the privacy policy: the owner turns it off. Not checked here: sign-in and publishing on production (Turnstile challenges headless Chrome, and test rows in production were ruled out: the owner checks them in a browser), and the cron's first run (none showed at 02:00 UTC, within Cloudflare's 15-minute propagation; the next is 03:00 UTC, in Workers Logs or the Worker's Triggers tab). Nothing committed: the owner pushes to GitHub. **Next: the owner's checks on highreel.app and the dashboard switches (Web Analytics off, Email Routing for hello@), then M3 (Whop checkout, real phones, outreach).** |
+| 2026-10-13 | **llms.txt, and the landing's words in one file.** Owner: does the site have a sitemap, JSON-LD and robots.txt, the things that help it get indexed and suggested by ChatGPT and the like; create them, then set up Google Search Console and Bing in Brave. Found live already (M2.11): robots.txt (all open but `/app` and `/api/`, the sitemap named), sitemap.xml (8 pages), JSON-LD on the landing (organisation, site, the product with its three prices, the questions); OAI-SearchBot, GPTBot, ChatGPT-User, ClaudeBot, PerplexityBot, bingbot and Googlebot user agents all get the landing (from here, so Cloudflare's verified-bot rules aren't proven). Added `/llms.txt` (llmstxt.org; `server/routes/llms.txt.ts`, prerendered): what Highreel is, who it's for, the three steps, prices, what's included, the questions, the five examples and the links, all in the landing's own words: those moved to `app/data/landing.ts`, which the page, its JSON-LD and llms.txt read (the built landing's visible text and JSON-LD came out identical to the live one). `landing.mjs` checks llms.txt opens with the page's description and lede and has its questions, prices and every sitemap page. Checks: typecheck; `landing.mjs`; Lighthouse 100 in all four on `/`, mobile and desktop, on the built Worker. Deployed: https://highreel.app/llms.txt is live. **Next: Google Search Console and Bing Webmaster Tools (owner, in Brave), the www redirect and Always Use HTTPS, Web Analytics off.** |
+| 2026-10-13 | **Google Search Console and Bing Webmaster Tools.** Owner: set them up in the browser, under redonemini18@gmail.com (asked: that account, verify through Cloudflare). Google: a Domain property `highreel.app` (all subdomains, http and https), verified at once ("Ownership auto verified", by the domain name provider: no Cloudflare sign-in or TXT record was needed); sitemap `https://highreel.app/sitemap.xml` submitted (shows "Couldn't fetch" at first, normal for a new property); the live URL test on `/` says "URL is available to Google, page can be indexed" (so Cloudflare lets Googlebot through), and indexing was requested. Bing: `highreel.app` was already added and signed in; sitemap submitted (processing) and the 8 sitemap pages sent through URL Submission (quota 100 a day). Bing's "AI Performance" (beta) report will show citations in Copilot answers. **Next: the owner's switches in Cloudflare (Always Use HTTPS, the www redirect, Web Analytics off; optionally Crawler Hints, which pings IndexNow on changes); check both consoles in a few days.** |

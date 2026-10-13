@@ -1,6 +1,6 @@
 // Checks "every business sees only its own data" (SPEC M2, M2.14 P1) through
-// the app's own API, the only way a browser reaches the database since D1
-// replaced Supabase's row-level security. Two sessions, A and B: A sets up a
+// the app's own API, the only way a browser reaches the database (D1 has no
+// row-level security; the data layer filters every query). Two sessions, A and B: A sets up a
 // published Highreel with a photo, a logo, a connected email account and a
 // WhatsApp mark; B calls every workspace route with A's ids and must get a
 // 404 (or a refusal) with nothing of A's changed. Also: nothing in the API

@@ -67,7 +67,7 @@ await page.getByRole('main').getByRole('link', { name: 'privacy policy' }).first
 await page.waitForURL('**/privacy')
 const privacy = (await page.locator('main').innerText()).replace(/\s+/g, ' ')
 const named = ['Cloudflare', 'Turnstile', 'Whop', '06/L-082', 'Information and Privacy Agency', 'Article 28']
-expect(named.every(t => privacy.includes(t)) && !privacy.includes('Supabase'), 'privacy names the providers (Supabase no more), the law, the authority and the processing terms', named.filter(t => !privacy.includes(t)))
+expect(named.every(t => privacy.includes(t)), 'privacy names the providers, the law, the authority and the processing terms', named.filter(t => !privacy.includes(t)))
 expect(privacy.includes('Never an email address, phone number or customer ID') && privacy.includes('no recipient addresses'), 'privacy says what a recap never shows and what the send log never holds')
 expect(privacy.includes('within 30 days. We keep a note of the request') && privacy.includes('we delete it, and everything in it, after 30 days'), 'privacy says when accounts and demos are deleted (the scheduled jobs, SPEC M2.14 P4), and what stays of a deletion request')
 await page.getByRole('main').getByRole('link', { name: 'terms', exact: true }).first().click()

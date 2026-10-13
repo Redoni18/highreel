@@ -103,6 +103,8 @@ export default defineNuxtConfig({
     '/privacy': { prerender: true },
     '/robots.txt': { prerender: true },
     '/sitemap.xml': { prerender: true },
+    // Highreel in Markdown for AI assistants (llmstxt.org), from the landing's words.
+    '/llms.txt': { prerender: true },
     // Sign-in and the workspace have nothing for search engines (robots.txt keeps them out of /app too).
     '/login': { headers: { 'X-Robots-Tag': 'noindex' } },
     '/confirm': { headers: { 'X-Robots-Tag': 'noindex' } },

@@ -1,20 +1,19 @@
--- Highreel on D1 (SPEC M2.14 P1), translated from the nine Supabase migrations
--- of M1 to M2.13 (deleted 2026-10-13; git history has them). Apply with
+-- Highreel's database on D1 (SPEC M2.14 P1). Apply with
 --   corepack pnpm db:migrate        (local, .wrangler/state/v3)
 --   wrangler d1 migrations apply highreel --remote   (P7)
 --
--- What changed on the way:
--- - No row-level security. Every workspace query filters by the signed-in
---   user's business in the data layer (server/utils/db.ts); token routes look
---   rows up by token only (recap.ts, unsubscribe.ts). `check:isolation` and
---   tests/isolation.test.ts hold that line.
+-- How it's laid out:
+-- - D1 has no row-level security. Every workspace query filters by the
+--   signed-in user's business in the data layer (server/utils/db.ts); token
+--   routes look rows up by token only (recap.ts, unsubscribe.ts).
+--   `check:isolation` and tests/isolation.test.ts hold that line.
 -- - ids are text (crypto.randomUUID() in code); times are ISO 8601 text in one
 --   format (new Date().toISOString(), or the same from strftime below) so they
 --   sort and compare as text; JSON is text checked with json_valid; booleans
 --   are 0/1.
--- - The SQL functions (record_recap_event, bulk_update_recipients,
---   campaign_stats, recent_activity, campaign_sums) are queries in the data
---   layer, and the data layer sets campaigns.updated_at (no trigger).
+-- - No SQL functions or triggers: recording a view, bulk updates, a campaign's
+--   counts, recent activity and sums are queries in the data layer, which
+--   also sets campaigns.updated_at.
 
 create table businesses (
   id text primary key,

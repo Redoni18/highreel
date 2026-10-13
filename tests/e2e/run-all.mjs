@@ -1,8 +1,8 @@
 // Runs every browser check in order and summarises. Needs the dev server
-// (corepack pnpm dev) and Mailpit (with local Supabase, `supabase start`, until M2.14 P5).
+// (corepack pnpm dev) and Mailpit (corepack pnpm mail).
 import { execFileSync, spawnSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
-import { BASE, FIX } from './lib.mjs'
+import { BASE, FIX, MAILPIT } from './lib.mjs'
 
 const here = new URL('.', import.meta.url).pathname
 try {
@@ -10,6 +10,13 @@ try {
 }
 catch {
   console.error(`Dev server not reachable at ${BASE}. Start it with: corepack pnpm dev`)
+  process.exit(1)
+}
+try {
+  await fetch(`${MAILPIT}/api/v1/info`)
+}
+catch {
+  console.error(`Mailpit (the local test inbox) not reachable at ${MAILPIT}. Start it with: corepack pnpm mail`)
   process.exit(1)
 }
 if (!existsSync(`${FIX}/sample-10000.csv`))

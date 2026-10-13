@@ -49,7 +49,7 @@ export async function sendSignInEmail(binding: SendEmail | undefined, to: string
       verified_at: null,
     }, [{ to, ...mail }])
     if (!sent?.ok)
-      throw new Error(`Mailpit didn't take the sign-in email (is it running? \`supabase start\` until M2.14 P5): ${sent?.error ?? 'no answer'}`)
+      throw new Error(`Mailpit didn't take the sign-in email (is it running? \`corepack pnpm mail\`): ${sent?.error ?? 'no answer'}`)
     return
   }
   if (!binding)

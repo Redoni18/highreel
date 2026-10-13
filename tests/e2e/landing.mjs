@@ -31,7 +31,7 @@ expect(!named.length, 'the page around the phone names no example business', nam
 expect(EXAMPLES.every(e => plain.includes(e.label)), 'the switcher names five kinds of business')
 
 // Search (SPEC M2.11): canonical and link previews name the public site; the
-// structured data says what the page says; robots.txt, the sitemap and icons.
+// structured data says what the page says; robots.txt, the sitemap, llms.txt and icons.
 const SITE = 'https://highreel.app'
 const attr = (re) => html.match(re)?.[1]
 expect(attr(/<link rel="canonical" href="([^"]+)"/) === `${SITE}/` && attr(/<meta property="og:url" content="([^"]+)"/) === `${SITE}/`, 'canonical and og:url name the public site')
@@ -49,6 +49,12 @@ const sitemap = await (await fetch(`${BASE}/sitemap.xml`)).text()
 const listed = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map(m => m[1].replace(SITE, ''))
 const live = await Promise.all(listed.map(async u => (await fetch(`${BASE}${u}`)).status))
 expect(listed[0] === '/' && listed.length === 8 && listed.includes('/terms') && listed.includes('/privacy') && live.every(st => st === 200), 'the sitemap lists the landing, the five examples, the terms and privacy, all live', listed)
+// llms.txt (llmstxt.org): the page's own words for AI assistants, every page of the sitemap linked.
+const llmsRes = await fetch(`${BASE}/llms.txt`)
+const llms = await llmsRes.text()
+const ledeHtml = html.match(/<p class="lede"[^>]*>([\s\S]*?)<\/p>/)?.[1]?.trim()
+expect(llmsRes.status === 200 && llmsRes.headers.get('content-type')?.startsWith('text/plain') && llms.startsWith('# Highreel\n') && llms.includes(`> ${desc}`) && !!ledeHtml && llms.includes(ledeHtml), 'llms.txt: Markdown that opens with the page\'s description and lede', llmsRes.status)
+expect(questions.every(q => llms.includes(`### ${q}`)) && ['$99', '$399', '$799'].every(p => llms.includes(p)) && listed.every(u => llms.includes(`(${SITE}${u})`)), 'llms.txt: the page\'s questions and prices, and every page in the sitemap', listed.filter(u => !llms.includes(`(${SITE}${u})`)))
 const icons = await Promise.all([['/favicon.ico', 'image/vnd.microsoft.icon'], ['/icon.svg', 'image/svg+xml'], ['/apple-touch-icon.png', 'image/png'], ['/icon-512.png', 'image/png']]
   .map(async ([u, type]) => { const r = await fetch(`${BASE}${u}`); return r.status === 200 && r.headers.get('content-type') === type }))
 const manifest = await (await fetch(`${BASE}/site.webmanifest`)).json()
