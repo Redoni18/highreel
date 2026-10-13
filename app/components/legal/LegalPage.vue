@@ -5,6 +5,8 @@
 import { CONTACT_EMAIL, LEGAL_NAME, LEGAL_UPDATED, type LegalSection } from '~/data/legal'
 
 defineProps<{ title: string, intro: string, sections: LegalSection[] }>()
+// Terms and privacy are public pages: Cloudflare Web Analytics counts their visits.
+usePublicAnalytics()
 </script>
 
 <template>

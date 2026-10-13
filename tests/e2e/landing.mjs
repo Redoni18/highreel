@@ -41,7 +41,7 @@ expect(!/<meta name="robots"[^>]*noindex/.test(html) && (html.match(/<h1\b/g) ??
 const ld = JSON.parse(attr(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/) ?? '{}')
 const graph = Object.fromEntries((ld['@graph'] ?? []).map(n => [n['@type'], n]))
 const questions = [...html.matchAll(/<summary[^>]*>([\s\S]*?)<\/summary>/g)].map(m => m[1].replace(/<[^>]+>/g, '').trim())
-expect(graph.Organization?.legalName === 'HighReel' && graph.Organization.email === 'hello@highreel.app' && graph.WebSite && graph.FAQPage?.mainEntity.map(q => q.name).join('|') === questions.join('|'), 'structured data: the organisation (legal name, contact), the site and the questions as shown', questions)
+expect(graph.Organization?.legalName === 'Redon Emini Tech' && graph.Organization.email === 'hello@highreel.app' && graph.WebSite && graph.FAQPage?.mainEntity.map(q => q.name).join('|') === questions.join('|'), 'structured data: the organisation (legal name, contact), the site and the questions as shown', questions)
 expect(graph.SoftwareApplication?.offers.map(o => o.price).join(',') === '99,399,799' && graph.SoftwareApplication.offers.every(o => o.priceCurrency === 'USD'), 'structured data: the three prices', graph.SoftwareApplication?.offers)
 const robots = await (await fetch(`${BASE}/robots.txt`)).text()
 expect(/^Disallow: \/app$/m.test(robots) && !/^Disallow: \/(r\/?)?$/m.test(robots) && robots.includes(`Sitemap: ${SITE}/sitemap.xml`), 'robots.txt keeps search out of the workspace, not recaps, and names the sitemap', robots)

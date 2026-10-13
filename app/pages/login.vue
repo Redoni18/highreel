@@ -17,6 +17,7 @@ const auth = useAuth()
 // account for a new address, so only the heading changes.
 const heading = computed(() => (route.query.start === '1' ? 'Get started' : 'Sign in'))
 useHead({ title: () => `${heading.value} · Highreel` })
+usePublicAnalytics()
 
 const bot = ref<{ token: () => Promise<string> }>()
 const email = ref('')

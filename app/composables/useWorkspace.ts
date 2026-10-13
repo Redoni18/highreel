@@ -7,7 +7,7 @@
 import { useEventListener } from '@vueuse/core'
 import { toast } from 'vue-sonner'
 import type { InjectionKey } from 'vue'
-import type { Business, Campaign, CampaignPhoto, CampaignSettings, CampaignSummary, PatchRecipientResponse, PublishResponse, Recipient, RecipientPage, RecapPayload, Workspace, WorkspaceIndex } from '#shared/types/recap'
+import type { Business, Campaign, CampaignPhoto, CampaignSettings, CampaignSummary, CreatedCampaign, PatchRecipientResponse, PublishResponse, Recipient, RecipientPage, RecapPayload, Workspace, WorkspaceIndex } from '#shared/types/recap'
 import type { CustomColumn, ParsedRow, RawRow } from '#shared/templates/types'
 import { getTemplate, templateFor } from '#shared/templates'
 import { changeColumn as changeOwnColumn, slideEntries, type OwnSettings } from '#shared/templates/own'
@@ -35,6 +35,7 @@ function createWorkspace() {
   const route = useRoute()
   const router = useRouter()
   const { api, fail, endSession, signOut, uploadMedia, deleteMedia } = useApi()
+  const appCache = useAppCache()
 
   const business = ref<Business | null>(null)
   const campaigns = ref<CampaignSummary[]>([])
@@ -76,6 +77,12 @@ function createWorkspace() {
     slides: slideEntries(baseTemplate.value, s).map(e => e.setting),
   })
   const designDirty = computed(() => !!draft.value && !!campaign.value && designFields(draft.value) !== designFields(campaign.value.settings))
+
+  // Your brand and the home show what this page last had (SPEC §7.7).
+  watch(business, (b) => {
+    if (b)
+      appCache.setBusiness(b, anonymous.value)
+  })
 
   /** The template alone, and with this recap's own columns and slides (SPEC M2.7): saved, and as the previews play it. */
   const baseTemplate = computed(() => getTemplate(campaign.value?.template_key ?? 'app'))
@@ -187,12 +194,25 @@ function createWorkspace() {
     return index
   }
 
-  /** Load the user's business and the campaign in the URL (/app/c/:id). */
+  /**
+   * Load the user's business and the campaign in the URL (/app/c/:id). One
+   * just created on the home opens with what creating it answered (SPEC
+   * §7.7), and the switcher's list arrives underneath.
+   */
   async function load() {
     loading.value = true
     loadError.value = null
+    const id = String(route.params.id ?? '')
+    const created = appCache.takeCreated(id)
     try {
-      await Promise.all([refreshIndex(), openCampaign(String(route.params.id ?? ''))])
+      if (created) {
+        anonymous.value = created.anonymous
+        await openCampaign(id, created)
+        refreshIndex().catch(() => {})
+      }
+      else {
+        await Promise.all([refreshIndex(), openCampaign(id)])
+      }
     }
     catch (e) {
       if (isUnauthorized(e))
@@ -226,11 +246,11 @@ function createWorkspace() {
       rows.value = list
   }
 
-  async function openCampaign(id: string) {
-    const [ws, list] = await Promise.all([
-      api<Workspace>(`/api/campaigns/${id}`),
-      fetchRows(id),
-    ])
+  /** Show a campaign: asked for, or one just created (no rows yet, and its business came with it). */
+  async function openCampaign(id: string, created?: Workspace) {
+    const [ws, list] = created
+      ? [created, [] as Recipient[]]
+      : await Promise.all([api<Workspace>(`/api/campaigns/${id}`), fetchRows(id)])
     business.value = ws.business
     campaign.value = ws.campaign
     rows.value = list
@@ -253,9 +273,8 @@ function createWorkspace() {
 
   async function createCampaign(input: { name: string, year: number, template_key: string, starter?: string }): Promise<boolean> {
     try {
-      const created = await api<Campaign>('/api/campaigns', { method: 'POST', body: input })
-      await refreshIndex()
-      await openCampaign(created.id)
+      const { business: b, ...created } = await api<CreatedCampaign>('/api/campaigns', { method: 'POST', body: input })
+      await Promise.all([refreshIndex(), openCampaign(created.id, { campaign: created, business: b })])
       return true
     }
     catch (e) {
@@ -270,6 +289,7 @@ function createWorkspace() {
       return
     try {
       await api(`/api/campaigns/${current.id}`, { method: 'DELETE' })
+      appCache.forgetCampaign(current.id)
       toast(`Deleted “${current.name}”`)
       await navigateTo('/app')
     }

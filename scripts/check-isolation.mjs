@@ -4,7 +4,8 @@
 // published Highreel with a photo, a logo, a connected email account and a
 // WhatsApp mark; B calls every workspace route with A's ids and must get a
 // 404 (or a refusal) with nothing of A's changed. Also: nothing in the API
-// writes the counters, the send log, opt-outs or bounces.
+// writes the counters, the send log, opt-outs or bounces, and neither can
+// reach the admin pages' routes or make itself an admin (M2.15).
 //
 //   corepack pnpm dev            # in another terminal (needs Mailpit for A's email account)
 //   corepack pnpm check:isolation
@@ -114,6 +115,16 @@ check('B sees its own business, not A\'s', bBusiness.id !== aBusiness.id && bInd
 check('B sees no email account (A\'s is A\'s)', bEmail.connection === null, bEmail.connection)
 const forged = photoUrl?.replace(/sig=[0-9a-f]+/, `sig=${'0'.repeat(32)}`)
 check('A signed link to A\'s photo works; a forged one doesn\'t', (await fetch(`${BASE}${photoUrl}`)).status === 200 && (await fetch(`${BASE}${forged}`)).status === 404)
+
+// --- The admin pages (SPEC M2.15): a client reaches none, and can't make itself an admin ---
+const aUser = (await A.call('/api/session')).body.user
+for (const path of ['/api/admin/overview', '/api/admin/users', '/api/admin/users?kind=demos', `/api/admin/users/${aUser.id}`, '/api/admin/highreels?demos=1', '/api/admin/payments'])
+  check(`B: GET ${path} → 404`, (await B.call(path)).status === 404)
+for (const [who, X] of [['A (an account)', A], ['B (a demo)', B]]) {
+  const asked = await X.call('/api/auth/update-user', 'POST', { role: 'admin' })
+  const id = (await X.call('/api/session')).body.user.id
+  check(`${who} can't set its own role`, asked.status === 400 && sql(`select role from "user" where id = '${id}'`)[0].role === 'client', [asked.status, asked.body?.message])
+}
 
 // --- Nothing of A's changed ---
 const after = (await A.call(c)).body

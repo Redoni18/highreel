@@ -58,6 +58,8 @@ useHead({
   meta: [{ name: 'theme-color', content: '#FFFFFF' }],
   bodyAttrs: { class: 'landing-page' },
 })
+// Cloudflare Web Analytics, on the live site once the page is idle.
+usePublicAnalytics()
 
 const motion = usePreferredReducedMotion()
 const reduced = computed(() => motion.value === 'reduce')

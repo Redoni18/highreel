@@ -1,11 +1,13 @@
 <script setup lang="ts">
-// The home's account menu: dark mode and signing out (SPEC M2.5 P3).
-import { Ellipsis, LogOut, Moon, Sun } from '@lucide/vue'
+// The home's account menu: the admin pages for admins (SPEC M2.15), dark
+// mode and signing out (SPEC M2.5 P3).
+import { Ellipsis, LogOut, Moon, ShieldCheck, Sun } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 
 defineProps<{ anonymous: boolean }>()
 const { signOut } = useApi()
+const { user } = useAuth()
 const colorMode = useColorMode()
 const endOpen = ref(false)
 </script>
@@ -18,6 +20,12 @@ const endOpen = ref(false)
       </Button>
     </DropdownMenuTrigger>
     <DropdownMenuContent align="end" class="w-48 text-[13px]">
+      <template v-if="user?.role === 'admin'">
+        <DropdownMenuItem @select="navigateTo('/app/admin')">
+          <ShieldCheck /> Admin
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+      </template>
       <DropdownMenuItem @select="colorMode.preference = colorMode.value === 'dark' ? 'light' : 'dark'">
         <Sun v-if="colorMode.value === 'dark'" />
         <Moon v-else />

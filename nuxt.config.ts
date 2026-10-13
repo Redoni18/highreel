@@ -34,6 +34,7 @@ export default defineNuxtConfig({
     { path: '~/components/workspace', pathPrefix: false },
     { path: '~/components/landing', pathPrefix: false },
     { path: '~/components/home', pathPrefix: false },
+    { path: '~/components/admin', pathPrefix: false },
     '~/components',
   ],
 
@@ -106,11 +107,12 @@ export default defineNuxtConfig({
     // Highreel in Markdown for AI assistants (llmstxt.org), from the landing's words.
     '/llms.txt': { prerender: true },
     // Sign-in and the workspace have nothing for search engines (robots.txt keeps them out of /app too).
-    '/login': { headers: { 'X-Robots-Tag': 'noindex' } },
+    // /login and the workspace carry the session in their HTML (server/plugins/session-in-page.ts, SPEC §7.7): never cached.
+    '/login': { headers: { 'X-Robots-Tag': 'noindex', 'Cache-Control': 'private, no-store' } },
     '/confirm': { headers: { 'X-Robots-Tag': 'noindex' } },
     // The home and the workspace are browser tools (file drop, canvas, keyboard grid).
-    '/app': { ssr: false, headers: { 'X-Robots-Tag': 'noindex' } },
-    '/app/**': { ssr: false, headers: { 'X-Robots-Tag': 'noindex' } },
+    '/app': { ssr: false, headers: { 'X-Robots-Tag': 'noindex', 'Cache-Control': 'private, no-store' } },
+    '/app/**': { ssr: false, headers: { 'X-Robots-Tag': 'noindex', 'Cache-Control': 'private, no-store' } },
     // Recaps are personal: keep them out of search engines (SPEC §7.5).
     '/r/**': { headers: { 'X-Robots-Tag': 'noindex' } },
     '/unsubscribe/**': { headers: { 'X-Robots-Tag': 'noindex', 'Cache-Control': 'no-store' } },

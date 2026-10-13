@@ -84,6 +84,11 @@ export interface Workspace {
   campaign: Campaign
 }
 
+/** POST /api/campaigns: the new campaign, and its business for the workspace to open with (SPEC §7.7). */
+export interface CreatedCampaign extends Campaign {
+  business: Business
+}
+
 export interface CampaignSummary {
   id: string
   name: string

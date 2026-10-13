@@ -54,7 +54,7 @@ const mail = `mailto:${CONTACT_EMAIL}`
     <h2 id="short">1. The short version</h2>
     <div class="box">
       <ul>
-        <li>We don't sell data, show ads or use third-party trackers or analytics, on any page.</li>
+        <li>We don't sell data or show ads. Our own public pages count visits with Cloudflare Web Analytics, which sets no cookies; a Highreel never runs analytics or trackers.</li>
         <li>A Highreel shows a first name, some numbers and the business's brand. Never an email address, phone number or customer ID.</li>
         <li>Highreel links are private, unguessable and kept out of search engines.</li>
         <li>Emails with Highreels come from the business's own email account, not from us.</li>
@@ -63,7 +63,7 @@ const mail = `mailto:${CONTACT_EMAIL}`
     </div>
 
     <h2 id="who">2. Who we are</h2>
-    <p>Highreel (highreel.app) is run by <strong>{{ LEGAL_NAME }}</strong>, based in Kosovo. For the data of businesses that use Highreel, we are the controller. For the customer data a business uploads, the business is the controller and we are its processor (see <a href="#processing">data processing terms</a>). Questions about privacy go to <a :href="mail">{{ CONTACT_EMAIL }}</a>.</p>
+    <p>Highreel (highreel.app) is run by <strong>{{ LEGAL_NAME }}</strong>, a business registered in Kosovo. For the data of businesses that use Highreel, we are the controller. For the customer data a business uploads, the business is the controller and we are its processor (see <a href="#processing">data processing terms</a>). Questions about privacy go to <a :href="mail">{{ CONTACT_EMAIL }}</a>.</p>
     <p>We follow Kosovo's Law on Protection of Personal Data (No. 06/L-082), which is based on the EU's GDPR, and the GDPR itself wherever it applies to you.</p>
 
     <h2 id="businesses">3. If you use Highreel for your business</h2>
@@ -80,9 +80,12 @@ const mail = `mailto:${CONTACT_EMAIL}`
     <ul>
       <li>To run Highreel for you and take payment: necessary for our contract with you.</li>
       <li>To keep the service secure, prevent abuse and fix problems: our legitimate interest in a safe, working service.</li>
+      <li>To see how many people visit our public pages and how they find them: our legitimate interest in improving those pages. The counts are cookie-free and build no profile of you (see <a href="#cookies">cookies and storage</a>).</li>
       <li>To keep accounting records and answer lawful requests: legal obligations.</li>
       <li>To email you about your account, your Highreels and important changes. We don't send marketing emails unless you've agreed to them.</li>
     </ul>
+    <h3>Who at Highreel sees it</h3>
+    <p>To run the service, help you when you ask and stop abuse, our admin pages show us each account's email address, its business's name, when it signed up and was last signed in, and counts: how many Highreels it made and published, how many customers got one and opened, saved or shared it, how many emails it sent and what it paid. They don't show your sheets, your customers' names or contact details, or your email account's login.</p>
     <h3>The demo</h3>
     <p>You can try Highreel without an account. A demo session is anonymous and lives in your browser. If you never add your email to keep it, we delete it, and everything in it, after 30 days.</p>
 
@@ -92,7 +95,7 @@ const mail = `mailto:${CONTACT_EMAIL}`
       <li><strong>What:</strong> what the sheet holds, usually a customer ID, a first name and numbers about the year (visits, orders, streaks and the like), sometimes an email address or phone number to send the Highreel, and any photos and wording the business adds.</li>
       <li><strong>What for:</strong> making each customer's Highreel, publishing it at a private link, sending it if the business asks, and showing the business who opened, saved and shared it. Nothing else: we don't use it for our own purposes, combine it with other data, sell it or use it to train AI.</li>
       <li><strong>What a Highreel shows:</strong> only the columns its slides use. Email addresses, phone numbers and customer IDs never leave our servers in one.</li>
-      <li><strong>Separate from other businesses:</strong> each business sees only its own data. Every request for it is checked against the signed-in account.</li>
+      <li><strong>Separate from other businesses:</strong> each business sees only its own data. Every request for it is checked against the signed-in account. Our own admin pages count a business's rows, opens and shares, never what's in them.</li>
     </ul>
     <p>The business is responsible for having the right to use its customers' data this way, and for answering their requests (see our <NuxtLink to="/terms#your-data">terms</NuxtLink>).</p>
 
@@ -111,13 +114,14 @@ const mail = `mailto:${CONTACT_EMAIL}`
       <li>Signing in sets a cookie that keeps you signed in to the workspace for 30 days after your last visit. It's needed for the workspace to work and isn't used for anything else.</li>
       <li>The sign-in page, and the box for keeping a demo's work, load Cloudflare Turnstile, which checks that a person, not a bot, is signing in. It looks at signals from your browser for that check only.</li>
       <li>Your browser may keep a light or dark display setting in its local storage.</li>
+      <li>Our home page, the examples, these terms and privacy pages and the sign-in page load Cloudflare Web Analytics to count visits: the page, the site you came from, your country, the kind of browser and device, and how fast the page loaded. It sets no cookies, stores nothing in your browser and doesn't track you across sites. Highreels and unsubscribe pages don't load it.</li>
       <li>We don't set cookies for people viewing a Highreel or our home page, and we use no advertising, analytics or social media cookies, so there's nothing to consent to.</li>
     </ul>
 
     <h2 id="sharing">7. Who we share data with</h2>
     <p>We use a few providers to run Highreel. They process data only for us, under data processing agreements:</p>
     <ul>
-      <li><strong>Cloudflare</strong>: hosting and delivering the site, our database (accounts and sign-in included) and the logos and photos businesses upload, stored in the EU; the bot check on signing in (Turnstile); and sending our sign-in emails. Like any host, it handles visitors' IP addresses to deliver pages and block attacks.</li>
+      <li><strong>Cloudflare</strong>: hosting and delivering the site, our database (accounts and sign-in included) and the logos and photos businesses upload, stored in the EU; the bot check on signing in (Turnstile); sending our sign-in emails; and counting visits to our public pages (Web Analytics). Like any host, it handles visitors' IP addresses to deliver pages and block attacks.</li>
       <li><strong>Whop</strong>: payments, for businesses that buy a campaign.</li>
     </ul>
     <p>Emails with Highreels go through the business's own email provider, which the business chooses and has its own agreement with. WhatsApp messages are sent by the business from its own device.</p>
@@ -128,7 +132,7 @@ const mail = `mailto:${CONTACT_EMAIL}`
       <li>Everything travels over HTTPS. Email account passwords are encrypted before they're stored.</li>
       <li>Every request for a business's data is checked against the signed-in account, so no business can see or change another's.</li>
       <li>Highreel links use long random codes that can't be guessed or listed, and their pages tell search engines not to index them.</li>
-      <li>Only the people who need it to run Highreel can reach the production systems.</li>
+      <li>Only the people who need it to run Highreel can reach the production systems, and only accounts we've made admins can open the admin pages.</li>
     </ul>
     <p>If a breach affects your data, we'll tell you without undue delay, and the authorities where the law requires it.</p>
 

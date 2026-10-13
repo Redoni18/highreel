@@ -33,7 +33,7 @@ const going = (await page.locator('[data-testid="going"]').innerText()).replace(
 
 await page.getByRole('link', { name: 'All Highreels' }).click()
 await page.waitForURL(u => new URL(u).pathname === '/app')
-await page.waitForSelector('[data-campaign]')
+await page.waitForSelector('main[aria-busy="false"] [data-campaign]')
 const summary = (await text('[data-testid="summary"]')).join(' ')
 expect(summary === 'In 2026 you sent 195 Highreels in 1 campaign. 3 were opened (2%) and 1 saved.', 'the year in sentences', summary)
 expect(going.includes('3 of 195 opened') && going.includes('1 saved'), 'the recap\'s Share tab agrees: 3 of 195 opened, 1 saved', going)
@@ -50,7 +50,7 @@ expect(true, 'old /app?c= links open the workspace at /app/c/:id')
 
 // Duplicate into next year: photos come along, rows don't.
 await page.goto(`${BASE}/app`)
-await page.waitForSelector('[data-campaign]')
+await page.waitForSelector('main[aria-busy="false"] [data-campaign]')
 await page.getByRole('button', { name: 'Actions for 2026 Highreels' }).click()
 await page.getByRole('menuitem', { name: 'Duplicate' }).click()
 expect(await page.getByRole('dialog').getByLabel('Name').inputValue() === '2027 Highreels' && await page.getByRole('dialog').getByLabel('Year').inputValue() === '2027', 'Duplicate suggests the next year')
@@ -65,11 +65,11 @@ expect(copiedRows === 0, 'and no rows', copiedRows)
 
 // Year switcher
 await page.goto(`${BASE}/app`)
-await page.waitForSelector('[data-campaign]')
+await page.waitForSelector('main[aria-busy="false"] [data-campaign]')
 await page.getByRole('button', { name: 'Switch year' }).click()
 await page.getByRole('menuitem', { name: '2027' }).click()
 await page.waitForFunction(() => document.querySelector('#year-title')?.textContent?.includes('2027'))
-await page.waitForSelector(`[data-campaign="${copy}"]`)
+await page.waitForSelector(`main[aria-busy="false"] [data-campaign="${copy}"]`)
 expect(await page.locator('[data-campaign]').count() === 1 && (await text('[data-testid="attention"]'))[0]?.startsWith('2027 Highreels: no sheet yet'), 'the year switcher shows 2027 and its draft')
 
 // Delete from the home, then the empty state of a brand-new account
@@ -80,7 +80,7 @@ await page.waitForSelector('text=Nothing in 2027')
 expect(true, 'Delete removes it from the table')
 await page.getByRole('button', { name: 'Switch year' }).click()
 await page.getByRole('menuitem', { name: '2026' }).click()
-await page.waitForSelector(`[data-campaign="${first}"]`)
+await page.waitForSelector(`main[aria-busy="false"] [data-campaign="${first}"]`)
 await page.getByRole('button', { name: 'Actions for 2026 Highreels' }).click()
 await page.getByRole('menuitem', { name: 'Delete' }).click()
 await page.getByRole('dialog').getByRole('button', { name: 'Delete' }).click()

@@ -9,7 +9,7 @@ import { toast } from 'vue-sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import type { Business, Campaign, CampaignKind, HomeCampaign, HomeData } from '#shared/types/recap'
+import type { Business, Campaign, CampaignKind, CreatedCampaign, HomeCampaign, HomeData } from '#shared/types/recap'
 import { activityText, attention, timeAgo, yearSummary } from '#shared/utils/home'
 
 definePageMeta({
@@ -20,24 +20,39 @@ useHead({ title: 'Your Highreels · Highreel' })
 const route = useRoute()
 const router = useRouter()
 const { api, fail, endSession } = useApi()
+const { cache, setBusiness } = useAppCache()
 
-const data = ref<HomeData | null>(null)
-const loading = ref(true)
-const loadError = ref<string | null>(null)
 const year = ref(Number(route.query.year) || new Date().getFullYear())
+// Back here in this visit: the last answer at once, a fresh one underneath (SPEC §7.7).
+const data = ref<HomeData | null>(cache.home[year.value] ?? null)
+const loading = ref(!data.value)
+/** Asking the server while showing the last answer (main is aria-busy). */
+const refreshing = ref(false)
+const loadError = ref<string | null>(null)
 
 async function load() {
+  const y = year.value
   loadError.value = null
+  refreshing.value = true
   try {
-    data.value = await api<HomeData>('/api/home', { query: { year: year.value } })
+    const fresh = await api<HomeData>('/api/home', { query: { year: y } })
+    cache.home[y] = fresh
+    setBusiness(fresh.business, fresh.anonymous)
+    if (y === year.value)
+      data.value = fresh
   }
   catch (e) {
     if (isUnauthorized(e))
       return endSession()
-    loadError.value = errorMessage(e)
+    // With the last answer on screen, keep it and say so; without one, the page says it.
+    if (data.value)
+      fail('Couldn\'t refresh your Highreels', e)
+    else
+      loadError.value = errorMessage(e)
   }
   finally {
     loading.value = false
+    refreshing.value = false
   }
 }
 
@@ -51,6 +66,10 @@ onMounted(async () => {
       await router.replace({ query: {} })
   }
 })
+// The workspace's code while the home sits idle (the table and New Highreel
+// open it with navigateTo, which doesn't prefetch like a link): opening or
+// creating a Highreel then waits only for its data (SPEC §7.7).
+onNuxtReady(() => preloadRouteComponents('/app/c/new'))
 // Views and shares arrive while the page sits in another tab.
 let lastRefresh = Date.now()
 useEventListener(document, 'visibilitychange', () => {
@@ -62,6 +81,7 @@ useEventListener(document, 'visibilitychange', () => {
 
 function pickYear(y: number) {
   year.value = y
+  data.value = cache.home[y] ?? data.value
   router.replace({ query: y === new Date().getFullYear() ? {} : { year: String(y) } })
   load()
 }
@@ -80,7 +100,9 @@ function startNew(kind: CampaignKind = 'customers') {
 
 async function create(input: { name: string, year: number, template_key: string, starter?: string }, query: Record<string, string> = {}): Promise<boolean> {
   try {
-    const c = await api<Campaign>('/api/campaigns', { method: 'POST', body: input })
+    const { business, ...c } = await api<CreatedCampaign>('/api/campaigns', { method: 'POST', body: input })
+    // The workspace opens it with these, without asking again (SPEC §7.7).
+    cache.created = { campaign: c, business, anonymous: !!data.value?.anonymous }
     await navigateTo({ path: `/app/c/${c.id}`, query }, { replace: route.query.start === 'demo' })
     return true
   }
@@ -149,7 +171,7 @@ async function saveName() {
   try {
     const b = await api<Business>('/api/business', { method: 'PATCH', body: { name: businessName.value.trim() } })
     if (data.value)
-      data.value.business = { ...data.value.business, name: b.name }
+      setBusiness({ ...data.value.business, name: b.name })
   }
   catch (e) {
     fail('Couldn\'t save the name', e)
@@ -187,7 +209,7 @@ async function saveName() {
       </div>
     </header>
 
-    <main class="mx-auto flex w-full max-w-[1180px] flex-1 flex-col gap-12 px-4 pt-12 pb-16 md:px-8">
+    <main class="mx-auto flex w-full max-w-[1180px] flex-1 flex-col gap-12 px-4 pt-12 pb-16 md:px-8" :aria-busy="loading || refreshing">
       <div v-if="loading" class="flex flex-1 items-center justify-center text-muted-foreground">
         <Loader2 class="size-4 animate-spin" />
       </div>

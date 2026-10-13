@@ -23,7 +23,7 @@ await page.waitForSelector('[data-row-id]')
 await publish(page)
 
 await page.getByRole('link', { name: 'All Highreels' }).click()
-await page.waitForSelector('[data-campaign]')
+await page.waitForSelector('main[aria-busy="false"] [data-campaign]')
 await page.getByRole('button', { name: 'New Highreel' }).click()
 await page.getByRole('radio', { name: /Your business year/ }).click()
 expect(await page.getByRole('dialog').getByLabel('Name').inputValue() === `Our ${new Date().getFullYear()}`, 'a business recap is named "Our <year>"')
@@ -96,7 +96,7 @@ expect(after.recipient.values.highlight === 'A goat named Pancake', 'saving upda
 
 // The home lists it.
 await page.getByRole('link', { name: 'All Highreels' }).click()
-await page.waitForSelector(`[data-campaign="${c}"]`)
+await page.waitForSelector(`main[aria-busy="false"] [data-campaign="${c}"]`)
 const row = (await page.locator(`[data-campaign="${c}"]`).innerText()).replace(/\s+/g, ' ')
 expect(/your business Your business year published 1 1 1 views/.test(row), 'the home lists it as your business, with its views', row)
 const summary = (await page.locator('[data-testid="summary"]').allInnerTexts()).join(' ')

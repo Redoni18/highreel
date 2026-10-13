@@ -114,7 +114,7 @@ expect(await page.getByTestId('logo-drop').count() === 1, 'the logo has a drop z
 
 // --- The recap page ----------------------------------------------------------------
 await page.goto(`${BASE}/app`)
-await page.waitForSelector('[data-campaign]')
+await page.waitForSelector('main[aria-busy="false"] [data-campaign]')
 await page.locator('[data-campaign]').first().click()
 await page.waitForSelector('[data-row-id]')
 await publish(page)

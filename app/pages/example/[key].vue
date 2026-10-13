@@ -17,6 +17,7 @@ const business = computed(() => payload.value.business.name)
 
 // Search and link previews name the public site (SPEC M2.11).
 useCanonical(`/example/${example.value!.key}`)
+usePublicAnalytics()
 useSeoMeta({
   title: () => `An example Highreel from ${business.value}`,
   description: () => `${example.value!.about}. An example Highreel, the personal highlight reel each customer gets.`,

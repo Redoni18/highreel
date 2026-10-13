@@ -1,5 +1,5 @@
 // Terms and privacy (SPEC M2.12): linked from the landing's footer and the
-// sign-in page; each names HighReel and hello@highreel.app, calls what customers get a
+// sign-in page; each names Redon Emini Tech (who runs Highreel) and hello@highreel.app, calls what customers get a
 // "Highreel" (never "recap"), has its canonical
 // link and a description, its contents list jumps to real sections, the two
 // link to each other, nothing scrolls sideways on a phone, in-page jumps
@@ -27,7 +27,7 @@ const page = await open({ width: 1280, height: 800 })
 await page.goto(BASE, { waitUntil: 'networkidle' })
 const foot = await page.locator('.foot a').evaluateAll(as => as.map(a => a.getAttribute('href')))
 expect(['/terms', '/privacy', 'mailto:hello@highreel.app'].every(h => foot.includes(h)) && !(await page.locator('.foot').innerText()).includes('at launch'), 'the landing\'s footer links the terms, privacy and the contact address', foot)
-expect((await page.locator('.foot').innerText()).includes('© 2026 HighReel'), 'the landing\'s footer says © 2026 HighReel')
+expect((await page.locator('.foot').innerText()).includes('© 2026 Redon Emini Tech'), 'the landing\'s footer says © 2026 Redon Emini Tech')
 // The header: the light/dark toggle and one Sign in button; the footer: the copyright on the left, the links on the right.
 const navLinks = await page.locator('.nav a.pill').evaluateAll(as => as.map(a => [a.textContent.trim(), a.getAttribute('href')]))
 expect(JSON.stringify(navLinks) === JSON.stringify([['Sign in', '/app']]) && await page.locator('.nav [data-testid=theme-toggle]').count() === 1, 'the header has the light/dark toggle and Sign in', navLinks)
@@ -48,8 +48,8 @@ for (const [path, title] of [['/terms', 'Terms of service'], ['/privacy', 'Priva
   await page.goto(`${BASE}${path}`, { waitUntil: 'networkidle' })
   expect((await page.locator('h1').innerText()) === title && (await page.locator('h1').count()) === 1, `${path}: one h1, "${title}"`)
   const text = (await page.locator('main').innerText()).replace(/\s+/g, ' ')
-  expect(text.includes('HighReel') && (await page.locator('main a[href="mailto:hello@highreel.app"]').count()) >= 2 && text.includes('Last updated'), `${path}: names HighReel, links hello@highreel.app, says when it was updated`)
-  expect((await page.locator('.nav a.pill').allInnerTexts()).join() === 'Sign in' && await page.locator('.nav [data-testid=theme-toggle]').count() === 1 && (await page.locator('.foot-mark').innerText()).includes('© 2026 HighReel'), `${path}: the toggle, Sign in, and © 2026 HighReel on the left`)
+  expect(text.includes('is run by Redon Emini Tech, a business registered in Kosovo') && (await page.locator('main a[href="mailto:hello@highreel.app"]').count()) >= 2 && text.includes('Last updated'), `${path}: says Redon Emini Tech, registered in Kosovo, runs Highreel, links hello@highreel.app, says when it was updated`)
+  expect((await page.locator('.nav a.pill').allInnerTexts()).join() === 'Sign in' && await page.locator('.nav [data-testid=theme-toggle]').count() === 1 && (await page.locator('.foot-mark').innerText()).includes('© 2026 Redon Emini Tech'), `${path}: the toggle, Sign in, and © 2026 Redon Emini Tech on the left`)
   // The owner's words (2026-10-12): what customers get is a "Highreel", defined once as their
   // highlight reel; never "recap", and no "Made in Kosovo".
   const body = await page.locator('body').innerText()
@@ -69,7 +69,9 @@ const privacy = (await page.locator('main').innerText()).replace(/\s+/g, ' ')
 const named = ['Cloudflare', 'Turnstile', 'Whop', '06/L-082', 'Information and Privacy Agency', 'Article 28']
 expect(named.every(t => privacy.includes(t)), 'privacy names the providers, the law, the authority and the processing terms', named.filter(t => !privacy.includes(t)))
 expect(privacy.includes('Never an email address, phone number or customer ID') && privacy.includes('no recipient addresses'), 'privacy says what a recap never shows and what the send log never holds')
+expect(privacy.includes('count visits with Cloudflare Web Analytics, which sets no cookies') && privacy.includes('Highreels and unsubscribe pages don\'t load it') && privacy.includes('counting visits to our public pages (Web Analytics)'), 'privacy says the public pages count visits with Cloudflare Web Analytics, without cookies, and Highreels don\'t')
 expect(privacy.includes('within 30 days. We keep a note of the request') && privacy.includes('we delete it, and everything in it, after 30 days'), 'privacy says when accounts and demos are deleted (the scheduled jobs, SPEC M2.14 P4), and what stays of a deletion request')
+expect(privacy.includes('our admin pages show us each account\'s email address') && privacy.includes('They don\'t show your sheets, your customers\' names or contact details') && privacy.includes('count a business\'s rows, opens and shares, never what\'s in them'), 'privacy says what the admin pages show and what they never do (SPEC M2.15)')
 await page.getByRole('main').getByRole('link', { name: 'terms', exact: true }).first().click()
 await page.waitForURL('**/terms**')
 expect(true, 'the two pages link to each other')

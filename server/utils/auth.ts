@@ -69,8 +69,15 @@ export function authOptions(s: AuthSetup) {
       // let the visitor set it. Without it, the rate limits would share one
       // bucket for everyone (a lesson from Clairwire, behind Cloudflare too).
       ipAddress: { ipAddressHeaders: ['cf-connecting-ip'] },
+      // The session and its user in one query (a join) instead of two in a
+      // row: every signed-in request starts with this lookup (SPEC §7.7).
+      database: { joins: true },
     },
     rateLimit: { enabled: s.rateLimit, storage: 'database' },
+    // Client or admin (SPEC M2.15, migrations/0004_admin.sql). `input: false`:
+    // Better Auth refuses it from the browser, on sign-up and on update-user;
+    // the owner sets it by hand.
+    user: { additionalFields: { role: { type: 'string', required: false, defaultValue: 'client', input: false } } },
     // A failed Google sign-in without a page of its own to go back to lands on
     // /login, which explains ?error=, not on Better Auth's bare error page.
     onAPIError: { errorURL: `${s.baseURL}/login` },
@@ -242,6 +249,26 @@ export async function requireUser(event: H3Event): Promise<UserContext> {
     anonymous,
     email: anonymous ? null : user.email,
   }
+}
+
+/**
+ * The signed-in admin (SPEC M2.15), for the admin routes, whose SQL
+ * (server/utils/admin.ts) reads across businesses and takes only this.
+ * Anyone else gets a 404, as for another business's campaign: the routes
+ * don't say they exist.
+ */
+export async function requireAdmin(event: H3Event): Promise<AdminDb> {
+  const { user } = await currentSession(event, { clear: false })
+  if (!user)
+    throw sessionEnded()
+  if (!isAdmin(user))
+    throw createError({ statusCode: 404, message: 'Not found' })
+  return { d1: bindings(event).DB, adminId: user.id }
+}
+
+/** An admin: the role, on an account (a demo never is one). */
+export function isAdmin(user: { role?: unknown, isAnonymous?: boolean | null }): boolean {
+  return user.role === 'admin' && !user.isAnonymous
 }
 
 /** 401 that tells the browser to drop its session and sign in again. */

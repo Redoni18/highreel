@@ -18,6 +18,12 @@
   "preview_urls": false,
   // Workers Logs: requests and the jobs' counts (the app logs no addresses or names).
   "observability": { "enabled": true },
+  // Run next to the database (SPEC §7.7). D1's primary is in Frankfurt (a query's
+  // meta says served_by_colo FRA); without this the Worker runs wherever the visitor
+  // lands, and every query crosses back: from Rio (where Kosovo's IPv6 lands) ~180 ms
+  // each, 3-4 in a row per signed-in request. Static files are still served at the
+  // visitor's edge; only requests the Worker handles go to Frankfurt, once each.
+  "placement": { "region": "aws:eu-central-1" },
   "assets": {
     "directory": ".output/public",
     "binding": "ASSETS",

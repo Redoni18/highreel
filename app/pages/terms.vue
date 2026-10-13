@@ -50,7 +50,7 @@ const mail = `mailto:${CONTACT_EMAIL}`
     :sections="sections"
   >
     <h2 id="who">1. Who we are</h2>
-    <p>Highreel (highreel.app) is run by <strong>{{ LEGAL_NAME }}</strong>, based in Kosovo ("we", "us"). You can reach us at <a :href="mail">{{ CONTACT_EMAIL }}</a>. "You" means the business using Highreel and the person who signs up for it.</p>
+    <p>Highreel (highreel.app) is run by <strong>{{ LEGAL_NAME }}</strong>, a business registered in Kosovo ("we", "us"). You can reach us at <a :href="mail">{{ CONTACT_EMAIL }}</a>. "You" means the business using Highreel and the person who signs up for it.</p>
 
     <h2 id="service">2. What Highreel does</h2>
     <p>You upload a sheet with one row per customer. Highreel turns each row into a Highreel: a personal, animated highlight reel of that customer's year, in your brand and your words, published at a private link. You can send the links from your own email account, on WhatsApp, or download them to send any other way. You see who opened, saved and shared their Highreel.</p>

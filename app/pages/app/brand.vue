@@ -18,12 +18,17 @@ import { starters } from '#shared/templates/starters'
 import { type EmailConnection, presetFor } from '#shared/utils/smtp'
 import { shrinkImage } from '~/utils/media'
 import { EXAMPLES } from '~/data/examples'
+import type { MailState } from '~/composables/useAppCache'
 
 useHead({ title: 'Your brand · Highreel' })
 const { api, fail, endSession, uploadMedia, deleteMedia } = useApi()
+const { cache, setBusiness } = useAppCache()
 
-const business = ref<Business | null>(null)
-const anonymous = ref(false)
+// From the home or an earlier visit here: the last answer at once, a fresh one underneath (SPEC §7.7).
+const business = ref<Business | null>(cache.brand?.business ?? null)
+const anonymous = ref(cache.brand?.anonymous ?? false)
+/** Asking the server while showing the last answer (the page is aria-busy). */
+const refreshing = ref(!!business.value)
 const loadError = ref<string | null>(null)
 const form = reactive({ name: '', accent: '#4F46E5', website: '', shape: 'circle' as LogoShape })
 const hexInput = ref('')
@@ -35,12 +40,22 @@ function reset(b: Business) {
   form.shape = b.logo_shape
   hexInput.value = b.accent_color
 }
+if (business.value)
+  reset(business.value)
+// Every copy of the business follows what this page saves (the home's header too).
+watch(business, (b) => {
+  if (b)
+    setBusiness(b, anonymous.value)
+})
 // The email account recap emails go out from (M2.9).
-const mail = ref<{ connection: EmailConnection | null, anonymous: boolean, dev: boolean } | null>(null)
+const mail = ref<MailState | null>(cache.mail)
+watch(mail, (m) => {
+  cache.mail = m
+})
 const connectOpen = ref(false)
 async function loadMail() {
   try {
-    mail.value = await api<{ connection: EmailConnection | null, anonymous: boolean, dev: boolean }>('/api/business/email')
+    mail.value = await api<MailState>('/api/business/email')
   }
   catch (e) {
     fail('Couldn\'t load your email account', e)
@@ -67,14 +82,23 @@ onMounted(loadMail)
 onMounted(async () => {
   try {
     const res = await api<{ business: Business, anonymous: boolean }>('/api/business')
-    business.value = res.business
+    // Edits already started on the last answer stay; otherwise the form takes the fresh one.
+    const editing = dirty.value
     anonymous.value = res.anonymous
-    reset(res.business)
+    business.value = res.business
+    if (!editing)
+      reset(res.business)
   }
   catch (e) {
     if (isUnauthorized(e))
       return endSession()
-    loadError.value = errorMessage(e)
+    if (business.value)
+      fail('Couldn\'t refresh your brand', e)
+    else
+      loadError.value = errorMessage(e)
+  }
+  finally {
+    refreshing.value = false
   }
 })
 
@@ -217,7 +241,7 @@ const payload = computed<RecapPayload | null>(() => {
       <Loader2 class="size-4 animate-spin" />
     </div>
 
-    <div v-else class="flex min-h-0 flex-1">
+    <div v-else class="flex min-h-0 flex-1" :aria-busy="refreshing">
       <form class="flex min-w-0 flex-1 flex-col" @submit.prevent="save">
         <div class="relative min-h-0 flex-1 overflow-y-auto">
           <div class="mx-auto flex w-full max-w-[680px] flex-col gap-6 px-8 pt-8 pb-14">

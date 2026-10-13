@@ -1,14 +1,24 @@
 // Signing in and out (SPEC M2.14 P3): Better Auth's endpoints under
 // /api/auth, called with $fetch. No client library, so pages that never sign
-// anyone in (the landing, recaps) load nothing for it. Who's signed in comes
-// from /api/session, once per page load (the /app middleware, /login); after
-// that, a 401 from our API means the session ended (useApi).
+// anyone in (the landing, recaps) load nothing for it. Who's signed in is
+// read once per page load (the /app middleware, /login): from the page's
+// HTML, or /api/session (SPEC §7.7); after that, a 401 from our API means the
+// session ended (useApi).
+
+declare global {
+  interface Window {
+    /** Who was signed in when the server wrote this page (server/plugins/session-in-page.ts). */
+    __hrSession?: { user: SessionUser | null, ended: boolean }
+  }
+}
 
 export interface SessionUser {
   id: string
   email: string
   /** a demo session */
   isAnonymous: boolean
+  /** an admin also gets the admin pages (SPEC M2.15); their routes check it again */
+  role: 'client' | 'admin'
 }
 
 // One question at a time: the guard can run more than once on a first load,
@@ -21,6 +31,15 @@ export function useAuth() {
   const loaded = useState('auth:loaded', () => false)
   /** This browser had a session that has since ended (so /login can say so). */
   const ended = useState('auth:ended', () => false)
+  // The page's HTML says who was signed in when it was written (the workspace
+  // and /login, server/plugins/session-in-page.ts): taken once, on first use,
+  // so after a sign-in or sign-out this page asks /api/session instead.
+  if (import.meta.client && window.__hrSession) {
+    user.value = window.__hrSession.user
+    ended.value = window.__hrSession.ended
+    loaded.value = true
+    window.__hrSession = undefined
+  }
 
   /** Ask the server who's signed in. */
   function refresh(): Promise<SessionUser | null> {

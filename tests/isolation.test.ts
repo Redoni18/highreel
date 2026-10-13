@@ -56,6 +56,25 @@ function statements(file: string): Statement[] {
   return out
 }
 
+/** Every string literal in a source file (quotes and backticks, with their `${}` parts). */
+function literals(src: string): string[] {
+  const out: string[] = []
+  for (let i = 0; i < src.length; i++) {
+    if (src.startsWith('//', i) || src.startsWith('/*', i)) {
+      // Comments, whose apostrophes aren't quotes.
+      i = src.startsWith('//', i) ? src.indexOf('\n', i) : src.indexOf('*/', i) + 1
+      if (i <= 0)
+        break
+    }
+    else if (src[i] === '\'' || src[i] === '"' || src[i] === '`') {
+      const end = literalEnd(src, i)
+      out.push(src.slice(i + 1, end))
+      i = end
+    }
+  }
+  return out
+}
+
 function files(dir: string): string[] {
   return readdirSync(join(root, dir)).flatMap((name) => {
     const path = join(dir, name)
@@ -63,7 +82,7 @@ function files(dir: string): string[] {
   })
 }
 
-const OWNED = ['campaigns', 'recipients', 'email_optouts', 'email_sends', 'email_connections', 'email_bounces']
+const OWNED = ['campaigns', 'recipients', 'email_optouts', 'email_sends', 'email_connections', 'email_bounces', 'payments']
 const mentions = (sql: string, table: string) => new RegExp(`\\b${table}\\b`).test(sql)
 
 describe('the data layer (server/utils/db.ts)', () => {
@@ -155,6 +174,59 @@ describe('token routes (recap.ts, unsubscribe.ts)', () => {
   })
 })
 
+describe('the admin pages (admin.ts)', () => {
+  // The one place that reads across businesses (SPEC M2.15): read-only,
+  // counts and account details only, and reached through requireAdmin alone.
+  const src = readFileSync(join(root, 'server/utils/admin.ts'), 'utf8')
+  const all = statements('server/utils/admin.ts')
+  // Its SQL is built from pieces (the reach CTE, the payment sums), so these
+  // checks read every string in the file, not just what's inside .prepare().
+  const sql = literals(src).map(l => l.replace(/\s+/g, ' '))
+
+  test('has statements to check', () => {
+    expect(all.length).toBeGreaterThan(5)
+    expect(sql.some(l => /from recipients r/.test(l))).toBe(true)
+  })
+
+  test('only reads', () => {
+    for (const l of sql)
+      expect(l.toLowerCase()).not.toMatch(/\b(?:insert|update|delete|replace|drop|alter|create)\b/)
+  })
+
+  test('never reads a sheet\'s contents or an email account\'s login', () => {
+    // A row's cells, a customer's name, address or id; the SMTP login (only the provider's name).
+    for (const l of sql) {
+      expect(l).not.toMatch(/\br\.(?:raw|data|errors|first_name|email|customer_id|email_error)\b|\brecipients\.(?:raw|data|first_name|email)\b/)
+      expect(l).not.toMatch(/password_enc|username|\bhost\b|from_email/)
+    }
+  })
+
+  test('every function takes the admin\'s handle, which only requireAdmin gives out', () => {
+    const exported = [...src.matchAll(/export async function (\w+)\((\w+): (\w+)/g)]
+    expect(exported.length).toBeGreaterThan(3)
+    for (const [, fn, , type] of exported)
+      expect(type, fn).toBe('AdminDb')
+    const auth = readFileSync(join(root, 'server/utils/auth.ts'), 'utf8')
+    expect(auth).toMatch(/export async function requireAdmin\(event: H3Event\): Promise<AdminDb>/)
+    expect(auth.match(/adminId:/g)?.length, 'one place builds an AdminDb').toBe(1)
+  })
+
+  test('admin routes call requireAdmin; no other route reaches admin.ts', () => {
+    const fns = [...src.matchAll(/export async function (\w+)/g)].map(m => m[1]!)
+    for (const file of files('server/api')) {
+      const route = readFileSync(join(root, file), 'utf8')
+      if (file.startsWith('server/api/admin/')) {
+        expect(route, file).toMatch(/await requireAdmin\(event\)/)
+        expect(route, file).not.toMatch(/requireUser\(/)
+      }
+      else {
+        for (const fn of [...fns, 'requireAdmin'])
+          expect(route, `${file} uses ${fn}`).not.toMatch(new RegExp(`\\b${fn}\\(`))
+      }
+    }
+  })
+})
+
 test('routes never write SQL', () => {
   for (const file of [...files('server/api'), ...files('server/routes')]) {
     const src = readFileSync(join(root, file), 'utf8')
@@ -163,7 +235,7 @@ test('routes never write SQL', () => {
 })
 
 test('no other server file talks to the database', () => {
-  const allowed = new Set(['server/utils/db.ts', 'server/utils/recap.ts', 'server/utils/unsubscribe.ts', 'server/utils/auth.ts', 'server/utils/cleanup.ts', 'server/utils/cloudflare.ts', 'server/utils/sheet.ts'])
+  const allowed = new Set(['server/utils/db.ts', 'server/utils/recap.ts', 'server/utils/unsubscribe.ts', 'server/utils/auth.ts', 'server/utils/cleanup.ts', 'server/utils/cloudflare.ts', 'server/utils/sheet.ts', 'server/utils/admin.ts'])
   for (const file of files('server').filter(f => f.endsWith('.ts') && !allowed.has(f)))
     expect(readFileSync(join(root, file), 'utf8'), file).not.toMatch(/\.prepare\(|\.DB\b/)
 })

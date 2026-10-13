@@ -101,7 +101,7 @@ expect(pub.business.logo_shape === 'square' && pub.business.logo_url, 'published
 const og = await fetch(`${BASE}/api/r/${token}/og.png`)
 expect(og.status === 200 && og.headers.get('content-type') === 'image/png', 'the link preview draws the shaped logo')
 await page.goto(`${BASE}/app`)
-await page.waitForSelector('[data-campaign]')
+await page.waitForSelector('main[aria-busy="false"] [data-campaign]')
 expect(await page.locator('header').first().locator('img').count() === 0, 'the dashboard\'s top bar shows no logo')
 await page.goto(`${BASE}/app/c/${recap}/design`)
 await page.waitForSelector('[data-slide]')
