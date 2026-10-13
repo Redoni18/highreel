@@ -342,7 +342,7 @@ defineExpose({ focus: () => scroller.value?.focus() })
 <template>
   <div
     ref="scroller"
-    class="grid-scroll relative overflow-auto text-[13px] outline-none"
+    class="grid-scroll scrollbar-none relative overflow-auto text-[13px] outline-none"
     tabindex="0"
     role="grid"
     :aria-rowcount="rows.length"

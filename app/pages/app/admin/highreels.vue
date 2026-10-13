@@ -83,7 +83,7 @@ const columns: AdminColumn<AdminHighreel>[] = [
     <div class="flex flex-wrap items-center gap-3">
       <h1 id="highreels-title" class="mr-2 text-[22px] font-semibold tracking-[-0.02em]">Highreels</h1>
       <!-- Five choices don't fit a phone's width: they scroll in their own box. -->
-      <div class="max-w-full overflow-x-auto">
+      <div class="scrollbar-none max-w-full overflow-x-auto">
         <Segmented v-model="show" :options="options" label="Which Highreels" />
       </div>
       <div class="flex items-center gap-2">
