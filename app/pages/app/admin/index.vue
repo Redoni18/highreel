@@ -1,31 +1,24 @@
 <script setup lang="ts">
-// The admin overview (SPEC M2.15): the service in sentences, like the home's
-// "Your year" (no stat tiles, SPEC §6), then the newest accounts, the latest
-// published Highreels and the latest payments. Demo sessions are counted
-// apart and left out of the rest.
-import { ArrowRight } from '@lucide/vue'
+// The admin overview (SPEC M2.15): the service's numbers in short lists
+// (people, Highreels, their customers, money; owner, 2026-10-13: easy to
+// read, no sentences), then the newest accounts, the latest published
+// Highreels and the latest payments. Demo sessions are counted apart and left
+// out of the rest.
 import type { AdminOverview } from '#shared/types/admin'
-import { formatAmount, overviewSummary } from '#shared/utils/admin'
+import { formatAmount, overviewFigures } from '#shared/utils/admin'
 import { timeAgo } from '#shared/utils/home'
 
 const { data, loading, error, load } = useAdminFetch<AdminOverview>(() => '/api/admin/overview')
-const summary = computed(() => (data.value ? overviewSummary(data.value) : []))
+const figures = computed(() => (data.value ? overviewFigures(data.value) : []))
 const fmt = (x: number) => x.toLocaleString('en-US')
 </script>
 
 <template>
   <AdminLoad :loading="loading" :error="error" :ready="!!data" @retry="load">
     <template v-if="data">
-      <section class="flex flex-col gap-3" aria-labelledby="overview-title">
-        <h1 id="overview-title" class="note-hand text-[26px]">Highreel so far</h1>
-        <div class="flex max-w-[44ch] flex-col gap-1 text-[28px] leading-[1.22] font-semibold tracking-[-0.022em] text-balance text-muted-foreground">
-          <p v-for="(line, i) in summary" :key="i" data-testid="summary"><AdminPhrase :phrase="line" /></p>
-        </div>
-        <NuxtLink v-if="data.unpaid" to="/app/admin/highreels?show=unpaid" class="group mt-2 inline-flex w-fit items-center gap-2 text-[14px] text-muted-foreground hover:text-foreground" data-testid="attention">
-          <span class="size-2 rounded-full bg-[var(--shape-marigold)]" aria-hidden="true" />
-          <span><span class="font-mono text-[13px] text-foreground">{{ fmt(data.unpaid) }}</span> published {{ data.unpaid === 1 ? 'Highreel hasn\'t' : 'Highreels haven\'t' }} been paid for</span>
-          <ArrowRight class="size-3.5 opacity-0 transition-opacity group-hover:opacity-100" />
-        </NuxtLink>
+      <section class="flex flex-col gap-5" aria-labelledby="overview-title">
+        <h1 id="overview-title" class="text-[22px] font-semibold tracking-[-0.02em]">Overview</h1>
+        <AdminFigures :groups="figures" />
       </section>
 
       <div class="grid gap-10 lg:grid-cols-3">

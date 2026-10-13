@@ -56,7 +56,7 @@ export function useApi() {
   /** Delete files the business no longer uses; a failure only leaves a stray file behind. */
   async function deleteMedia(paths: string[]) {
     if (paths.length)
-      await api('/api/media', { method: 'DELETE', body: { paths } }).catch(() => {})
+      await api('/api/media/delete', { method: 'POST', body: { paths } }).catch(() => {})
   }
 
   return { api, fail, endSession, signOut, uploadMedia, deleteMedia }

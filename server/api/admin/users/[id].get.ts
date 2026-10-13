@@ -4,9 +4,7 @@ import type { AdminUserDetail } from '#shared/types/admin'
 
 export default defineEventHandler(async (event): Promise<AdminUserDetail> => {
   const admin = await requireAdmin(event)
-  const id = getRouterParam(event, 'id') ?? ''
-  // Better Auth's ids are 32 letters and digits; demos' too.
-  const user = /^[\w-]{1,64}$/.test(id) ? await adminUser(admin, id) : null
+  const user = await adminUser(admin, adminUserId(event))
   if (!user)
     throw createError({ statusCode: 404, message: 'No such user' })
   return user

@@ -10,6 +10,8 @@ export interface AdminColumn<T> {
   num?: boolean
   /** a hint on the header */
   title?: string
+  /** a column of buttons: not sorted, and pinned to the right edge while the table scrolls */
+  fixed?: boolean
 }
 </script>
 
@@ -72,13 +74,14 @@ const show = (c: AdminColumn<T>, row: T) => {
 
 function open(e: MouseEvent, row: T) {
   const to = props.to?.(row)
-  if (to && !(e.target as HTMLElement).closest('a, button'))
+  // Not from a link, a button or a menu or dialog it opened (they're teleported, but their events still bubble here).
+  if (to && !(e.target as HTMLElement).closest('a, button, [role="menu"], [role="dialog"]') && (e.currentTarget as HTMLElement).contains(e.target as Node))
     navigateTo(to)
 }
 </script>
 
 <template>
-  <div class="overflow-x-auto rounded-2xl border">
+  <div class="relative overflow-x-auto rounded-2xl border">
     <table class="w-full border-collapse text-left text-[13px]" :style="{ minWidth: `${minWidth}px` }" :aria-label="label">
       <thead class="bg-subtle text-[12px] text-muted-foreground">
         <tr class="h-9 border-b">
@@ -86,10 +89,11 @@ function open(e: MouseEvent, row: T) {
             v-for="c in columns"
             :key="c.key"
             class="px-2 font-medium whitespace-nowrap first:pl-4 last:pr-4"
-            :class="{ 'text-right': c.num }"
+            :class="{ 'text-right': c.num, pinned: c.fixed }"
             :aria-sort="key === c.key ? (dir === 'asc' ? 'ascending' : 'descending') : undefined"
           >
-            <button type="button" class="inline-flex items-center gap-1 hover:text-foreground" :class="{ 'text-foreground': key === c.key }" :title="c.title" @click="sortBy(c.key)">
+            <span v-if="c.fixed" class="sr-only">{{ c.label }}</span>
+            <button v-else type="button" class="inline-flex items-center gap-1 hover:text-foreground" :class="{ 'text-foreground': key === c.key }" :title="c.title" @click="sortBy(c.key)">
               {{ c.label }}
               <template v-if="key === c.key">
                 <ArrowUp v-if="dir === 'asc'" class="size-3" />
@@ -103,12 +107,12 @@ function open(e: MouseEvent, row: T) {
         <tr
           v-for="row in sorted"
           :key="rowKey(row)"
-          class="h-10 border-b last:border-0"
+          class="group h-10 border-b last:border-0"
           :class="{ 'cursor-pointer hover:bg-subtle': to?.(row) }"
           :data-row="rowKey(row)"
           @click="open($event, row)"
         >
-          <td v-for="(c, i) in columns" :key="c.key" :class="c.num ? 'num' : 'cell'" :data-col="c.key">
+          <td v-for="(c, i) in columns" :key="c.key" :class="[c.num ? 'num' : 'cell', { pinned: c.fixed, hovers: c.fixed && to?.(row) }]" :data-col="c.key">
             <slot :name="`cell-${c.key}`" :row="row" :value="show(c, row)">
               <NuxtLink v-if="i === 0 && to?.(row)" :to="to(row)!" class="block max-w-[280px] truncate font-medium hover:underline" :title="String(show(c, row))">{{ show(c, row) }}</NuxtLink>
               <template v-else>{{ show(c, row) }}</template>
@@ -141,4 +145,13 @@ function open(e: MouseEvent, row: T) {
   white-space: nowrap;
 }
 .num:last-child, .cell:last-child { padding-right: 16px; }
+/* Its own background, so the columns scrolling under it don't show through. */
+.pinned {
+  position: sticky;
+  right: 0;
+  background: var(--background);
+  box-shadow: inset 1px 0 0 var(--border);
+}
+thead .pinned { background: var(--subtle); }
+.group:hover .hovers { background: var(--subtle); }
 </style>

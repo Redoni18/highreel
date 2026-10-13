@@ -1,6 +1,9 @@
 // Delete logos or photos the business no longer uses (SPEC M2.14 P2): a
 // replaced logo, a removed photo, or uploads whose save failed. Only keys in
-// the user's own business folder.
+// the user's own business folder. A POST, not a DELETE: on Cloudflare, Nitro
+// passes a body only to POST, PUT and PATCH, and reading a DELETE's body
+// waited until the runtime cancelled the request (found 2026-10-13; on the
+// Node dev server it worked).
 
 export default defineEventHandler(async (event) => {
   const { business } = await requireUser(event)

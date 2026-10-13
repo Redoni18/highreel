@@ -1,12 +1,10 @@
-// The admin pages' words and numbers (SPEC M2.15): money per currency, and
-// the overview written in sentences like the home's (no stat tiles, SPEC §6).
-// Pure, so they're unit-tested. Numbers come back as { n } parts for mono.
+// The admin pages' numbers (SPEC M2.15): money per currency, and the
+// overview and a user's page as short lists of figures (owner, 2026-10-13:
+// easy to read; no sentences, no stat tiles). Pure, so they're unit-tested.
 
 import type { AdminOverview, AdminUser, Money, Reach } from '../types/admin'
-import type { Part, Phrase } from './home'
 
 const fmt = (x: number) => x.toLocaleString('en-US')
-const n = (x: number): Part => ({ n: fmt(x) })
 const plural = (x: number, one: string, many: string) => (x === 1 ? one : many)
 
 /** Minor units per major unit of a currency (100 for usd, 1 for jpy). */
@@ -46,77 +44,89 @@ export const moneySize = (money: Money) => Object.entries(money).reduce((s, [c, 
 /** "44%" of a whole; "–" when there's nothing to take it of. */
 export const percent = (part: number, whole: number) => (whole ? `${Math.round((part / whole) * 100)}%` : '–')
 
-/** What customers did, as a sentence: "Their customers got 3,705 Highreels: 1,830 opened (49%), 212 shared, and 40 tapped the button." */
-export function reachSentence(r: Reach, lead: string): Phrase {
-  if (!r.live)
-    return [`${lead} no Highreels yet.`]
-  const out: Phrase = [`${lead} `, n(r.live), ` ${plural(r.live, 'Highreel', 'Highreels')}`]
-  if (!r.opened)
-    return [...out, ', none opened yet.']
-  const items: Phrase[] = [[n(r.opened), ' opened (', { n: percent(r.opened, r.live) }, ')']]
-  for (const [k, verb] of [['saved', 'saved the image'], ['shared', 'shared'], ['clicked', 'tapped the button']] as const) {
-    if (r[k])
-      items.push([n(r[k]), ` ${verb}`])
-  }
-  out.push(': ')
-  // "a, b, and c", like the home's sentences.
-  items.forEach((item, i) => {
-    if (i > 0)
-      out.push(i === items.length - 1 ? (items.length > 2 ? ', and ' : ' and ') : ', ')
-    out.push(...item)
-  })
-  out.push('.')
-  return out
+/** One number on the admin pages: a label, its value, and where it leads. */
+export interface Figure {
+  label: string
+  value: string
+  /** quieter, after the value: "by 8 accounts", "49%" */
+  detail?: string
+  /** the list behind it */
+  to?: string
+  /** worth a look (Highreels published but not paid for) */
+  flag?: boolean
 }
 
-/** The service at a glance. */
-export function overviewSummary(o: AdminOverview): Phrase[] {
-  const lines: Phrase[] = []
-  const people: Phrase = [n(o.accounts), ` ${plural(o.accounts, 'account', 'accounts')}`]
-  if (o.joined_week)
-    people.push(', ', n(o.joined_week), ' new this week')
-  people.push('; ', n(o.active_week), ` signed in this week. `, n(o.demos), ` demo ${plural(o.demos, 'session', 'sessions')} running.`)
-  lines.push(people)
-
-  if (o.highreels) {
-    lines.push([n(o.makers), ` ${plural(o.makers, 'account', 'accounts')} made `, n(o.highreels), ` ${plural(o.highreels, 'Highreel', 'Highreels')}; `,
-      n(o.published), ` ${plural(o.published, 'is', 'are')} published, by `, n(o.publishers), ` ${plural(o.publishers, 'account', 'accounts')}.`])
-    lines.push(reachSentence(o.reach, 'Their customers got'))
-  }
-  else if (o.accounts) {
-    lines.push(['No account has made a Highreel yet.'])
-  }
-
-  if (o.payments) {
-    const paid: Phrase = [n(o.payers), ` ${plural(o.payers, 'account', 'accounts')} paid `, { n: formatMoney(o.revenue) }, ' in ', n(o.payments), ` ${plural(o.payments, 'payment', 'payments')}`]
-    if (o.refunded)
-      paid.push(' (', n(o.refunded), ' refunded)')
-    paid.push('.')
-    lines.push(paid)
-  }
-  else {
-    lines.push(['No payments yet.'])
-  }
-  return lines
+export interface FigureGroup {
+  title: string
+  figures: Figure[]
 }
 
-/** A user's page, in sentences: what they made, how it went out, what they paid. */
-export function userSummary(u: AdminUser): Phrase[] {
-  const lines: Phrase[] = []
-  if (!u.highreels)
-    return [['No Highreels yet.'], u.payments ? paidLine(u) : ['No payments.']]
-  const made: Phrase = ['Made ', n(u.highreels), ` ${plural(u.highreels, 'Highreel', 'Highreels')}, published `, n(u.published)]
-  if (u.unpaid)
-    made.push(' (', n(u.unpaid), ' not paid for)')
-  made.push('.')
-  lines.push(made)
-  lines.push(reachSentence(u, 'Customers got'))
-  if (u.emails)
-    lines.push(['Sent ', n(u.emails), ` ${plural(u.emails, 'email', 'emails')} from their own account.`])
-  lines.push(u.payments ? paidLine(u) : ['No payments.'])
-  return lines
+const by = (x: number) => `by ${fmt(x)} ${plural(x, 'account', 'accounts')}`
+
+/** What customers did with a set of Highreels. */
+function reachFigures(r: Reach): Figure[] {
+  return [
+    { label: 'Got a Highreel', value: fmt(r.live) },
+    { label: 'Opened', value: fmt(r.opened), detail: r.live ? percent(r.opened, r.live) : undefined },
+    { label: 'Saved the image', value: fmt(r.saved) },
+    { label: 'Shared', value: fmt(r.shared) },
+    { label: 'Tapped the button', value: fmt(r.clicked) },
+  ]
 }
 
-function paidLine(u: AdminUser): Phrase {
-  return ['Paid ', { n: formatMoney(u.spent) }, ' in ', n(u.payments), ` ${plural(u.payments, 'payment', 'payments')}.`]
+/** The service at a glance, in four short lists (no sentences, no tiles). */
+export function overviewFigures(o: AdminOverview): FigureGroup[] {
+  return [
+    {
+      title: 'People',
+      figures: [
+        { label: 'Accounts', value: fmt(o.accounts), to: '/app/admin/users' },
+        { label: 'New this week', value: fmt(o.joined_week) },
+        { label: 'Signed in this week', value: fmt(o.active_week) },
+        { label: 'Demos running', value: fmt(o.demos), to: '/app/admin/users?kind=demos' },
+        { label: 'Blocked', value: fmt(o.blocked), to: '/app/admin/users?kind=blocked' },
+      ],
+    },
+    {
+      title: 'Highreels',
+      figures: [
+        { label: 'Made', value: fmt(o.highreels), detail: o.highreels ? by(o.makers) : undefined, to: '/app/admin/highreels' },
+        { label: 'Published', value: fmt(o.published), detail: o.published ? by(o.publishers) : undefined, to: '/app/admin/highreels?show=published' },
+        { label: 'Not paid for', value: fmt(o.unpaid), to: '/app/admin/highreels?show=unpaid', flag: o.unpaid > 0 },
+      ],
+    },
+    { title: 'Their customers', figures: reachFigures(o.reach) },
+    {
+      title: 'Money',
+      figures: [
+        { label: 'Taken', value: formatMoney(o.revenue), to: '/app/admin/payments' },
+        { label: 'Payments', value: fmt(o.payments) },
+        { label: 'Paying accounts', value: fmt(o.payers) },
+        { label: 'Refunded', value: fmt(o.refunded) },
+      ],
+    },
+  ]
+}
+
+/** A user's page: what they made, how it went out, what they paid. */
+export function userFigures(u: AdminUser): FigureGroup[] {
+  return [
+    {
+      title: 'Highreels',
+      figures: [
+        { label: 'Made', value: fmt(u.highreels) },
+        { label: 'Published', value: fmt(u.published) },
+        { label: 'Not paid for', value: fmt(u.unpaid), flag: u.unpaid > 0 },
+        { label: 'Emails sent', value: fmt(u.emails) },
+      ],
+    },
+    { title: 'Their customers', figures: reachFigures(u) },
+    {
+      title: 'Money',
+      figures: [
+        { label: 'Spent', value: formatMoney(u.spent) },
+        { label: 'Payments', value: fmt(u.payments) },
+      ],
+    },
+  ]
 }

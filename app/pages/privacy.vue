@@ -9,6 +9,7 @@
 // intro defines a "Highreel" as a customer's Highreel and the page then
 // uses the brand word, never "recap" (owner's asks, 2026-10-12).
 import LegalPage from '~/components/legal/LegalPage.vue'
+import { OG_IMAGE } from '~/data/brand'
 import { CONTACT_EMAIL, LEGAL_NAME } from '~/data/legal'
 
 definePageMeta({ layout: false })
@@ -22,7 +23,7 @@ useSeoMeta({
   ogDescription: description,
   ogSiteName: 'Highreel',
   ogType: 'website',
-  ogImage: siteHref('/og.png'),
+  ogImage: siteHref(OG_IMAGE),
   twitterCard: 'summary_large_image',
 })
 useHead({ meta: [{ name: 'theme-color', content: '#FFFFFF' }], bodyAttrs: { class: 'legal-page' } })
@@ -86,6 +87,7 @@ const mail = `mailto:${CONTACT_EMAIL}`
     </ul>
     <h3>Who at Highreel sees it</h3>
     <p>To run the service, help you when you ask and stop abuse, our admin pages show us each account's email address, its business's name, when it signed up and was last signed in, and counts: how many Highreels it made and published, how many customers got one and opened, saved or shared it, how many emails it sent and what it paid. They don't show your sheets, your customers' names or contact details, or your email account's login.</p>
+    <p>If an account abuses Highreel or breaks our <NuxtLink to="/terms">terms</NuxtLink>, an admin can block it: it's signed out, its email address can't sign in again, and its Highreels stop opening until we lift the block. We can also remove such an account and everything in it straight away.</p>
     <h3>The demo</h3>
     <p>You can try Highreel without an account. A demo session is anonymous and lives in your browser. If you never add your email to keep it, we delete it, and everything in it, after 30 days.</p>
 
@@ -141,6 +143,7 @@ const mail = `mailto:${CONTACT_EMAIL}`
       <li><strong>Highreels and customer data</strong>: until the business deletes the campaign or its account. Deleting a campaign deletes its rows, Highreels and photos straight away.</li>
       <li><strong>Unsubscribes and bounced addresses</strong>: kept per business for as long as its account exists, so a later campaign doesn't email those people again.</li>
       <li><strong>Accounts</strong>: until you ask us to delete yours, then within 30 days. We keep a note of the request (your email address and its dates) for 30 days after that, to confirm it to you. Demo sessions that are never kept: 30 days.</li>
+      <li><strong>Blocked addresses</strong>: if we block an account for abuse, we keep its email address, when it was blocked and a short note on why until we lift the block, also after the account is removed, so it can't sign up again.</li>
       <li><strong>Backups</strong> made by our database provider expire within 30 days. <strong>Payment and accounting records</strong> are kept as long as tax law requires.</li>
     </ul>
 

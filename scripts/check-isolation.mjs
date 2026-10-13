@@ -5,7 +5,8 @@
 // WhatsApp mark; B calls every workspace route with A's ids and must get a
 // 404 (or a refusal) with nothing of A's changed. Also: nothing in the API
 // writes the counters, the send log, opt-outs or bounces, and neither can
-// reach the admin pages' routes or make itself an admin (M2.15).
+// reach the admin pages' routes (reading, blocking, removing) or make itself
+// an admin (M2.15).
 //
 //   corepack pnpm dev            # in another terminal (needs Mailpit for A's email account)
 //   corepack pnpm check:isolation
@@ -98,8 +99,8 @@ for (const [name, r] of Object.entries(attempts))
 
 const bBusiness = (await B.call('/api/business')).body.business
 const refused = {
-  'delete A\'s photo': await B.call('/api/media', 'DELETE', { paths: [photo.body.path] }),
-  'delete A\'s logo': await B.call('/api/media', 'DELETE', { paths: [logo.body.path] }),
+  'delete A\'s photo': await B.call('/api/media/delete', 'POST', { paths: [photo.body.path] }),
+  'delete A\'s logo': await B.call('/api/media/delete', 'POST', { paths: [logo.body.path] }),
   'take A\'s logo as its own': await B.call('/api/business', 'PATCH', { logo_path: logo.body.path }),
   'put A\'s photo in its own Highreel': await B.call(`/api/campaigns/${B.campaign}`, 'PATCH', { settings: { photos: [{ id: 'p', path: photo.body.path, caption: '', width: 1, height: 1 }], photos_consent: true } }),
   'put A\'s logo on its own Highreel': await B.call(`/api/campaigns/${B.campaign}`, 'PATCH', { business: { logo_path: logo.body.path } }),
@@ -118,8 +119,17 @@ check('A signed link to A\'s photo works; a forged one doesn\'t', (await fetch(`
 
 // --- The admin pages (SPEC M2.15): a client reaches none, and can't make itself an admin ---
 const aUser = (await A.call('/api/session')).body.user
-for (const path of ['/api/admin/overview', '/api/admin/users', '/api/admin/users?kind=demos', `/api/admin/users/${aUser.id}`, '/api/admin/highreels?demos=1', '/api/admin/payments'])
+for (const path of ['/api/admin/overview', '/api/admin/users', '/api/admin/users?kind=demos', '/api/admin/users?kind=blocked', `/api/admin/users/${aUser.id}`, '/api/admin/highreels?demos=1', '/api/admin/payments'])
   check(`B: GET ${path} → 404`, (await B.call(path)).status === 404)
+// Nor the admin's actions: blocking A, removing A, unblocking an address.
+const actions = {
+  [`POST /api/admin/users/${aUser.id}/block`]: await B.call(`/api/admin/users/${aUser.id}/block`, 'POST', { reason: 'x' }),
+  [`POST /api/admin/users/${aUser.id}/remove`]: await B.call(`/api/admin/users/${aUser.id}/remove`, 'POST', { block: true }),
+  'POST /api/admin/unblock': await B.call('/api/admin/unblock', 'POST', { email: aUser.email }),
+}
+for (const [what, r] of Object.entries(actions))
+  check(`B: ${what} → 404`, r.status === 404, r.status)
+check('A is still there and not blocked', sql(`select count(*) as n from "user" where id = '${aUser.id}'`)[0].n === 1 && sql(`select count(*) as n from blocked_emails where email = lower('${aUser.email}')`)[0].n === 0)
 for (const [who, X] of [['A (an account)', A], ['B (a demo)', B]]) {
   const asked = await X.call('/api/auth/update-user', 'POST', { role: 'admin' })
   const id = (await X.call('/api/session')).body.user.id

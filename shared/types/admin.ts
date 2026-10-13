@@ -24,6 +24,8 @@ export interface AdminUser extends Reach {
   email: string | null
   demo: boolean
   role: Role
+  /** its address is blocked (migrations/0005_blocks.sql) */
+  blocked: boolean
   created_at: string
   /** the latest session's last use (to the day: sessions are refreshed daily); null when none is left */
   last_seen: string | null
@@ -42,12 +44,16 @@ export interface AdminUser extends Reach {
   spent: Money
 }
 
-export type UserKind = 'accounts' | 'demos' | 'admins'
+/** `blocked`: blocked addresses (`blocked` in AdminUsers), whether or not their account is still there */
+export type UserKind = 'accounts' | 'demos' | 'admins' | 'blocked'
 
 export interface AdminUsers {
   kind: UserKind
   counts: Record<UserKind, number>
+  /** empty for `blocked` */
   users: AdminUser[]
+  /** only for `blocked` */
+  blocked: BlockedAddress[]
   /** more than the page holds (the newest are shown) */
   more: boolean
 }
@@ -100,6 +106,8 @@ export interface AdminOverview {
   accounts: number
   demos: number
   admins: number
+  /** blocked addresses */
+  blocked: number
   /** accounts made in the last 7 days */
   joined_week: number
   /** accounts with a session used in the last 7 days */
@@ -135,4 +143,15 @@ export interface AdminUserDetail {
   sessions: number
   highreels: AdminUserHighreel[]
   payments: AdminPayment[]
+}
+
+/** A blocked address: who blocked it and why, and its account if it still has one. */
+export interface BlockedAddress {
+  email: string
+  reason: string | null
+  created_at: string
+  /** the address of the admin who blocked it; null once that account is gone */
+  blocked_by: string | null
+  /** the account with this address, if it wasn't removed */
+  user_id: string | null
 }

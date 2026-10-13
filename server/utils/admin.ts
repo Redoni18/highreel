@@ -1,13 +1,14 @@
 // The admin pages' SQL (SPEC M2.15): the one place that reads across
 // businesses. Every function takes an `AdminDb`, which only requireAdmin()
 // hands out (an account with the admin role), and every statement is a
-// select: the admin pages change nothing. They read accounts, businesses and
+// select: what the admin pages change (blocking and removing accounts) is in
+// moderation.ts. They read accounts, businesses and
 // counts (Highreels, rows, opens, emails sent, payments), never a sheet's
 // contents: no statement here reads a row's raw, data, email or first name.
 // tests/isolation.test.ts holds both rules.
 
 import type { D1Database } from '@cloudflare/workers-types'
-import type { AdminHighreel, AdminOverview, AdminPayment, AdminUser, AdminUserDetail, AdminUserHighreel, AdminUsers, Money, UserKind } from '#shared/types/admin'
+import type { AdminHighreel, AdminOverview, AdminPayment, AdminUser, AdminUserDetail, AdminUserHighreel, AdminUsers, BlockedAddress, Money, UserKind } from '#shared/types/admin'
 
 /** The admin's view of the database: everything, read-only. */
 export interface AdminDb {
@@ -54,6 +55,8 @@ const PAID_BY_BUSINESS = `money as (
   )`
 
 const isDemo = 'coalesce(u."isAnonymous", 0) = 1'
+// Its address is on the block list (addresses are stored lowercased, like Better Auth's).
+const isBlocked = 'exists (select 1 from blocked_emails x where x.email = lower(u.email))'
 
 function money(value: unknown): Money {
   if (typeof value !== 'string')
@@ -82,6 +85,7 @@ function toUser(r: Record<string, any>): AdminUser {
     email: demo ? null : r.email,
     demo,
     role: r.role === 'admin' ? 'admin' : 'client',
+    blocked: Boolean(r.blocked),
     created_at: r.created_at,
     last_seen: r.last_seen ?? null,
     business_id: r.business_id ?? null,
@@ -154,7 +158,7 @@ function usersStatement(admin: AdminDb, filter: string, order: string, binds: un
       group by c.business_id
     ),
     sent as (select business_id, count(*) as emails from email_sends where kind = 'recap' and ok = 1 group by business_id)
-    select u.id, u.email, ${isDemo} as demo, u.role, u."createdAt" as created_at,
+    select u.id, u.email, ${isDemo} as demo, u.role, ${isBlocked} as blocked, u."createdAt" as created_at,
       (select max(s."updatedAt") from session s where s."userId" = u.id) as last_seen,
       b.id as business_id, b.name as business,
       totals.highreels, totals.published, totals.unpaid, totals.live, totals.opened, totals.saved, totals.shared, totals.clicked,
@@ -167,27 +171,39 @@ function usersStatement(admin: AdminDb, filter: string, order: string, binds: un
     ${filter} ${order}`).bind(...binds)
 }
 
-const KIND_FILTER: Record<UserKind, string> = {
+const KIND_FILTER: Record<Exclude<UserKind, 'blocked'>, string> = {
   accounts: `where not ${isDemo}`,
   demos: `where ${isDemo}`,
   admins: 'where u.role = \'admin\'',
 }
 
-/** Accounts, demos or admins, newest first, with what each made, sent and paid. */
+/** Accounts, demos or admins, newest first, with what each made, sent and paid; or the blocked addresses. */
 export async function adminUsers(admin: AdminDb, kind: UserKind): Promise<AdminUsers> {
   const [list, counts] = await admin.d1.batch<Record<string, any>>([
-    usersStatement(admin, KIND_FILTER[kind], 'order by u."createdAt" desc limit ?', [ADMIN_LIST + 1]),
+    kind === 'blocked'
+      ? blockedStatement(admin, [ADMIN_LIST + 1])
+      : usersStatement(admin, KIND_FILTER[kind], 'order by u."createdAt" desc limit ?', [ADMIN_LIST + 1]),
     admin.d1.prepare(`select count(*) filter (where not ${isDemo}) as accounts, count(*) filter (where ${isDemo}) as demos,
-      count(*) filter (where u.role = 'admin') as admins from "user" u`).bind(),
+      count(*) filter (where u.role = 'admin') as admins, (select count(*) from blocked_emails) as blocked from "user" u`).bind(),
   ])
   const rows = list!.results
   const c = counts!.results[0] ?? {}
   return {
     kind,
-    counts: { accounts: c.accounts ?? 0, demos: c.demos ?? 0, admins: c.admins ?? 0 },
-    users: rows.slice(0, ADMIN_LIST).map(toUser),
+    counts: { accounts: c.accounts ?? 0, demos: c.demos ?? 0, admins: c.admins ?? 0, blocked: c.blocked ?? 0 },
+    users: kind === 'blocked' ? [] : rows.slice(0, ADMIN_LIST).map(toUser),
+    blocked: kind === 'blocked' ? rows.slice(0, ADMIN_LIST) as BlockedAddress[] : [],
     more: rows.length > ADMIN_LIST,
   }
+}
+
+// Blocked addresses, newest first, with who blocked each and the account still using it.
+function blockedStatement(admin: AdminDb, binds: unknown[]) {
+  return admin.d1.prepare(`select x.email, x.reason, x.created_at, a.email as blocked_by, u.id as user_id
+    from blocked_emails x
+      left join "user" u on u.email = x.email and not ${isDemo}
+      left join "user" a on a.id = x.blocked_by
+    order by x.created_at desc limit ?`).bind(...binds)
 }
 
 // --- Highreels -----------------------------------------------------------------
@@ -240,7 +256,8 @@ export async function adminOverview(admin: AdminDb, now = new Date()): Promise<A
     admin.d1.prepare(`select count(*) filter (where not ${isDemo}) as accounts, count(*) filter (where ${isDemo}) as demos,
         count(*) filter (where u.role = 'admin') as admins,
         count(*) filter (where not ${isDemo} and u."createdAt" > ?) as joined_week,
-        count(*) filter (where not ${isDemo} and exists (select 1 from session s where s."userId" = u.id and s."updatedAt" > ?)) as active_week
+        count(*) filter (where not ${isDemo} and exists (select 1 from session s where s."userId" = u.id and s."updatedAt" > ?)) as active_week,
+        (select count(*) from blocked_emails) as blocked
       from "user" u`).bind(weekAgo, weekAgo),
     admin.d1.prepare(`with ${reach()},
       ${PAID_BY_CAMPAIGN}
@@ -271,6 +288,7 @@ export async function adminOverview(admin: AdminDb, now = new Date()): Promise<A
     accounts: p.accounts ?? 0,
     demos: p.demos ?? 0,
     admins: p.admins ?? 0,
+    blocked: p.blocked ?? 0,
     joined_week: p.joined_week ?? 0,
     active_week: p.active_week ?? 0,
     makers: m.makers ?? 0,

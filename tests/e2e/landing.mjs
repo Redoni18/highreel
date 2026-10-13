@@ -179,7 +179,7 @@ await page.waitForTimeout(500)
 expect(!(await page.locator('.sticky-cta').isVisible()), 'the sticky button hides at the closing one')
 const og = await page.locator('meta[property="og:image"]').getAttribute('content')
 const ogRes = await fetch(`${BASE}/og.png`)
-expect(og === `${SITE}/og.png` && ogRes.status === 200 && ogRes.headers.get('content-type') === 'image/png', 'the landing has a link-preview image', og)
+expect(og === `${SITE}/og.png?v=2` && ogRes.status === 200 && ogRes.headers.get('content-type') === 'image/png', 'the landing has a link-preview image', og)
 
 // See an example
 await page.evaluate(() => window.scrollTo(0, 0))

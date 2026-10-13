@@ -1,12 +1,13 @@
 <script setup lang="ts">
-// One user on the admin pages (SPEC M2.15): the account and its business,
-// what they made, sent and paid in sentences, then their Highreels with how
-// each went out, and their payments. Counts only: no sheet, customer or
-// Highreel content of theirs is shown here.
+// One user on the admin pages (SPEC M2.15): the account and its business
+// (with Block and Remove account), what they made, sent and paid as short
+// lists of figures, then their Highreels with how each went out, and their
+// payments. Counts only: no sheet, customer or Highreel content of theirs is
+// shown here.
 import { ArrowLeft } from '@lucide/vue'
 import type { AdminColumn } from '~/components/admin/AdminTable.vue'
 import type { AdminPayment, AdminUserDetail, AdminUserHighreel } from '#shared/types/admin'
-import { formatAmount, formatMoney, percent, userSummary } from '#shared/utils/admin'
+import { formatAmount, formatMoney, percent, userFigures } from '#shared/utils/admin'
 import { timeAgo } from '#shared/utils/home'
 import { getTemplate } from '#shared/templates'
 
@@ -14,7 +15,7 @@ const route = useRoute()
 const { data, loading, error, load } = useAdminFetch<AdminUserDetail>(() => `/api/admin/users/${route.params.id}`)
 useHead({ title: () => `${data.value?.user.email ?? 'Demo session'} · Admin · Highreel` })
 
-const summary = computed(() => (data.value ? userSummary(data.value.user) : []))
+const figures = computed(() => (data.value ? userFigures(data.value.user) : []))
 const day = (iso: string) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
 const when = (iso: string | null) => (iso ? timeAgo(iso) : null)
 
@@ -55,6 +56,10 @@ const paymentColumns: AdminColumn<AdminPayment>[] = [
           <div class="flex flex-wrap items-center gap-3">
             <h1 id="user-title" class="title min-w-0 text-[30px] leading-tight font-semibold tracking-[-0.025em]">{{ data.user.email ?? 'Demo session' }}</h1>
             <RoleBadge :role="data.user.role" />
+            <BlockedBadge v-if="data.user.blocked" />
+            <div class="ml-auto">
+              <AdminUserActions :user="data.user" variant="buttons" @changed="load" @removed="navigateTo('/app/admin/users', { replace: true })" />
+            </div>
           </div>
           <p class="flex flex-wrap gap-x-2 text-[14px] text-muted-foreground" data-testid="facts">
             <span>Signed up {{ day(data.user.created_at) }}</span>
@@ -68,10 +73,9 @@ const paymentColumns: AdminColumn<AdminPayment>[] = [
             <span v-if="data.business.website_url">· {{ data.business.website_url }}</span>
             <span>· {{ data.business.email_provider ? `email connected (${data.business.email_provider})` : 'no email connected' }}</span>
           </p>
-          <div class="mt-2 flex max-w-[48ch] flex-col gap-1 text-[24px] leading-[1.25] font-semibold tracking-[-0.02em] text-balance text-muted-foreground">
-            <p v-for="(line, i) in summary" :key="i" data-testid="summary"><AdminPhrase :phrase="line" /></p>
-          </div>
         </section>
+
+        <AdminFigures :groups="figures" />
 
         <section class="flex flex-col gap-3" aria-labelledby="user-highreels">
           <h2 id="user-highreels" class="text-[18px] font-semibold tracking-[-0.015em]">Highreels</h2>

@@ -13,7 +13,8 @@
 // unguessable recap token (recap.ts, unsubscribe.ts), which look rows up by
 // token alone. The SQL in this file goes by owner, with user ids Better Auth
 // hands us (never ids from a request): keeping a demo's work, and the checks
-// on a sign-in link.
+// on a sign-in link. A blocked address (migrations/0005_blocks.sql) gets no
+// sign-in link, no new user and no session, whichever way it signs in.
 
 import type { D1Database, R2Bucket, SendEmail } from '@cloudflare/workers-types'
 import type { H3Event } from 'h3'
@@ -74,6 +75,27 @@ export function authOptions(s: AuthSetup) {
       database: { joins: true },
     },
     rateLimit: { enabled: s.rateLimit, storage: 'database' },
+    // Every sign-in ends in a new session (an email link, Google, a demo), and
+    // a new address in a new user: neither for a blocked address. Sessions it
+    // already had ended when it was blocked.
+    databaseHooks: {
+      user: {
+        create: {
+          async before(user) {
+            if (!user.isAnonymous && await isBlocked(s.database, user.email))
+              throw blockedError()
+          },
+        },
+      },
+      session: {
+        create: {
+          async before(session) {
+            if (await userBlocked(s.database, session.userId))
+              throw blockedError()
+          },
+        },
+      },
+    },
     // Client or admin (SPEC M2.15, migrations/0004_admin.sql). `input: false`:
     // Better Auth refuses it from the browser, on sign-up and on update-user;
     // the owner sets it by hand.
@@ -90,6 +112,8 @@ export function authOptions(s: AuthSetup) {
         expiresIn: SIGN_IN_LINK_MINUTES * 60,
         storeToken: 'hashed',
         async sendMagicLink({ email, url, token, metadata }, ctx) {
+          if (await isBlocked(s.database, email))
+            throw blockedError()
           if (await linksSentTo(s.database, email) > LINKS_PER_ADDRESS_HOUR)
             throw new APIError('TOO_MANY_REQUESTS', { message: 'We\'ve sent this address several links in the last hour. Use the newest one, or try again later.' })
           const keep = metadata?.keep === true
@@ -288,6 +312,21 @@ async function sha256(text: string): Promise<string> {
 
 /** Where a "Keep my work" link remembers its demo (Better Auth's verification table, by the link's token). */
 const keepIdentifier = async (token: string) => `keep-demo:${await sha256(token)}`
+
+/** What a blocked address hears when it tries to sign in. */
+function blockedError() {
+  return new APIError('FORBIDDEN', { message: 'This address can\'t sign in to Highreel. If you think that\'s a mistake, write to hello@highreel.app.' })
+}
+
+/** The address is on the block list (stored lowercased). */
+async function isBlocked(d1: D1Database, email: string): Promise<boolean> {
+  return await d1.prepare('select 1 from blocked_emails where email = lower(?)').bind(email).first() !== null
+}
+
+/** The user's address is on the block list. */
+async function userBlocked(d1: D1Database, userId: string): Promise<boolean> {
+  return await d1.prepare('select 1 from "user" join blocked_emails on blocked_emails.email = lower("user".email) where "user".id = ?').bind(userId).first() !== null
+}
 
 /** Sign-in links sent to an address in the last hour that haven't been used. */
 async function linksSentTo(d1: D1Database, email: string): Promise<number> {

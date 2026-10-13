@@ -1,7 +1,8 @@
 // The public side of a recap, addressed by its unguessable token. Uses the
 // unscoped database (tokenDb, SPEC M2 rule), so it checks everything itself:
-// the token's shape, that the campaign is published and that the row has no
-// errors. Rows are looked up by token only, never by an id from the request.
+// the token's shape, that the campaign is published, that the row has no
+// errors and that the business's account isn't blocked (SPEC M2.15). Rows are
+// looked up by token only, never by an id from the request.
 
 import type { H3Event } from 'h3'
 import type { RecapEventType, RecapPayload } from '#shared/types/recap'
@@ -16,10 +17,11 @@ export async function loadRecapPayload(event: H3Event, token: string): Promise<{
     throw createError({ statusCode: 404, message: 'Highreel not found' })
 
   const row = await tokenDb(event).prepare(`select r.data, r.errors, c.id as campaign_id, c.year, c.status, c.settings, c.template_key,
-      b.id as business_id, b.name, b.accent_color, b.logo_path, b.logo_shape, b.website_url
+      b.id as business_id, b.name, b.accent_color, b.logo_path, b.logo_shape, b.website_url,
+      exists (select 1 from "user" u join blocked_emails x on x.email = lower(u.email) where u.id = b.owner_id) as blocked
     from recipients r join campaigns c on c.id = r.campaign_id join businesses b on b.id = c.business_id
     where r.token = ?`).bind(token).first<Record<string, any>>()
-  if (!row || row.status !== 'published' || hasErrors(JSON.parse(row.errors)))
+  if (!row || row.status !== 'published' || row.blocked || hasErrors(JSON.parse(row.errors)))
     throw createError({ statusCode: 404, message: 'Highreel not found' })
 
   // Photos and logo get 24 h links; storage paths stay on the server.

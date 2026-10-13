@@ -1,16 +1,14 @@
-// The admin pages' sentences and money (SPEC M2.15).
+// The admin pages' figures and money (SPEC M2.15).
 
 import { describe, expect, test } from 'vitest'
 import type { AdminOverview, AdminUser } from '../shared/types/admin'
-import { formatAmount, formatMoney, moneySize, overviewSummary, percent, reachSentence, userSummary } from '../shared/utils/admin'
-import type { Phrase } from '../shared/utils/home'
+import { type FigureGroup, formatAmount, formatMoney, moneySize, overviewFigures, percent, userFigures } from '../shared/utils/admin'
 
-const text = (p: Phrase) => p.map(x => (typeof x === 'string' ? x : x.n)).join('')
 const reach = { live: 0, opened: 0, saved: 0, shared: 0, clicked: 0 }
 
 function overview(over: Partial<AdminOverview>): AdminOverview {
   return {
-    accounts: 0, demos: 0, admins: 0, joined_week: 0, active_week: 0, makers: 0, highreels: 0, publishers: 0,
+    accounts: 0, demos: 0, admins: 0, blocked: 0, joined_week: 0, active_week: 0, makers: 0, highreels: 0, publishers: 0,
     published: 0, unpaid: 0, reach, payers: 0, payments: 0, refunded: 0, revenue: {},
     newest: [], latest_published: [], latest_payments: [], ...over,
   }
@@ -18,7 +16,7 @@ function overview(over: Partial<AdminOverview>): AdminOverview {
 
 function user(over: Partial<AdminUser>): AdminUser {
   return {
-    id: 'u', email: 'ana@example.com', demo: false, role: 'client', created_at: '2026-10-01T00:00:00Z', last_seen: null,
+    id: 'u', email: 'ana@example.com', demo: false, role: 'client', blocked: false, created_at: '2026-10-01T00:00:00Z', last_seen: null,
     business_id: 'b', business: 'Habitly', highreels: 0, published: 0, unpaid: 0, emails: 0, payments: 0, spent: {},
     ...reach, ...over,
   }
@@ -50,57 +48,46 @@ describe('money', () => {
   })
 })
 
-describe('reachSentence', () => {
-  test('opens, then whatever else happened, with a serial comma', () => {
-    expect(text(reachSentence({ live: 3705, opened: 1830, saved: 0, shared: 212, clicked: 40 }, 'Their customers got')))
-      .toBe('Their customers got 3,705 Highreels: 1,830 opened (49%), 212 shared, and 40 tapped the button.')
-    expect(text(reachSentence({ ...reach, live: 10, opened: 4, shared: 1 }, 'Customers got'))).toBe('Customers got 10 Highreels: 4 opened (40%) and 1 shared.')
-  })
+// A group's figures as "label value (detail)" lines, to compare in one go.
+const lines = (g: FigureGroup) => g.figures.map(f => `${f.label} ${f.value}${f.detail ? ` (${f.detail})` : ''}`)
 
-  test('none opened, or nothing sent', () => {
-    expect(text(reachSentence({ ...reach, live: 1 }, 'Customers got'))).toBe('Customers got 1 Highreel, none opened yet.')
-    expect(text(reachSentence(reach, 'Customers got'))).toBe('Customers got no Highreels yet.')
-  })
-})
-
-describe('overviewSummary', () => {
-  test('accounts, what they made, what customers did, what came in', () => {
-    const lines = overviewSummary(overview({
-      accounts: 142, demos: 9, joined_week: 12, active_week: 40, makers: 37, highreels: 58, publishers: 14, published: 20,
+describe('overviewFigures', () => {
+  test('people, Highreels, their customers, money: one number a row', () => {
+    const groups = overviewFigures(overview({
+      accounts: 142, demos: 9, blocked: 2, joined_week: 12, active_week: 40, makers: 37, highreels: 58, publishers: 14, published: 20, unpaid: 3,
       reach: { live: 4120, opened: 1830, saved: 300, shared: 212, clicked: 50 }, payers: 3, payments: 4, refunded: 1, revenue: { usd: 29700 },
     }))
-    expect(lines.map(text)).toEqual([
-      '142 accounts, 12 new this week; 40 signed in this week. 9 demo sessions running.',
-      '37 accounts made 58 Highreels; 20 are published, by 14 accounts.',
-      'Their customers got 4,120 Highreels: 1,830 opened (44%), 300 saved the image, 212 shared, and 50 tapped the button.',
-      '3 accounts paid $297 in 4 payments (1 refunded).',
+    expect(groups.map(g => g.title)).toEqual(['People', 'Highreels', 'Their customers', 'Money'])
+    expect(groups.map(lines)).toEqual([
+      ['Accounts 142', 'New this week 12', 'Signed in this week 40', 'Demos running 9', 'Blocked 2'],
+      ['Made 58 (by 37 accounts)', 'Published 20 (by 14 accounts)', 'Not paid for 3'],
+      ['Got a Highreel 4,120', 'Opened 1,830 (44%)', 'Saved the image 300', 'Shared 212', 'Tapped the button 50'],
+      ['Taken $297', 'Payments 4', 'Paying accounts 3', 'Refunded 1'],
     ])
   })
 
-  test('a quiet start', () => {
-    expect(overviewSummary(overview({ accounts: 1, demos: 1, active_week: 1 })).map(text)).toEqual([
-      '1 account; 1 signed in this week. 1 demo session running.',
-      'No account has made a Highreel yet.',
-      'No payments yet.',
-    ])
+  test('unpaid Highreels are flagged and lead to their list', () => {
+    const unpaid = (o: Partial<AdminOverview>) => overviewFigures(overview(o))[1]!.figures.find(f => f.label === 'Not paid for')!
+    expect(unpaid({ unpaid: 3 })).toMatchObject({ flag: true, to: '/app/admin/highreels?show=unpaid' })
+    expect(unpaid({}).flag).toBe(false)
   })
 
-  test('numbers are separate parts (set in bold)', () => {
-    expect(overviewSummary(overview({ accounts: 1200 }))[0]![0]).toEqual({ n: '1,200' })
+  test('a quiet start: zeros, no percentages of nothing, no money', () => {
+    expect(overviewFigures(overview({ accounts: 1, demos: 1, active_week: 1 })).map(lines)).toEqual([
+      ['Accounts 1', 'New this week 0', 'Signed in this week 1', 'Demos running 1', 'Blocked 0'],
+      ['Made 0', 'Published 0', 'Not paid for 0'],
+      ['Got a Highreel 0', 'Opened 0', 'Saved the image 0', 'Shared 0', 'Tapped the button 0'],
+      ['Taken –', 'Payments 0', 'Paying accounts 0', 'Refunded 0'],
+    ])
   })
 })
 
-describe('userSummary', () => {
-  test('made, published, unpaid, reach, emails, paid', () => {
-    expect(userSummary(user({ highreels: 4, published: 2, unpaid: 1, live: 390, opened: 120, shared: 9, emails: 380, payments: 1, spent: { usd: 9900 } })).map(text)).toEqual([
-      'Made 4 Highreels, published 2 (1 not paid for).',
-      'Customers got 390 Highreels: 120 opened (31%) and 9 shared.',
-      'Sent 380 emails from their own account.',
-      'Paid $99 in 1 payment.',
+describe('userFigures', () => {
+  test('made and sent, what customers did, what they paid', () => {
+    expect(userFigures(user({ highreels: 4, published: 2, unpaid: 1, live: 390, opened: 120, shared: 9, emails: 380, payments: 1, spent: { usd: 9900 } })).map(lines)).toEqual([
+      ['Made 4', 'Published 2', 'Not paid for 1', 'Emails sent 380'],
+      ['Got a Highreel 390', 'Opened 120 (31%)', 'Saved the image 0', 'Shared 9', 'Tapped the button 0'],
+      ['Spent $99', 'Payments 1'],
     ])
-  })
-
-  test('nothing yet', () => {
-    expect(userSummary(user({})).map(text)).toEqual(['No Highreels yet.', 'No payments.'])
   })
 })

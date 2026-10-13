@@ -211,8 +211,9 @@ describe('the admin pages (admin.ts)', () => {
     expect(auth.match(/adminId:/g)?.length, 'one place builds an AdminDb').toBe(1)
   })
 
-  test('admin routes call requireAdmin; no other route reaches admin.ts', () => {
-    const fns = [...src.matchAll(/export async function (\w+)/g)].map(m => m[1]!)
+  test('admin routes call requireAdmin; no other route reaches admin.ts or moderation.ts', () => {
+    const moderation = readFileSync(join(root, 'server/utils/moderation.ts'), 'utf8')
+    const fns = [...`${src}\n${moderation}`.matchAll(/export (?:async )?function (\w+)/g)].map(m => m[1]!)
     for (const file of files('server/api')) {
       const route = readFileSync(join(root, file), 'utf8')
       if (file.startsWith('server/api/admin/')) {
@@ -227,6 +228,49 @@ describe('the admin pages (admin.ts)', () => {
   })
 })
 
+describe('blocking and removing accounts (moderation.ts)', () => {
+  // The admin pages' only writes (SPEC M2.15): the block list, a user's
+  // sessions, and a user who isn't an admin. A removed user's business and
+  // everything in it go by cascade, so nothing here names a business's tables.
+  const src = readFileSync(join(root, 'server/utils/moderation.ts'), 'utf8')
+  const all = statements('server/utils/moderation.ts')
+
+  test('has statements to check', () => {
+    expect(all.length).toBeGreaterThan(4)
+  })
+
+  test('writes only the block list, a user\'s sessions and a user that isn\'t an admin', () => {
+    const writes = all.filter(s => /^(?:insert|update|delete|replace)\b/i.test(s.sql))
+    expect(writes.length).toBe(4)
+    for (const s of writes)
+      expect(s.sql, s.fn).toMatch(/^insert into blocked_emails \(|^delete from blocked_emails where email = lower\(\?\)$|^delete from session where "userId" = \?$|^delete from "user" where id = \? and role <> 'admin'$/)
+  })
+
+  test('never names a business\'s own tables', () => {
+    for (const s of all) {
+      for (const table of OWNED)
+        expect(mentions(s.sql, table), `${s.fn}: ${table}`).toBe(false)
+    }
+  })
+
+  test('every function takes the admin\'s handle, and looks the user up (refusing admins) before it changes anything', () => {
+    const exported = [...src.matchAll(/export async function (\w+)\((\w+): (\w+)/g)]
+    expect(exported.map(m => m[1])).toEqual(['blockUser', 'unblockEmail', 'removeUser'])
+    for (const [, fn, , type] of exported)
+      expect(type, fn).toBe('AdminDb')
+    expect(src).toMatch(/if \(user\.role === 'admin'\)\s*throw/)
+    for (const fn of ['blockUser', 'removeUser'])
+      expect(src.slice(src.indexOf(`export async function ${fn}`)).split('\n').slice(1, 3).join('\n'), fn).toMatch(/const user = await target\(admin, userId\)/)
+  })
+})
+
+test('no DELETE route reads a body (Nitro on Cloudflare passes one only to POST, PUT and PATCH)', () => {
+  const deletes = files('server/api').filter(f => f.endsWith('.delete.ts'))
+  expect(deletes.length).toBeGreaterThan(0)
+  for (const file of deletes)
+    expect(readFileSync(join(root, file), 'utf8'), file).not.toMatch(/\bread(?:Validated|Raw)?Body\b|\breadFormData\b|\breadMultipartFormData\b/)
+})
+
 test('routes never write SQL', () => {
   for (const file of [...files('server/api'), ...files('server/routes')]) {
     const src = readFileSync(join(root, file), 'utf8')
@@ -235,7 +279,7 @@ test('routes never write SQL', () => {
 })
 
 test('no other server file talks to the database', () => {
-  const allowed = new Set(['server/utils/db.ts', 'server/utils/recap.ts', 'server/utils/unsubscribe.ts', 'server/utils/auth.ts', 'server/utils/cleanup.ts', 'server/utils/cloudflare.ts', 'server/utils/sheet.ts', 'server/utils/admin.ts'])
+  const allowed = new Set(['server/utils/db.ts', 'server/utils/recap.ts', 'server/utils/unsubscribe.ts', 'server/utils/auth.ts', 'server/utils/cleanup.ts', 'server/utils/cloudflare.ts', 'server/utils/sheet.ts', 'server/utils/admin.ts', 'server/utils/moderation.ts'])
   for (const file of files('server').filter(f => f.endsWith('.ts') && !allowed.has(f)))
     expect(readFileSync(join(root, file), 'utf8'), file).not.toMatch(/\.prepare\(|\.DB\b/)
 })

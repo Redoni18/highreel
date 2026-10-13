@@ -6,6 +6,7 @@
 // reel, and after that the page uses the brand word (owner's ask, 2026-10-12),
 // never "recap" (legal.mjs checks the word doesn't come back).
 import LegalPage from '~/components/legal/LegalPage.vue'
+import { OG_IMAGE } from '~/data/brand'
 import { CONTACT_EMAIL, LEGAL_NAME } from '~/data/legal'
 
 definePageMeta({ layout: false })
@@ -19,7 +20,7 @@ useSeoMeta({
   ogDescription: description,
   ogSiteName: 'Highreel',
   ogType: 'website',
-  ogImage: siteHref('/og.png'),
+  ogImage: siteHref(OG_IMAGE),
   twitterCard: 'summary_large_image',
 })
 useHead({ meta: [{ name: 'theme-color', content: '#FFFFFF' }], bodyAttrs: { class: 'legal-page' } })

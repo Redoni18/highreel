@@ -10,6 +10,7 @@ import { ArrowRight, ChevronDown } from '@lucide/vue'
 import { usePreferredReducedMotion } from '@vueuse/core'
 import type LandingPlayer from '~/components/landing/LandingPlayer.vue'
 import { blobFrames, type ShapeKind } from '~/lib/shapes'
+import { OG_IMAGE } from '~/data/brand'
 import { EXAMPLES, withDemoButton } from '~/data/examples'
 import { readableOn } from '#shared/utils/color'
 import { CONTACT_EMAIL, LEGAL_NAME } from '~/data/legal'
@@ -36,7 +37,7 @@ const description = LANDING_DESCRIPTION
 // Search and link previews (SPEC M2.11): the page is prerendered, so every
 // URL names the public site, not the host that built it.
 const canonical = useCanonical('/')
-const ogImage = siteHref('/og.png')
+const ogImage = siteHref(OG_IMAGE)
 const ogImageAlt = 'Highreel: give every customer their year\'s highlight reel. From $99 per campaign.'
 useSeoMeta({
   title,

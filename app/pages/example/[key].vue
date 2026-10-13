@@ -2,6 +2,7 @@
 // An example recap, full-screen like a real one (SPEC M2.5 P2): "Open it
 // full screen" under the landing's phone opens it. Static payloads from app/data/examples,
 // no requests, no counters. The last slide's button leads to the demo.
+import { OG_IMAGE } from '~/data/brand'
 import { findExample, EXAMPLES, withDemoButton } from '~/data/examples'
 
 definePageMeta({ layout: false })
@@ -25,7 +26,7 @@ useSeoMeta({
   ogDescription: () => `${example.value!.about}. An example Highreel, the personal highlight reel each customer gets.`,
   ogSiteName: 'Highreel',
   ogType: 'website',
-  ogImage: siteHref('/og.png'),
+  ogImage: siteHref(OG_IMAGE),
   ogImageWidth: 1200,
   ogImageHeight: 630,
   twitterCard: 'summary_large_image',
