@@ -4,7 +4,7 @@
 // (Undo takes it back). A number written without its country code waits for
 // one. The phone beside it shows the chat with the link preview; the Sheet's
 // did column marks who got it; the number never reaches the recap.
-import { BASE, campaignId, demoSession, expect, finish, launch, publish, tab, watchErrors } from './lib.mjs'
+import { BASE, campaignId, demoSession, expect, finish, launch, publish, tab, watchErrors, rowsOf } from './lib.mjs'
 
 const browser = await launch()
 const errors = []
@@ -17,7 +17,7 @@ await context.route('https://wa.me/**', (route) => {
 })
 const page = await context.newPage()
 watchErrors(page, errors)
-const rows = () => page.evaluate(async c => (await fetch(`/api/campaigns/${c}/recipients`)).json(), campaignId(page))
+const rows = () => rowsOf(page)
 
 await demoSession(page)
 await page.getByRole('button', { name: 'Use sample data' }).click()

@@ -1,0 +1,47 @@
+// Highreel on Cloudflare Workers (SPEC M2.14): one Worker with static assets,
+// D1, R2 and Email Sending. `corepack pnpm dev` reads the bindings from here
+// (Nitro's emulation through wrangler's getPlatformProxy, state in
+// .wrangler/state/v3); `corepack pnpm build` then `corepack pnpm exec wrangler dev`
+// runs the built Worker locally on workerd.
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "highreel",
+  "main": ".output/server/index.mjs",
+  "compatibility_date": "2026-10-01",
+  // node:net, node:tls and node:dns (resolve*, not lookup) come from workerd itself:
+  // nodemailer talks SMTP through them.
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": ".output/public",
+    "binding": "ASSETS",
+    // The prerendered pages are /terms/index.html etc.: serve them at /terms (their
+    // canonical URL), not /terms/.
+    "html_handling": "drop-trailing-slash"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "highreel",
+      // Placeholder until P7 creates the database (`wrangler d1 create highreel
+      // --jurisdiction=eu`) and its id goes here. Local development doesn't need a real one.
+      "database_id": "00000000-0000-4000-8000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "r2_buckets": [
+    { "binding": "MEDIA", "bucket_name": "highreel-media", "jurisdiction": "eu" }
+  ],
+  // Public settings. Secrets (NUXT_SECRETS_KEY, NUXT_AUTH_SECRET, NUXT_TURNSTILE_SECRET)
+  // are Worker secrets, set in P7 from .secrets.production.json (gitignored).
+  // Locally .env overrides these (Turnstile's test keys there always pass).
+  "vars": {
+    // The highreel.app Turnstile widget (Managed), made 2026-10-13.
+    "NUXT_PUBLIC_TURNSTILE_SITE_KEY": "0x4AAAAAAFVD_ceO81JBqZSn"
+  },
+  // Sign-in emails (P3), from hello@highreel.app once the domain is onboarded for
+  // Email Sending. Highlight reel emails never use this: they go through the
+  // business's own account.
+  "send_email": [
+    { "name": "EMAIL", "allowed_sender_addresses": ["hello@highreel.app"] }
+  ]
+}

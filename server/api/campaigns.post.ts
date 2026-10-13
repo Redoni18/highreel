@@ -8,7 +8,7 @@ import { getStarter } from '#shared/templates/starters'
 import { DEFAULT_ACCENT } from '../utils/db'
 
 export default defineEventHandler(async (event): Promise<Campaign> => {
-  const { db, userId } = await requireUser(event)
+  const { db, business } = await requireUser(event)
   const body = await readBody<{ name?: unknown, year?: unknown, template_key?: unknown, starter?: unknown }>(event)
   const name = typeof body?.name === 'string' ? body.name.trim() : ''
   const year = Number(body?.year)
@@ -22,11 +22,7 @@ export default defineEventHandler(async (event): Promise<Campaign> => {
     throw createError({ statusCode: 400, message: 'Year must be like 2026' })
   if (!templates[templateKey])
     throw createError({ statusCode: 400, message: 'Unknown template' })
-  const business = await ensureBusiness(db, userId)
-  if (starter && business.accent_color.toUpperCase() === DEFAULT_ACCENT && starter.accent !== DEFAULT_ACCENT) {
-    const { error } = await db.from('businesses').update({ accent_color: starter.accent }).eq('id', business.id)
-    if (error)
-      dbError(error, 'Updating colour')
-  }
-  return createCampaign(db, business.id, { name, year, template_key: templateKey, starter })
+  if (starter && business.accent_color.toUpperCase() === DEFAULT_ACCENT && starter.accent !== DEFAULT_ACCENT)
+    await updateBusiness(db, { accent_color: starter.accent })
+  return createCampaign(db, { name, year, template_key: templateKey, starter })
 })

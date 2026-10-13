@@ -121,9 +121,9 @@ export async function mailDomain(domain: string, resolver: MxResolver = new Reso
       return 'ok'
   }
   catch (e) {
-    if (code(e) === 'ENOTFOUND')
-      return 'none'
-    if (code(e) !== 'ENODATA')
+    // Workers (SPEC M2.14) answer "no MX records" with ENOTFOUND too, not only
+    // "no such domain": the address records below tell the two apart.
+    if (code(e) !== 'ENODATA' && code(e) !== 'ENOTFOUND')
       return 'unknown'
   }
   // No MX: an address record means the host takes mail itself (RFC 5321 §5.1).

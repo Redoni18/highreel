@@ -4,11 +4,16 @@
 // sends from an address of its own. The server only talks to SMTP ports, and
 // outside development never to private, loopback or link-local addresses, so
 // the connect form can't be used to probe our network.
+//
+// The same code runs on Node (development) and on Cloudflare Workers (SPEC
+// M2.14): DNS through resolve4/resolve6 (Workers resolve over HTTPS and
+// document `lookup` as not implemented), and the socket opened here
+// (`openSocket`), so nodemailer never resolves names itself.
 
-import { lookup } from 'node:dns/promises'
-import { isIP } from 'node:net'
+import { Resolver } from 'node:dns/promises'
+import { connect as netConnect, isIP, type Socket } from 'node:net'
+import { connect as tlsConnect } from 'node:tls'
 import type { H3Event } from 'h3'
-import type { SupabaseClient } from '@supabase/supabase-js'
 import nodemailer from 'nodemailer'
 import type SMTPTransport from 'nodemailer/lib/smtp-transport'
 import type { EmailConnection } from '#shared/utils/smtp'
@@ -27,7 +32,9 @@ export interface SentMail { ok: boolean, id?: string, error?: string, kind?: Out
 /** A connection with its password, decrypted (server only). */
 export interface SmtpAccount extends EmailConnection { password: string }
 
-const SMTP_PORTS = new Set([25, 465, 587, 2525])
+// No 25: Workers can't open connections on it, and providers take mail on 465/587.
+const SMTP_PORTS = new Set([465, 587, 2525])
+const CONNECT_TIMEOUT = 15_000
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e)).replace(/\s+/g, ' ').slice(0, 300)
 
 /** Addresses that can't receive mail (RFC 2606/6761: the samples use example.com). A real server would bounce them. */
@@ -41,7 +48,7 @@ export function isEmail(value: unknown): value is string {
   return typeof value === 'string' && value.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
 }
 
-export const isLocalHost = (host: string) => host === 'localhost' || host === '127.0.0.1' || host === '::1'
+const isLocalHost = (host: string) => host === 'localhost' || host === '127.0.0.1' || host === '::1'
 
 /** Private, loopback, link-local and other non-public IPs. */
 export function privateIp(ip: string): boolean {
@@ -54,30 +61,71 @@ export function privateIp(ip: string): boolean {
   return v === '::' || v === '::1' || v.startsWith('fc') || v.startsWith('fd') || v.startsWith('fe80') || v.startsWith('::ffff:') && privateIp(v.slice(7))
 }
 
+/** A name's IPv4 and IPv6 addresses. Workers' resolve4 can list a CNAME's target among them: only IPs count. */
+async function addressesOf(name: string): Promise<string[]> {
+  const resolver = new Resolver({ timeout: 2500, tries: 2 })
+  const found = await Promise.all([resolver.resolve4(name), resolver.resolve6(name)].map(p => p.catch(() => [] as string[])))
+  return found.flat().filter(a => isIP(a))
+}
+
+export interface SmtpTarget {
+  /** the address checked, IPv4 first */
+  address: string
+  /** the name the certificate must match */
+  servername: string
+}
+
 /**
  * Where to connect: the host checked, and on a public host the address it
  * resolved to (so a second lookup can't point somewhere else), with the name
  * kept for TLS.
  */
-export async function smtpTarget(host: string, port: number): Promise<{ address: string, servername: string }> {
+async function smtpTarget(host: string, port: number): Promise<SmtpTarget> {
   const name = host.trim().toLowerCase()
   if (!/^[a-z0-9.-]{1,253}$/.test(name) && !isIP(name))
     throw createError({ statusCode: 400, message: 'That server name doesn\'t look right' })
   if (import.meta.dev && isLocalHost(name))
     return { address: name, servername: name }
   if (!SMTP_PORTS.has(port))
-    throw createError({ statusCode: 400, message: 'Use an SMTP port: 465, 587, 25 or 2525' })
-  let address: string
-  try {
-    const found = await lookup(name, { all: true })
-    if (!found.length || found.some(f => privateIp(f.address)))
-      throw new Error('private')
-    address = found[0]!.address
-  }
-  catch {
+    throw createError({ statusCode: 400, message: 'Use an SMTP port: 465, 587 or 2525' })
+  const found = isIP(name) ? [name] : await addressesOf(name)
+  if (!found.length || found.some(privateIp))
     throw createError({ statusCode: 400, message: `Can't reach ${name}: check the server name` })
-  }
-  return { address, servername: name }
+  return { address: found.find(a => isIP(a) === 4) ?? found[0]!, servername: name }
+}
+
+const onWorkers = () => globalThis.navigator?.userAgent === 'Cloudflare-Workers'
+
+/**
+ * The connection nodemailer talks over. On Node it goes to the address
+ * checked above, and TLS (465 at once, or STARTTLS on 587/2525) checks the
+ * certificate against the name. Workers check a certificate against the name
+ * they connected to (they don't support a separate expected name: "startTls
+ * called with unsupported expectedServerHostname option"), and an implicit TLS
+ * connection to an address fails outright, so there both connect by name.
+ * That's safe: Workers refuse sockets to localhost and private network
+ * addresses themselves, so a name that resolves elsewhere after the check
+ * still can't reach a private network.
+ */
+function openSocket(target: SmtpTarget, port: number, secure: boolean): Promise<{ connection: Socket, secured: boolean }> {
+  return new Promise((resolve, reject) => {
+    const host = onWorkers() ? target.servername : target.address
+    const socket: Socket = secure
+      ? tlsConnect({ host, port, servername: isIP(target.servername) ? undefined : target.servername })
+      : netConnect({ host, port })
+    const timer = setTimeout(() => fail(new Error(`Connection to ${target.servername} timed out`)), CONNECT_TIMEOUT)
+    function fail(e: Error) {
+      clearTimeout(timer)
+      socket.destroy()
+      reject(e)
+    }
+    socket.once('error', fail)
+    socket.once(secure ? 'secureConnect' : 'connect', () => {
+      clearTimeout(timer)
+      socket.removeListener('error', fail)
+      resolve({ connection: socket, secured: secure })
+    })
+  })
 }
 
 async function transport(account: SmtpAccount, pool: boolean) {
@@ -87,11 +135,14 @@ async function transport(account: SmtpAccount, pool: boolean) {
     host: target.address,
     port: account.port,
     secure: account.secure,
-    // STARTTLS on 587/25/2525 when the server offers it, and required off localhost.
+    // STARTTLS on 587/2525 when the server offers it, and required off localhost.
     requireTLS: !account.secure && !local,
     auth: account.username || account.password ? { user: account.username, pass: account.password } : undefined,
     tls: { servername: target.servername },
-    connectionTimeout: 15_000,
+    getSocket: (_options, done) => {
+      openSocket(target, account.port, account.secure).then(s => done(null, s), (e: Error) => done(e, undefined as never))
+    },
+    connectionTimeout: CONNECT_TIMEOUT,
     greetingTimeout: 15_000,
     socketTimeout: 30_000,
   }
@@ -151,13 +202,6 @@ export async function sendMails(account: SmtpAccount, mails: OutMail[]): Promise
 export const isLocalAccount = (account: { host: string }) => import.meta.dev && isLocalHost(account.host.trim().toLowerCase())
 
 /** The business's connection without its password (what routes return). */
-export async function loadConnection(db: SupabaseClient, businessId: string): Promise<(EmailConnection & { password_enc: string }) | null> {
-  const { data, error } = await db.from('email_connections').select('*').eq('business_id', businessId).maybeSingle()
-  if (error)
-    dbError(error, 'Loading your email account')
-  return data as (EmailConnection & { password_enc: string }) | null
-}
-
 export function publicConnection(c: EmailConnection & { password_enc?: string }): EmailConnection {
   return {
     provider: c.provider,

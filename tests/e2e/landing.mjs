@@ -2,7 +2,8 @@
 // headline and price, all five examples play on a shape in their business's
 // colour (rendered once near the screen), the steps pop in as they scroll
 // into view, the sticky Try the demo, self-hosted Outfit and Caveat subset,
-// Open it full screen, no horizontal scroll at 390 px, reduced motion, no
+// Open it full screen, no horizontal scroll at 390 px, the hero's opening
+// burst, reduced motion, no
 // third-party requests, link-preview image; search: canonical links,
 // structured data, robots.txt, the sitemap, icons, noindex on private pages.
 import { BASE, expect, finish, launch, watchErrors } from './lib.mjs'
@@ -21,9 +22,9 @@ const plain = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ')
 expect(/Give every customer their year(?:'|&#39;)s highlight reel\./.test(plain), 'headline is in the server-rendered HTML')
 expect(plain.includes('$99') && plain.includes('per campaign'), 'the $99 price is in the server-rendered HTML')
 expect(!html.includes('aria-roledescription="story"') && !html.includes('v-sheet'), 'the phone\'s recap and the step pictures render near the screen, not in the server HTML')
-// Named Highreel on 2026-10-12: the title and both wordmarks say so; "recap" is only the word for what customers get.
+// Named Highreel on 2026-10-12: the title and both wordmarks say so.
 expect(html.includes('<title>Highreel · '), 'the page title names Highreel', html.match(/<title>[^<]*/)?.[0])
-expect((html.match(/class="[^"]*\bwordmark\b[^"]*"[^>]*>highreel</g) ?? []).length === 2, 'both wordmarks read highreel')
+expect((html.match(/class="[^"]*\bwordmark\b[^"]*"[^>]*><span class="hr-word[^"]*"[^>]*>(?:<span class="hr-high"[^>]*>high<\/span>reel|<span class="hr-cap"[^>]*>H<\/span>ighreel)</g) ?? []).length === 2, 'both wordmarks read highreel (whichever logo LOGO picks: wordmark.mjs)')
 // The page speaks to any business: example businesses only appear inside the phone.
 const named = EXAMPLES.map(e => e.business).concat(['Farm', 'goat', 'barn']).filter(n => plain.toLowerCase().includes(n.toLowerCase()))
 expect(!named.length, 'the page around the phone names no example business', named)
@@ -66,21 +67,36 @@ async function newPage(opts) {
   watchErrors(page, errors, /status of 404/)
   page.on('request', (r) => {
     const u = r.url()
-    if (!u.startsWith(BASE) && !/^(data|blob):/.test(u))
+    // Sign-in's bot check (Turnstile, SPEC M2.14 P3) is the one allowed, and only on /login.
+    const turnstile = u.startsWith('https://challenges.cloudflare.com/') && new URL(page.url()).pathname === '/login'
+    if (!u.startsWith(BASE) && !/^(data|blob):/.test(u) && !turnstile)
       thirdParty.push(u)
   })
   return page
 }
 
+// The inbox bubbles show their whole line (Highreel made the first one longer: 2026-10-12).
+const cutMail = p => p.evaluate(async () => {
+  await document.fonts.ready
+  return [...document.querySelectorAll('.hero .mail')].filter(el => getComputedStyle(el).display !== 'none').map(el => el.querySelector('.mail-text')).filter(t => t.scrollWidth > t.clientWidth).map(t => t.textContent)
+})
+
 // Desktop
 const page = await newPage({ viewport: { width: 1280, height: 800 } })
 await page.goto(BASE, { waitUntil: 'networkidle' })
 expect((await page.locator('h1.headline').innerText()).replace(/\s+/g, ' ') === 'Give every customer their year\'s highlight reel.', 'the headline reads right')
+// Owner's ask (2026-10-12): the hero says what a Highreel is (a highlight reel);
+// after it the page calls them Highreels, so the brand becomes the word for them.
+const lede = (await page.locator('.hero .lede').innerText()).replace(/\s+/g, ' ')
+const rest = await page.evaluate(() => [...document.querySelectorAll('.landing > :not(.hero)')].map(e => e.textContent).join(' ').replace(/\s+/g, ' '))
+expect(/their own Highreel: an animated highlight reel/.test(lede) && !rest.includes('highlight reel') && (rest.match(/\bHighreels?\b/g) ?? []).length >= 8, 'the lede defines a Highreel, then the page says Highreel', { lede, highreels: rest.match(/\bHighreels?\b/g)?.length })
 const fonts = await page.evaluate(async () => {
   await document.fonts.ready
   return document.fonts.check('600 40px Outfit') && document.fonts.check('400 24px "Recap Notes"')
 })
 expect(fonts, 'Outfit and the Caveat subset load (self-hosted)')
+const cutDesk = await cutMail(page)
+expect(!cutDesk.length, 'no inbox bubble cuts its line short', cutDesk)
 expect(!(await page.locator('.sticky-cta').isVisible()), 'no sticky button while the hero\'s is on screen')
 // The hero moves on its own: blobs morph (SMIL), lines draw, pieces float; it all stops off screen.
 const hero = await page.evaluate(() => ({
@@ -145,6 +161,11 @@ expect(await page.locator('.qa').count() === 4, 'four questions under the price'
 const tiers = (await page.locator('.tier').allInnerTexts()).map(t => t.replace(/\s+/g, ' '))
 expect(tiers.length === 3 && tiers[0].includes('Up to 1,000 customers') && tiers[0].includes('$99') && tiers[0].includes('$199') && tiers[1].includes('$399') && tiers[2].includes('$799') && tiers.every(t => t.includes('for the whole campaign')),
   'three list sizes, each one price for the whole campaign', tiers)
+// Pricing redone (2026-10-12): the founding card carries its sticker, and every card starts an account.
+const tierLinks = await page.locator('.tier a').evaluateAll(as => as.map(a => [a.textContent.trim(), a.getAttribute('href')]))
+expect(tiers[0].includes('$100 off') && tierLinks.length === 3 && tierLinks.every(([t, h]) => t === 'Get started' && h === '/login?start=1'), 'the founding card says $100 off, and each card has Get started', tierLinks)
+const cardTops = await page.locator('.tier').evaluateAll(els => els.map(el => Math.round(el.getBoundingClientRect().height)))
+expect(new Set(cardTops).size === 1, 'the price cards are the same height side by side', cardTops)
 // The step pictures use the same phone as the example.
 expect(await page.locator('.v-brand .iphone').count() === 1 && await page.locator('.v-share .iphone').count() === 3, 'the step pictures use the iPhone frame')
 await page.locator('.closing .btn').scrollIntoViewIfNeeded()
@@ -179,13 +200,47 @@ const widths = await m.evaluate(async () => {
 expect(widths.every(w => w <= 390), 'no horizontal scroll at 390 px', widths)
 const pieces = await m.evaluate(() => [...document.querySelectorAll('.hero .bit')].filter(el => getComputedStyle(el).display !== 'none').length)
 expect(pieces > 0 && pieces < 12, 'phones get fewer pieces around the hero', pieces)
+const cutPhone = await cutMail(m)
+expect(!cutPhone.length, 'no inbox bubble cuts its line short on a phone', cutPhone)
 expect(await m.locator('.step .window').nth(2).isVisible(), 'phones get every step with its picture')
+
+// The opening burst (2026-10-12): the hero's pieces start deep behind the
+// screen, so small and near the middle, and fly out to where they rest.
+const bp = await newPage({ viewport: { width: 1280, height: 800 } })
+await bp.addInitScript(() => document.addEventListener('DOMContentLoaded', () => {
+  const hold = document.createElement('style')
+  hold.textContent = '.burst { animation-play-state: paused !important }'
+  document.head.append(hold)
+}))
+await bp.goto(BASE, { waitUntil: 'networkidle' })
+const flight = await bp.evaluate(() => {
+  const box = document.querySelector('.hero .bits').getBoundingClientRect()
+  const cx = box.left + box.width / 2
+  const cy = box.top + box.height / 2
+  const bits = [...document.querySelectorAll('.hero .bit')].filter(el => getComputedStyle(el).display !== 'none')
+  const anims = bits.map(el => el.getAnimations().find(a => a.animationName?.startsWith('burst')))
+  const at = (end) => {
+    for (const a of anims.filter(Boolean)) {
+      a.pause()
+      a.currentTime = end ? a.effect.getComputedTiming().endTime - 1 : a.effect.getTiming().delay
+    }
+    return bits.map((el) => {
+      const r = el.getBoundingClientRect()
+      return { d: Math.hypot(r.left + r.width / 2 - cx, r.top + r.height / 2 - cy), w: r.width }
+    })
+  }
+  const start = at(false)
+  const end = at(true)
+  const round = n => Math.round(n * 100) / 100
+  return { n: bits.length, animated: anims.filter(Boolean).length, out: start.map((s, i) => round(s.d / end[i].d)), size: start.map((s, i) => round(s.w / end[i].w)) }
+})
+expect(flight.n > 10 && flight.animated === flight.n && flight.out.every(r => r < 0.3) && flight.size.every(s => s < 0.4), 'the hero\'s pieces burst out of the middle: small near the centre at first, then out to their spots', flight)
 
 // Reduced motion: still headline, still pictures.
 const rm = await newPage({ viewport: { width: 1280, height: 800 }, reducedMotion: 'reduce' })
 await rm.goto(BASE, { waitUntil: 'networkidle' })
 const running = await rm.evaluate(() => ({
-  pieces: [...document.querySelectorAll('.pop, .rise')].reduce((n, el) => n + el.getAnimations().length, 0),
+  pieces: [...document.querySelectorAll('.pop, .rise, .burst')].reduce((n, el) => n + el.getAnimations().length, 0),
   vignettes: [...document.querySelectorAll('.v-sheet *, .v-brand *, .v-share *')].reduce((n, el) => n + el.getAnimations().length, 0),
   gated: document.querySelectorAll('.gate').length,
   closing: getComputedStyle(document.querySelector('.closing-title')).opacity,
@@ -198,6 +253,41 @@ await rm.waitForTimeout(60)
 const swap = await rm.evaluate(() => getComputedStyle(document.querySelector('#examples .stage-shape.on')).opacity)
 expect(swap === '1', 'reduced motion: switching examples swaps the shape at once', swap)
 
-expect(thirdParty.length === 0, 'no third-party requests', thirdParty.slice(0, 3))
+// Light or dark (2026-10-12): the header's button switches the page with a circle
+// growing from it, the choice is the app's own Dark mode setting, and a reload
+// paints dark straight away (the setting's script runs before the first paint).
+const th = await newPage({ viewport: { width: 1280, height: 800 } })
+await th.goto(BASE, { waitUntil: 'networkidle' })
+const surface = () => th.evaluate(() => getComputedStyle(document.querySelector('.landing')).backgroundColor)
+const before = { bg: await surface(), dark: await th.evaluate(() => document.documentElement.classList.contains('dark')) }
+expect(before.bg === 'rgb(255, 255, 255)' && !before.dark, 'light by default', before)
+await th.getByTestId('theme-toggle').click()
+await th.waitForFunction(() => document.documentElement.classList.contains('dark'))
+await th.waitForTimeout(900)
+const after = await th.evaluate(() => ({ stored: localStorage.getItem('color-mode'), pressed: document.querySelector('[data-testid=theme-toggle]').getAttribute('aria-pressed'), ink: getComputedStyle(document.querySelector('.headline')).color, sun: getComputedStyle(document.querySelector('.theme-toggle .sun')).display }))
+expect(await surface() === 'rgb(18, 18, 18)' && after.stored === 'dark' && after.pressed === 'true' && after.ink === 'rgb(242, 242, 242)' && after.sun === 'block', 'the toggle turns the page dark, shows the sun and keeps the choice', after)
+// A visit with the choice stored and the app's scripts blocked (their failed loads aren't the page's errors).
+const bare = await browser.newContext({ viewport: { width: 1280, height: 800 }, storageState: { cookies: [], origins: [{ origin: new URL(BASE).origin, localStorage: [{ name: 'color-mode', value: 'dark' }] }] } })
+const nojs = await bare.newPage()
+await nojs.route('**/*', r => (r.request().resourceType() === 'script' ? r.abort() : r.continue()))
+await nojs.goto(BASE)
+const bareBg = await nojs.evaluate(() => getComputedStyle(document.querySelector('.landing')).backgroundColor)
+expect(bareBg === 'rgb(18, 18, 18)', 'a stored dark choice paints dark from the HTML alone, before the app\'s scripts', bareBg)
+await bare.close()
+await th.goto(`${BASE}/login`)
+const loginBg = await th.evaluate(() => getComputedStyle(document.body).backgroundColor)
+expect(loginBg === 'rgb(20, 20, 20)', 'sign-in follows it (the app\'s dark colours)', loginBg)
+await th.goto(BASE, { waitUntil: 'networkidle' })
+await th.getByTestId('theme-toggle').click()
+await th.waitForFunction(() => !document.documentElement.classList.contains('dark'))
+await th.waitForTimeout(900)
+expect(await surface() === 'rgb(255, 255, 255)' && await th.evaluate(() => localStorage.getItem('color-mode')) === 'light', 'and back to light')
+// The price cards' Get started opens the email form under its own heading.
+await th.locator('.tier a').first().click()
+await th.waitForURL('**/login?start=1')
+await th.getByRole('heading', { level: 1, name: 'Get started' }).waitFor()
+expect(await th.title() === 'Get started · Highreel' && await th.getByRole('button', { name: 'Email me a sign-in link' }).isVisible(), 'a price card\'s Get started opens the email form as "Get started"')
+
+expect(thirdParty.length === 0, 'no third-party requests (Turnstile on /login aside)', thirdParty.slice(0, 3))
 await browser.close()
 finish(errors)

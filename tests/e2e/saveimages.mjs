@@ -7,7 +7,7 @@
 // ticked. Phone: a tap ticks, press-and-hold shows the slide without ticking
 // it. Reduced motion: nothing animates.
 import { readFileSync } from 'node:fs'
-import { BASE, demoSession, expect, finish, launch, OUT, publish, tokenFor, watchErrors } from './lib.mjs'
+import { BASE, demoSession, expect, finish, launch, OUT, publish, tokenFor, watchErrors, rowsOf } from './lib.mjs'
 
 const browser = await launch()
 const errors = []
@@ -111,10 +111,7 @@ for (const d of downloads) {
   looks.push(await look(desk, file))
 }
 expect(looks.every(l => l.size === '1080x1920' && l.colours >= 12), 'each is a 1080×1920 PNG with a real picture in it', looks)
-const saved = await setup.evaluate(async (t) => {
-  const c = location.pathname.match(/\/app\/c\/([\w-]+)/)[1]
-  return (await (await fetch(`/api/campaigns/${c}/recipients`)).json()).find(r => r.token === t).saved_at
-}, token)
+const saved = (await rowsOf(setup)).find(r => r.token === token).saved_at
 expect(!!saved, 'the business sees it was saved', saved)
 
 // Escape closes; so does a tap on the story.

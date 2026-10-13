@@ -1,7 +1,8 @@
 <script setup lang="ts">
 // Landing (SPEC M2.5 P2, restyled 2026-10-11 after trysundrop.app). A white
-// page with big centred headlines; flower shapes, recap stickers and mail
-// bubbles pop out around the hero and the closing call to action. Each
+// page with big centred headlines; shapes, recap stickers and mail bubbles
+// burst out of the middle of the hero (towards the viewer, in 3D) and pop out
+// around the closing call to action. Each
 // section sits its picture on a big coloured shape: the playing example on
 // its business's colour, the three steps on the page's own palette.
 // Server-rendered, CSS motion only, no third-party scripts.
@@ -30,7 +31,7 @@ const exampleShapes: { kind: ShapeKind, r: number }[] = [
 ]
 
 const title = 'Highreel · Give every customer their year\'s highlight reel'
-const description = 'Spotify Wrapped for your business: upload a sheet of your customers and each one gets an animated highlight reel of their year to share. From $99 per campaign.'
+const description = 'Spotify Wrapped for your business: each customer on your sheet gets a Highreel, an animated highlight reel of their year to share. From $99 per campaign.'
 // Search and link previews (SPEC M2.11): the page is prerendered, so every
 // URL names the public site, not the host that built it.
 const canonical = useCanonical('/')
@@ -89,6 +90,35 @@ function spot(p: Spot & { s?: number }, i: number, from = 150) {
   }
 }
 
+/** A seeded random in [0, 1) (mulberry32): integer maths only, so the server and every browser get the same numbers. */
+function seeded(seed: number) {
+  let t = seed >>> 0
+  return () => {
+    t = (t + 0x6D2B79F5) >>> 0
+    let r = Math.imul(t ^ (t >>> 15), 1 | t)
+    r = (r + Math.imul(r ^ (r >>> 7), 61 | r)) ^ r
+    return ((r ^ (r >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+// The hero's opening burst (owner, 2026-10-12: "you're in space, something
+// explodes and the debris comes towards you, out to your peripherals"). Each
+// piece starts deep in the scene behind the headline, where perspective draws
+// it small and near the middle, then rushes towards the viewer tumbling,
+// overshoots a touch and settles where it rests. Depth, tumble, duration and
+// delay are seeded per piece, so every load looks the same.
+function burst(p: Spot, i: number) {
+  const rnd = seeded(p.x * 1009 + p.y * 7 + i * 7919)
+  return {
+    '--bz': `${-3000 - Math.round(rnd() * 3000)}px`,
+    '--brx': `${Math.round((rnd() - 0.5) * 160)}deg`,
+    '--bry': `${Math.round((rnd() - 0.5) * 160)}deg`,
+    '--brz': `${Math.round((rnd() - 0.5) * 300)}deg`,
+    '--bt': `${850 + Math.round(rnd() * 350)}ms`,
+    '--bd': `${Math.round(rnd() * 70)}ms`,
+  }
+}
+
 // The hero's own motion (2026-10-11, so it isn't the reference site's
 // flowers again): soft blobs that keep changing shape, a few lines that draw
 // themselves and let go, small pieces drifting. The flowers stay below, as
@@ -131,7 +161,7 @@ const heroStickers = [
 ]
 // What lands in each customer's inbox when the business sends the links.
 const heroMail = [
-  { from: 'Your business', when: 'now', text: 'Ana, your 2026 reel is here', x: 51, y: 12, r: -2, m: [50, 18] as [number, number] },
+  { from: 'Your business', when: 'now', text: 'Ana, your 2026 Highreel is here', x: 51, y: 12, r: -2, m: [50, 18] as [number, number] },
   { from: 'Your business', when: '2m ago', text: 'Leon, here\'s your year with us', x: 61, y: 85, r: 2 },
 ]
 
@@ -194,20 +224,21 @@ const steps = [
   {
     n: 'two',
     title: 'Make it look like you.',
-    body: 'Add your logo and colour, choose a theme and rewrite any line. Click any customer to see their highlight reel change as you type.',
+    body: 'Add your logo and colour, choose a theme and rewrite any line. Click any customer to see their Highreel change as you type.',
     vignette: 'brand',
     shape: { kind: 'poppy', color: C.poppy, r: 10 },
   },
   {
     n: 'three',
     title: 'Share it with your members.',
-    body: 'Publish, and everyone on your list gets a personal link. Send them from your own email address or on WhatsApp; they open their highlight reel, save it and share it, and you see who did.',
+    body: 'Publish, and everyone on your list gets a personal link. Send them from your own email address or on WhatsApp; they open their Highreel, save it and share it, and you see who did.',
     vignette: 'share',
     shape: { kind: 'marigold', color: C.marigold, r: 8 },
   },
 ] as const
 
 // SPEC §10: one price per campaign by list size; $99 is the founding price of the smallest.
+// Get started on any of them: the price follows the list's size.
 const tiers = [
   { size: '1,000', price: '$99', was: '$199', founding: true },
   { size: '10,000', price: '$399' },
@@ -224,15 +255,15 @@ const includes = [
 const faqs = [
   {
     q: 'What counts as a campaign?',
-    a: 'One send to one list: your sheet of customers, your brand and wording, and a personal highlight reel for each person on it. You pay once for the whole list, not per customer. Your 2026 highlight reels are one campaign; doing them again for 2027 is another.',
+    a: 'One send to one list: your sheet of customers, your brand and wording, and a personal Highreel for each person on it. You pay once for the whole list, not per customer. Your 2026 Highreels are one campaign; doing them again for 2027 is another.',
   },
   {
     q: 'Do you email my customers?',
-    a: 'Not from us. Connect your own email account and every highlight reel goes out from your address, to your list. You can also send them one tap at a time on WhatsApp, or download the links for the email tool you already use.',
+    a: 'Not from us. Connect your own email account and every Highreel goes out from your address, to your list. You can also send them one tap at a time on WhatsApp, or download the links for the email tool you already use.',
   },
   {
     q: 'What data do you need?',
-    a: 'One row per customer with the columns of the template you pick: an id, a first name and their numbers, like active days or orders. Your own columns can become slides too. Add an email or a phone number only if you want to send the highlight reels from here; they never appear in one.',
+    a: 'One row per customer with the columns of the template you pick: an id, a first name and their numbers, like active days or orders. Your own columns can become slides too. Add an email or a phone number only if you want to send the Highreels from here; they never appear in one.',
   },
   {
     q: 'Can I try it first?',
@@ -378,10 +409,10 @@ onMounted(() => {
         <svg
           v-for="(b, i) in heroBlobs"
           :key="`b${i}`"
-          class="bit pop shape blob"
+          class="bit burst shape blob"
           :class="{ desk: !b.m }"
           viewBox="-100 -100 200 200"
-          :style="{ color: b.color, '--spin': `${b.dur * 3}s`, ...spot(b, i) }"
+          :style="{ color: b.color, '--spin': `${b.dur * 3}s`, ...spot(b, i), ...burst(b, i) }"
         >
           <g class="spin">
             <path :d="b.frames[0]" fill="currentColor">
@@ -392,35 +423,35 @@ onMounted(() => {
         <svg
           v-for="(l, i) in heroLines"
           :key="`l${i}`"
-          class="bit pop doodle"
+          class="bit burst doodle"
           :class="{ desk: !l.m, dashed: l.dashed }"
           viewBox="0 0 200 120"
-          :style="{ color: l.color, '--w': `${l.s}px`, '--dd': `${l.delay}s`, ...spot(l, i, 260) }"
+          :style="{ color: l.color, '--w': `${l.s}px`, '--dd': `${l.delay}s`, ...spot(l, i, 260), ...burst(l, 10 + i) }"
         >
           <path :d="l.d" pathLength="1" />
         </svg>
         <span
           v-for="(b, i) in heroPieces"
           :key="`p${i}`"
-          class="bit pop piece"
+          class="bit burst piece"
           :class="[`piece-${b.kind}`, { desk: !b.m }]"
-          :style="{ color: b.color, '--s': `${b.s}px`, '--float': `${b.dur}s`, ...spot(b, i, 220) }"
+          :style="{ color: b.color, '--s': `${b.s}px`, '--float': `${b.dur}s`, ...spot(b, i, 220), ...burst(b, 20 + i) }"
         ><span /></span>
         <div
           v-for="(s, i) in heroStickers"
           :key="s.big"
-          class="bit pop sticker"
+          class="bit burst sticker"
           :class="{ desk: !s.m }"
-          :style="{ '--bg': s.bg, '--fg': s.fg, ...spot(s, i, 380) }"
+          :style="{ '--bg': s.bg, '--fg': s.fg, ...spot(s, i, 380), ...burst(s, 30 + i) }"
         >
           <b>{{ s.big }}</b><span>{{ s.small }}</span>
         </div>
         <div
           v-for="(n, i) in heroMail"
           :key="n.text"
-          class="bit pop mail"
+          class="bit burst mail"
           :class="{ desk: !n.m }"
-          :style="spot(n, i, 520)"
+          :style="{ ...spot(n, i, 520), ...burst(n, 40 + i) }"
         >
           <span class="mail-mark"><LandingShape kind="scallop" class="mail-shape" /></span>
           <span class="mail-body">
@@ -431,8 +462,11 @@ onMounted(() => {
       </div>
 
       <header class="nav">
-        <NuxtLink to="/" class="wordmark">highreel</NuxtLink>
-        <NuxtLink to="/app" class="nav-link">Sign in</NuxtLink>
+        <NuxtLink to="/" class="wordmark"><Wordmark /></NuxtLink>
+        <div class="nav-actions">
+          <ThemeToggle />
+          <NuxtLink to="/app" class="pill">Sign in</NuxtLink>
+        </div>
       </header>
 
       <div class="hero-copy">
@@ -442,7 +476,7 @@ onMounted(() => {
           <span class="line">Give every customer</span> <span class="line">their year's highlight reel.</span>
         </h1>
         <p class="lede">
-          Spotify Wrapped, for your business. Upload a sheet with one row per customer, and each one gets an animated highlight reel of their year to tap through and share.
+          Spotify Wrapped, for your business. Upload a sheet with one row per customer, and each one gets their own Highreel: an animated highlight reel of their year to tap through and share.
         </p>
         <div ref="heroCta" class="rise" style="--d: 200ms">
           <NuxtLink to="/login?demo=1" class="btn">Try the demo <ArrowRight class="size-[18px]" /></NuxtLink>
@@ -454,7 +488,7 @@ onMounted(() => {
     <!-- The playing example -->
     <section id="examples" class="feature" data-pop>
       <h2 class="h2 rise">For any business with regulars.</h2>
-      <p class="sub rise" style="--d: 60ms">Apps, newsletters, online shops, gyms, studios, camps and daycares. If you know what each customer did this year, they can have a highlight reel of it.</p>
+      <p class="sub rise" style="--d: 60ms">Apps, newsletters, online shops, gyms, studios, camps and daycares. If you know what each customer did this year, they can have a Highreel of it.</p>
       <p class="note rise" style="--d: 120ms">
         {{ current.about }}
         <svg class="arrow" viewBox="0 0 26 44" aria-hidden="true"><path d="M13 2c-7 9 6 15 0 24-2 4-1 10 1 15m-6-6 6 7 5-8" /></svg>
@@ -475,7 +509,7 @@ onMounted(() => {
           <span v-else class="poster" :style="{ background: current.payload.business.accent_color }" />
         </PhoneFrame>
       </div>
-      <div class="switcher rise" role="group" aria-label="Example highlight reels">
+      <div class="switcher rise" role="group" aria-label="Example Highreels">
         <button
           v-for="(e, i) in examples"
           :key="e.key"
@@ -515,15 +549,16 @@ onMounted(() => {
     <!-- Pricing -->
     <section id="pricing" class="feature pricing" data-pop>
       <h2 class="h2 rise">One price for the whole campaign.</h2>
-      <p class="sub rise" style="--d: 60ms">Not per customer. Upload your list once and everyone on it gets their own highlight reel. No subscription.</p>
+      <p class="sub rise" style="--d: 60ms">Not per customer. Upload your list once and everyone on it gets their own Highreel. No subscription.</p>
       <ul class="tiers">
         <li v-for="(t, i) in tiers" :key="t.size" class="tier rise" :class="{ founding: t.founding }" :style="{ '--d': `${120 + i * 60}ms` }">
-          <p v-if="t.founding" class="tier-flag">founding price for our first businesses</p>
+          <p v-if="t.founding" class="tier-sticker"><b>$100 off</b><span>founding price</span></p>
           <p class="tier-size">Up to {{ t.size }} customers</p>
           <p class="tier-price">
             {{ t.price }}<s v-if="t.was" class="tier-was"><span class="sr-only">instead of </span>{{ t.was }}</s>
           </p>
           <p class="tier-per">for the whole campaign</p>
+          <NuxtLink to="/login?start=1" class="tier-btn">Get started</NuxtLink>
         </li>
       </ul>
       <p class="includes-title rise">Every campaign includes</p>
@@ -566,16 +601,21 @@ onMounted(() => {
         </div>
       </div>
       <div class="closing-copy">
-        <h2 class="closing-title rise">Highlight reels go out in December. Have yours ready.</h2>
+        <h2 class="closing-title rise">Get your Highreels ready for December.</h2>
         <div ref="closingCta" class="rise" style="--d: 100ms">
           <NuxtLink to="/login?demo=1" class="btn">Try the demo <ArrowRight class="size-[18px]" /></NuxtLink>
         </div>
       </div>
       <div class="foot">
-        <span class="wordmark small">highreel</span>
-        <NuxtLink to="/terms" class="foot-link">Terms</NuxtLink>
-        <NuxtLink to="/privacy" class="foot-link">Privacy</NuxtLink>
-        <a :href="`mailto:${CONTACT_EMAIL}`" class="foot-link">{{ CONTACT_EMAIL }}</a>
+        <p class="foot-mark">
+          <span class="wordmark small"><Wordmark still /></span>
+          <span>© 2026 {{ LEGAL_NAME }}</span>
+        </p>
+        <nav class="foot-links" aria-label="Footer">
+          <NuxtLink to="/terms" class="foot-link">Terms</NuxtLink>
+          <NuxtLink to="/privacy" class="foot-link">Privacy</NuxtLink>
+          <a :href="`mailto:${CONTACT_EMAIL}`" class="foot-link">{{ CONTACT_EMAIL }}</a>
+        </nav>
       </div>
     </footer>
 
@@ -587,6 +627,9 @@ onMounted(() => {
 body.landing-page {
   background: #FFFFFF;
 }
+.dark body.landing-page {
+  background: #121212;
+}
 /* Caveat, cut down to the notes' characters (scripts/subset-caveat.py, OFL) */
 @font-face {
   font-family: 'Recap Notes';
@@ -597,28 +640,54 @@ body.landing-page {
 
 <style scoped>
 .landing {
+  --surface: #FFFFFF;
   --ink: #222222;
+  --ink-hover: #000000;
   --muted: #6F6F6F;
   /* handwritten notes only: 24 px and up, so 3:1 is enough */
   --faint: #7E7E7E;
   --card: #F2F2F2;
+  --card-hover: #E6E6E6;
+  /* small text on a price card: a shade darker than --muted, 4.5:1 on --card */
+  --card-muted: #5C5C5C;
   --line: #E7E7E7;
+  --bubble: rgb(232 232 237 / 0.85);
+  --bubble-text: #3A3A3A;
   --cta: #4560FF;
   --spring: cubic-bezier(0.25, 1.35, 0.45, 1);
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
   --v-warn: #D2371F;
   overflow-x: clip;
-  background: #FFFFFF;
+  background: var(--surface);
   color: var(--ink);
   font-family: 'Outfit', var(--font-sans);
   font-size: 1rem;
   line-height: 1.5;
 }
 
+/* Dark (ThemeToggle, or the app's Dark mode): the same page on near-black. The
+   blue, the shapes, the stickers and the step pictures keep their colours; the
+   pictures stay light, like the app they show. Text is 4.5:1 or more on the
+   surface and the cards (muted 7.4:1, card text 6.6:1). */
+:global(.dark .landing) {
+  --surface: #121212;
+  --ink: #F2F2F2;
+  --ink-hover: #FFFFFF;
+  --muted: #A3A3A3;
+  --faint: #8C8C8C;
+  --card: #1E1E1E;
+  --card-hover: #2A2A2A;
+  --card-muted: #A3A3A3;
+  --line: #2C2C2C;
+  --bubble: rgb(44 44 48 / 0.9);
+  --bubble-text: #C8C8C8;
+  color-scheme: dark;
+}
+
 /* --- Type -------------------------------------------------------------------- */
 .wordmark {
-  font-size: 23px;
+  font-size: 26px;
   font-weight: 700;
   letter-spacing: -0.035em;
   text-decoration: none;
@@ -703,9 +772,10 @@ body.landing-page {
 .btn:hover { background: #3550F5; transform: scale(1.03); }
 .btn:active { transform: scale(0.97); }
 .btn:focus-visible,
+.pill:focus-visible,
+.tier-btn:focus-visible,
 .tab:focus-visible,
 .text-link:focus-visible,
-.nav-link:focus-visible,
 .qa summary:focus-visible {
   outline: 2px solid var(--cta);
   outline-offset: 3px;
@@ -716,6 +786,8 @@ body.landing-page {
   top: 16px;
   right: 16px;
   z-index: 20;
+  /* floats over everything, the blue price card too */
+  box-shadow: 0 0 0 2px var(--surface), 0 8px 20px -8px rgb(0 0 0 / 0.35);
   visibility: hidden;
   opacity: 0;
   transform: translateY(-8px) scale(0.92);
@@ -830,12 +902,33 @@ body.landing-page {
 .gate.in .pop { animation: pop 560ms var(--spring) var(--d, 0ms) both; opacity: 1; }
 .gate.in .rise { animation: rise 700ms var(--ease-out) var(--d, 0ms) both; opacity: 1; }
 
+/* The hero's opening burst (burst() in the script). With perspective on the
+   pieces' layer, a piece far behind the screen is drawn small and close to the
+   middle; flying to z 0 it spreads out to its spot at full size, faster as it
+   nears, tumbling flat. It overshoots towards the viewer a little (5 % larger)
+   and settles. Transform and opacity only; the base style is where it rests. */
+.hero .bits { perspective: 700px; }
+.burst { animation: burst var(--bt, 1000ms) linear var(--bd, 0ms) both; }
+@keyframes burst {
+  0% {
+    opacity: 0;
+    transform: translateZ(var(--bz)) rotateX(var(--brx)) rotateY(var(--bry)) rotate(calc(var(--r, 0deg) + var(--brz)));
+    animation-timing-function: cubic-bezier(0.1, 0.75, 0.25, 1);
+  }
+  7% { opacity: 1; }
+  74% {
+    transform: translateZ(36px) rotateX(0deg) rotateY(0deg) rotate(var(--r, 0deg));
+    animation-timing-function: cubic-bezier(0.35, 0, 0.3, 1);
+  }
+  100% { opacity: 1; transform: translateZ(0px) rotateX(0deg) rotateY(0deg) rotate(var(--r, 0deg)); }
+}
+
 .sticker {
   padding: 11px 16px 12px;
   border-radius: 18px;
   background: var(--bg);
   color: var(--fg);
-  box-shadow: 0 0 0 5px #FFFFFF, 0 12px 26px -8px rgb(0 0 0 / 0.3);
+  box-shadow: 0 0 0 5px var(--surface), 0 12px 26px -8px rgb(0 0 0 / 0.3);
   white-space: nowrap;
 }
 .sticker b {
@@ -856,14 +949,14 @@ body.landing-page {
   display: flex;
   align-items: center;
   gap: 10px;
-  width: 272px;
+  width: 284px;
   padding: 9px 16px 9px 9px;
   border-radius: 22px;
-  background: rgb(232 232 237 / 0.85);
+  background: var(--bubble);
   text-align: left;
 }
 @media (max-width: 719px) {
-  .mail { width: 248px; }
+  .mail { width: 260px; }
 }
 .mail-mark {
   display: grid;
@@ -887,7 +980,7 @@ body.landing-page {
 .mail-text {
   display: block;
   overflow: hidden;
-  color: #3A3A3A;
+  color: var(--bubble-text);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -911,13 +1004,33 @@ body.landing-page {
 @media (min-width: 720px) {
   .nav { padding-inline: 40px; }
 }
-.nav-link {
-  color: var(--muted);
-  font-size: 16px;
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+/* Sign in: an ink pill, so the top corner is easy to find; the hero's blue
+   "Try the demo" stays the page's main button. */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 18px;
+  border-radius: 9999px;
+  background: var(--ink);
+  color: var(--surface);
+  font-size: 15px;
   font-weight: 500;
   text-decoration: none;
+  white-space: nowrap;
+  transition: transform 180ms var(--spring), background-color 160ms ease;
 }
-.nav-link:hover { color: var(--ink); }
+.pill:hover { background: var(--ink-hover); transform: scale(1.03); }
+.pill:active { transform: scale(0.97); }
+@media (max-width: 379px) {
+  .nav-actions { gap: 6px; }
+  .pill { padding: 0 14px; }
+}
 .hero-copy {
   position: relative;
   z-index: 1;
@@ -1009,14 +1122,14 @@ body.landing-page {
   font-weight: 500;
   transition: background-color 180ms ease, color 180ms ease, transform 180ms var(--spring);
 }
-.tab:hover { background: #E6E6E6; }
+.tab:hover { background: var(--card-hover); }
 .tab:active { transform: scale(0.96); }
-.tab[aria-pressed='true'] { background: var(--ink); color: #FFFFFF; }
+.tab[aria-pressed='true'] { background: var(--ink); color: var(--surface); }
 .tab-dot {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  box-shadow: 0 0 0 1.5px #FFFFFF;
+  box-shadow: 0 0 0 1.5px var(--surface);
 }
 
 /* How it works: each step's picture in a window on its shape. */
@@ -1034,57 +1147,100 @@ body.landing-page {
 /* --- Pricing ---------------------------------------------------------------------------- */
 .tiers {
   display: grid;
-  gap: 14px;
-  max-width: 860px;
-  margin: 52px auto 0;
+  gap: 16px;
+  max-width: 900px;
+  margin: 84px auto 0;
   text-align: left;
 }
 @media (min-width: 760px) {
-  .tiers { grid-template-columns: repeat(3, 1fr); align-items: end; }
+  .tiers { grid-template-columns: repeat(3, 1fr); }
 }
 .tier {
+  --muted: var(--card-muted);
   position: relative;
-  padding: 26px 26px 24px;
+  display: flex;
+  flex-direction: column;
+  padding: 28px 26px 26px;
   border-radius: 28px;
   background: var(--card);
 }
+/* The founding price is the one to take: the page's blue, with a sticker like the
+   hero's. Everything on it stays pure white (4.8:1 on the blue). */
 .tier.founding {
-  background: #FFFFFF;
-  box-shadow: inset 0 0 0 2px var(--ink);
+  --muted: #FFFFFF;
+  background: var(--cta);
+  color: #FFFFFF;
 }
-.tier-flag {
-  margin-bottom: 10px;
-  color: var(--cta);
-  font-family: 'Recap Notes', cursive;
+.tier-sticker {
+  position: absolute;
+  /* on the card's top edge, clear of its first line */
+  top: -46px;
+  right: 14px;
+  padding: 9px 14px 10px;
+  border-radius: 16px;
+  background: #F5C518;
+  color: #222222;
+  box-shadow: 0 0 0 4px var(--surface), 0 10px 22px -8px rgb(0 0 0 / 0.3);
+  transform: rotate(6deg);
+  white-space: nowrap;
+}
+.tier-sticker b {
+  display: block;
   font-size: 24px;
-  line-height: 1.05;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+.tier-sticker span {
+  display: block;
+  margin-top: 3px;
+  font-size: 12px;
+  font-weight: 600;
 }
 .tier-size {
-  font-size: 16px;
-  font-weight: 500;
-  color: var(--muted);
+  font-size: 17px;
+  font-weight: 600;
 }
 .tier-price {
   display: flex;
   align-items: baseline;
   gap: 10px;
-  margin-top: 6px;
-  font-size: 52px;
+  margin-top: 18px;
+  font-size: 56px;
   font-weight: 600;
   line-height: 1;
   letter-spacing: -0.035em;
 }
 .tier-was {
-  color: var(--faint);
+  color: var(--muted);
   font-size: 22px;
   font-weight: 500;
   letter-spacing: -0.01em;
 }
 .tier-per {
-  margin-top: 10px;
+  margin: 10px 0 28px;
   color: var(--muted);
   font-size: 15px;
 }
+.tier-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 48px;
+  margin-top: auto;
+  border-radius: 9999px;
+  background: #FFFFFF;
+  color: #222222;
+  font-size: 16px;
+  font-weight: 500;
+  text-decoration: none;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+  transition: transform 180ms var(--spring);
+}
+.tier.founding .tier-btn { color: var(--cta); }
+.tier.founding .tier-btn:focus-visible { outline-color: #FFFFFF; }
+.tier-btn:hover { transform: scale(1.02); }
+.tier-btn:active { transform: scale(0.98); }
 .includes-title {
   margin-top: 56px;
   font-size: 18px;
@@ -1183,21 +1339,43 @@ body.landing-page {
   z-index: 1;
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: center;
-  gap: 6px 22px;
-  padding: 0 16px 28px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px 32px;
+  margin: 0 20px;
+  padding: 22px 0 28px;
+  border-top: 1px solid var(--line);
   color: var(--muted);
   font-size: 14px;
   font-weight: 500;
 }
+@media (min-width: 720px) {
+  .foot { margin-inline: 40px; }
+}
+/* Phones: the links first, the copyright last, all on the left. */
+@media (max-width: 719px) {
+  .foot { flex-direction: column-reverse; align-items: flex-start; }
+}
+.foot-mark {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+}
+.foot-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 24px;
+}
 .foot-link {
   color: inherit;
+  text-decoration: none;
+}
+.foot-link:hover {
+  color: var(--ink);
   text-decoration: underline;
   text-decoration-thickness: 1px;
   text-underline-offset: 3px;
 }
-.foot-link:hover { color: var(--ink); }
 .foot-link:focus-visible {
   outline: 2px solid var(--cta);
   outline-offset: 3px;
@@ -1205,8 +1383,8 @@ body.landing-page {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pop, .rise, .gate.in .pop, .gate.in .rise { animation: none !important; opacity: 1 !important; }
+  .pop, .rise, .burst, .gate.in .pop, .gate.in .rise { animation: none !important; opacity: 1 !important; }
   .blob .spin, .doodle path, .piece > span { animation: none !important; }
-  .stage-shape, .sticky-cta, .btn, .tab, .chev { transition: none; }
+  .stage-shape, .sticky-cta, .btn, .pill, .tier-btn, .tab, .chev { transition: none; }
 }
 </style>

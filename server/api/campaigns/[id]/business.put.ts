@@ -15,26 +15,23 @@ export default defineEventHandler(async (event): Promise<Recipient> => {
 
   const { campaign } = await loadWorkspace(db, id) // 404 unless it's yours
   if (campaign.kind !== 'business')
-    throw createError({ statusCode: 400, message: 'Only a business highlight reel has a form' })
+    throw createError({ statusCode: 400, message: 'Only a business Highreel has a form' })
   const template = getTemplate(campaign.template_key)
   const raw = normalizeRaw(body.raw as Record<string, unknown>, template)
   if (Object.values(raw).some(v => v.length > 2000))
     throw createError({ statusCode: 400, message: 'A value is too long' })
   const { data, errors } = validateRow(raw, template)
 
-  const { data: current, error } = await db.from('recipients').select('id, token').eq('campaign_id', id).order('row_index').limit(1).maybeSingle()
-  if (error)
-    dbError(error, 'Loading the highlight reel')
+  const current = await businessRow(db, id)
   if (current?.token && hasErrors(errors))
-    throw createError({ statusCode: 400, message: 'This highlight reel is published: fix the highlighted fields to update it' })
+    throw createError({ statusCode: 400, message: 'This Highreel is published: fix the highlighted fields to update it' })
 
-  const values = { raw, data, errors, customer_id: 'business', updated_at: new Date().toISOString() }
   const saved = current
-    ? await db.from('recipients').update(values).eq('id', current.id).select(RECIPIENT_COLUMNS).single()
-    : await db.from('recipients').insert({ ...values, campaign_id: id, row_index: 0 }).select(RECIPIENT_COLUMNS).single()
-  if (saved.error)
-    dbError(saved.error, 'Saving the highlight reel')
+    ? await saveRecipient(db, current.id, { raw, data, errors, customer_id: 'business' })
+    : await insertBusinessRow(db, id, { raw, data, errors })
+  if (!saved)
+    throw createError({ statusCode: 404, message: 'Campaign not found' })
   // The home's "updated" column follows the campaign.
-  await db.from('campaigns').update({ updated_at: new Date().toISOString() }).eq('id', id)
-  return saved.data as unknown as Recipient
+  await updateCampaign(db, id, {})
+  return saved
 })

@@ -1,7 +1,8 @@
 // Writes public/og.png, the landing page's link preview (SPEC M2.5 P2):
 // 1200×630 in the landing's look: the headline centred on white, the price
 // in the blue pill, flower shapes and two recap stickers around it. The
-// shapes come from app/lib/shapes.ts (Node strips its types). Drawn as SVG
+// shapes come from app/lib/shapes.ts (Node strips its types), the wordmark
+// (the site's logo, LOGO in app/data/brand.ts) from scripts/brand.mjs. Drawn as SVG
 // and rendered by resvg with Outfit TTFs (scripts/fonts, OFL; the page itself
 // loads Outfit through @nuxt/fonts).
 //
@@ -10,6 +11,7 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { initWasm, Resvg } from '@resvg/resvg-wasm'
 import { DAISY_RAYS, SHAPE_PATHS } from '../app/lib/shapes.ts'
+import { siteLogo } from './brand.mjs'
 
 const root = new URL('../', import.meta.url)
 await initWasm(readFileSync(new URL('node_modules/@resvg/resvg-wasm/index_bg.wasm', root)))
@@ -58,7 +60,7 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" 
   ${sticker(118, 318, -8, '212', 'days in the app', '#4F46E5', 168)}
   ${sticker(1082, 322, 7, 'Top 6%', 'of all readers', '#C8341B', 168)}
 
-  <text x="${W / 2}" y="94" text-anchor="middle" font-size="30" font-weight="700" fill="${INK}" letter-spacing="-1">highreel</text>
+  ${siteLogo.place(W / 2, 94, 30)}
   <g text-anchor="middle" font-size="66" font-weight="600" fill="${INK}" letter-spacing="-2">
     <text x="${W / 2}" y="246">Give every customer their</text>
     <text x="${W / 2}" y="324">year's highlight reel.</text>

@@ -70,7 +70,7 @@ export function formatNumber(n: number): string {
 const DAY_RE = /^(\d{4})-(\d{2})-(\d{2})$/
 
 /** "2026-02-14" → "February 14, 2026" (short: "Feb 14, 2026") */
-export function formatDate(date: string, short = false): string {
+function formatDate(date: string, short = false): string {
   const m = DAY_RE.exec(date)
   if (!m)
     return date
@@ -78,12 +78,12 @@ export function formatDate(date: string, short = false): string {
   return `${short ? month.slice(0, 3) : month} ${Number(m[3])}, ${m[1]}`
 }
 
-export function formatMonthYear(date: string | null): string | null {
+function formatMonthYear(date: string | null): string | null {
   const m = date && /^(\d{4})-(\d{2})/.exec(date)
   return m ? `${MONTHS[Number(m[2]) - 1]} ${m[1]}` : null
 }
 
-export function yearsSince(date: string | null, today = new Date()): number {
+function yearsSince(date: string | null, today = new Date()): number {
   const m = date && /^(\d{4})-(\d{2})-(\d{2})$/.exec(date)
   if (!m)
     return 0
@@ -96,7 +96,7 @@ export function yearsSince(date: string | null, today = new Date()): number {
 }
 
 /** The campaign's copy for a slide key, else the template default. */
-export function copyFor(t: Template, p: RecapPayload, key: string): string {
+function copyFor(t: Template, p: RecapPayload, key: string): string {
   const custom = p.settings.copy?.[key]?.trim()
   if (custom)
     return custom

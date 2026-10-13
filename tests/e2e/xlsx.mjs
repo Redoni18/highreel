@@ -8,7 +8,7 @@ const errors = []
 watchErrors(page, errors)
 await demoSession(page)
 await page.getByRole('button', { name: 'Switch campaign' }).click()
-await page.getByRole('menuitem', { name: 'New highlight reel' }).click()
+await page.getByRole('menuitem', { name: 'New Highreel' }).click()
 await page.getByLabel('Name').fill('Korrik 2026')
 await page.getByRole('radio', { name: /Summer camp/ }).click()
 await page.getByRole('button', { name: 'Create' }).click()

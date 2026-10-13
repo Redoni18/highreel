@@ -77,6 +77,26 @@ describe('mailDomain', () => {
     // DNS didn't answer: don't hold anyone back.
     expect(await mailDomain('down.test', r)).toBe('unknown')
   })
+
+  test('Workers: ENOTFOUND for "no records of this type" too (SPEC M2.14 P0)', async () => {
+    const r = {
+      resolveMx: async (d: string) => {
+        if (d === 'farm.test')
+          return [{ exchange: 'mx.farm.test', priority: 10 }]
+        throw err('ENOTFOUND')
+      },
+      resolve4: async (d: string) => {
+        if (d === 'host.test')
+          return ['203.0.113.7']
+        throw err('ENOTFOUND')
+      },
+      resolve6: async () => { throw err('ENOTFOUND') },
+    } as unknown as Parameters<typeof mailDomain>[1]
+    expect(await mailDomain('farm.test', r)).toBe('ok')
+    // No MX but an address record: takes mail, not a bounce.
+    expect(await mailDomain('host.test', r)).toBe('ok')
+    expect(await mailDomain('gone.test', r)).toBe('none')
+  })
 })
 
 describe('precheck', () => {

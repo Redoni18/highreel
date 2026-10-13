@@ -5,6 +5,6 @@ import type { Business } from '#shared/types/recap'
 import { signedBusiness } from '../utils/brand'
 
 export default defineEventHandler(async (event): Promise<{ business: Business, anonymous: boolean }> => {
-  const { db, userId, anonymous } = await requireUser(event)
-  return { business: await signedBusiness(db, await ensureBusiness(db, userId)), anonymous }
+  const { business, anonymous } = await requireUser(event)
+  return { business: await signedBusiness(event, business), anonymous }
 })

@@ -15,7 +15,7 @@ import { activityText, attention, timeAgo, yearSummary } from '#shared/utils/hom
 definePageMeta({
   middleware: [to => (typeof to.query.c === 'string' ? navigateTo(`/app/c/${to.query.c}`, { replace: true }) : undefined)],
 })
-useHead({ title: 'Your highlight reels · Highreel' })
+useHead({ title: 'Your Highreels · Highreel' })
 
 const route = useRoute()
 const router = useRouter()
@@ -46,7 +46,7 @@ onMounted(async () => {
   // "Try the demo" lands here with ?start=demo: a new demo opens its first draft.
   if (route.query.start === 'demo' && data.value) {
     if (!data.value.total)
-      await create({ name: `${year.value} highlight reels`, year: year.value, template_key: 'app' })
+      await create({ name: `${year.value} Highreels`, year: year.value, template_key: 'app' })
     else
       await router.replace({ query: {} })
   }
@@ -85,14 +85,14 @@ async function create(input: { name: string, year: number, template_key: string,
     return true
   }
   catch (e) {
-    fail('Couldn\'t create the highlight reel', e)
+    fail('Couldn\'t create the Highreel', e)
     return false
   }
 }
 const sampling = ref(false)
 async function trySample() {
   sampling.value = true
-  await create({ name: `${year.value} highlight reels`, year: year.value, template_key: 'app' }, { sample: '1' })
+  await create({ name: `${year.value} Highreels`, year: year.value, template_key: 'app' }, { sample: '1' })
   sampling.value = false
 }
 
@@ -159,9 +159,9 @@ async function saveName() {
 
 <template>
   <div class="flex min-h-dvh flex-col">
-    <DemoBanner v-if="data?.anonymous" @kept="load()" />
+    <DemoBanner v-if="data?.anonymous" />
     <header class="flex h-12 shrink-0 items-center gap-2 border-b px-3">
-      <span class="wordmark">highreel</span>
+      <span class="wordmark"><Wordmark /></span>
       <span class="mx-1 h-5 w-px shrink-0 bg-border" aria-hidden="true" />
       <template v-if="data">
         <span class="truncate text-[15px] font-medium">{{ data.business.name }}</span>
@@ -181,7 +181,7 @@ async function saveName() {
           <NuxtLink to="/app/brand"><Palette /> Your brand</NuxtLink>
         </Button>
         <Button size="sm" class="px-4 text-[14px]" :disabled="!data" @click="startNew()">
-          <Plus /> New highlight reel
+          <Plus /> New Highreel
         </Button>
         <AccountMenu :anonymous="!!data?.anonymous" />
       </div>
@@ -192,7 +192,7 @@ async function saveName() {
         <Loader2 class="size-4 animate-spin" />
       </div>
       <div v-else-if="loadError" class="flex flex-1 flex-col items-center justify-center gap-3 text-center">
-        <p class="text-[18px] font-semibold">Couldn't load your highlight reels</p>
+        <p class="text-[18px] font-semibold">Couldn't load your Highreels</p>
         <p class="max-w-md text-[14px] text-muted-foreground">{{ loadError }}</p>
         <Button variant="outline" @click="load()">Try again</Button>
       </div>
@@ -200,7 +200,7 @@ async function saveName() {
       <!-- A brand-new account -->
       <section v-else-if="data && !data.total" class="mx-auto flex w-full max-w-3xl flex-col gap-7 py-4">
         <form v-if="data.business.name === 'My business'" class="flex flex-col gap-2 rounded-[20px] bg-muted p-4" @submit.prevent="saveName">
-          <label for="biz-name" class="text-[14px] font-medium">First, what's your business called? It appears on every highlight reel.</label>
+          <label for="biz-name" class="text-[14px] font-medium">First, what's your business called? It appears on every Highreel.</label>
           <div class="flex gap-2">
             <Input id="biz-name" v-model="businessName" maxlength="60" placeholder="Your business name" class="h-9 max-w-72 rounded-full bg-background px-4" />
             <Button type="submit" variant="outline" :disabled="!businessName.trim()">Save</Button>
@@ -208,19 +208,19 @@ async function saveName() {
         </form>
         <div class="flex flex-col gap-1">
           <p class="note-hand text-[26px]">your {{ year }}</p>
-          <h1 class="text-[40px] leading-[1.08] font-semibold tracking-[-0.03em]">Make your first highlight reel.</h1>
+          <h1 class="text-[40px] leading-[1.08] font-semibold tracking-[-0.03em]">Make your first Highreel.</h1>
         </div>
         <div class="grid gap-3 sm:grid-cols-2">
           <button type="button" class="choice group" @click="startNew('customers')">
             <LandingShape kind="clover" class="size-9 text-[var(--shape-green)]" />
-            <span class="mt-4 text-[19px] font-semibold tracking-[-0.015em]">A highlight reel for each customer</span>
-            <span class="mt-1 text-[15px] text-muted-foreground">Upload a sheet with one row per customer. Each of them gets their own highlight reel and link to share.</span>
+            <span class="mt-4 text-[19px] font-semibold tracking-[-0.015em]">A Highreel for each customer</span>
+            <span class="mt-1 text-[15px] text-muted-foreground">Upload a sheet with one row per customer. Each of them gets their own Highreel and link to share.</span>
             <ArrowRight class="mt-5 size-5 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-foreground" />
           </button>
           <button type="button" class="choice group" @click="startNew('business')">
             <LandingShape kind="poppy" class="size-9 text-[var(--shape-poppy)]" />
-            <span class="mt-4 text-[19px] font-semibold tracking-[-0.015em]">A highlight reel of your business year</span>
-            <span class="mt-1 text-[15px] text-muted-foreground">One highlight reel about your year, to post on Instagram, Facebook or LinkedIn.</span>
+            <span class="mt-4 text-[19px] font-semibold tracking-[-0.015em]">A Highreel of your business year</span>
+            <span class="mt-1 text-[15px] text-muted-foreground">One Highreel about your year, to post on Instagram, Facebook or LinkedIn.</span>
             <ArrowRight class="mt-5 size-5 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-foreground" />
           </button>
         </div>
@@ -240,7 +240,7 @@ async function saveName() {
               <template v-for="(part, j) in line" :key="j"><span v-if="typeof part === 'string'">{{ part }}</span><span v-else class="font-bold text-foreground">{{ part.n }}</span></template>
             </p>
           </div>
-          <p v-else class="text-[30px] leading-[1.22] font-semibold tracking-[-0.022em]">No highlight reels in {{ year }} yet.</p>
+          <p v-else class="text-[30px] leading-[1.22] font-semibold tracking-[-0.022em]">No Highreels in {{ year }} yet.</p>
           <ul v-if="todo.length" class="mt-2 flex flex-col gap-1 text-[14px]" aria-label="Needs attention">
             <li v-for="t in todo" :key="t.id" data-testid="attention">
               <NuxtLink :to="`/app/c/${t.id}`" class="group inline-flex items-center gap-x-2 text-muted-foreground hover:text-foreground">
@@ -254,11 +254,11 @@ async function saveName() {
         </section>
 
         <section class="flex flex-col gap-3" aria-labelledby="recaps-title">
-          <h2 id="recaps-title" class="text-[18px] font-semibold tracking-[-0.015em]">Highlight reels</h2>
+          <h2 id="recaps-title" class="text-[18px] font-semibold tracking-[-0.015em]">Highreels</h2>
           <RecapsTable v-if="data.campaigns.length" :campaigns="data.campaigns" @open="id => navigateTo(`/app/c/${id}`)" @duplicate="startDuplicate" @remove="startDelete" />
           <div v-else class="flex items-center gap-3 rounded-2xl bg-muted px-5 py-5 text-[14px] text-muted-foreground">
             Nothing in {{ year }}.
-            <Button variant="outline" size="sm" class="bg-background" @click="startNew()"><Plus /> New highlight reel</Button>
+            <Button variant="outline" size="sm" class="bg-background" @click="startNew()"><Plus /> New Highreel</Button>
           </div>
         </section>
 
@@ -272,7 +272,7 @@ async function saveName() {
               <span class="ml-auto font-mono text-[12px] text-muted-foreground" :title="new Date(a.at).toLocaleString()">{{ timeAgo(a.at) }}</span>
             </li>
           </ul>
-          <p v-else class="text-[14px] text-muted-foreground">Opens, saves and shares show up here once your highlight reels go out.</p>
+          <p v-else class="text-[14px] text-muted-foreground">Opens, saves and shares show up here once your Highreels go out.</p>
         </section>
       </template>
     </main>

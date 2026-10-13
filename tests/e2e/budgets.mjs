@@ -9,7 +9,7 @@
 //     use every scene of the M2.10 library between them
 //
 //   corepack pnpm build
-//   PORT=3047 node --env-file=.env .output/server/index.mjs
+//   corepack pnpm exec wrangler dev --port 3047      (the Worker on workerd, local D1/R2; it serves brotli too)
 //   E2E_BASE=http://localhost:3047 node tests/e2e/budgets.mjs
 //
 // Not part of `corepack pnpm e2e` (that runs against the dev server).

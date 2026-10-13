@@ -7,7 +7,7 @@
 import { useEventListener } from '@vueuse/core'
 import { toast } from 'vue-sonner'
 import type { InjectionKey } from 'vue'
-import type { Business, Campaign, CampaignPhoto, CampaignSettings, CampaignSummary, PatchRecipientResponse, PublishResponse, Recipient, RecapPayload, Workspace, WorkspaceIndex } from '#shared/types/recap'
+import type { Business, Campaign, CampaignPhoto, CampaignSettings, CampaignSummary, PatchRecipientResponse, PublishResponse, Recipient, RecipientPage, RecapPayload, Workspace, WorkspaceIndex } from '#shared/types/recap'
 import type { CustomColumn, ParsedRow, RawRow } from '#shared/templates/types'
 import { getTemplate, templateFor } from '#shared/templates'
 import { changeColumn as changeOwnColumn, slideEntries, type OwnSettings } from '#shared/templates/own'
@@ -19,6 +19,9 @@ import { MAX_PHOTOS, toRecapRecipient } from '#shared/utils/recap'
 import { EXAMPLES } from '~/data/examples'
 
 export type RowStatus = 'saving' | 'error' | 'ready' | 'published'
+
+/** Rows per request, both ways (SPEC M2.14 P1: the server never holds a whole sheet). */
+const PAGE_ROWS = 5000
 export type RowFilter = 'all' | 'errors' | 'ready' | 'published'
 export interface CellRef { rowId: string, colId: string }
 
@@ -31,8 +34,7 @@ export interface CampaignPatch {
 function createWorkspace() {
   const route = useRoute()
   const router = useRouter()
-  const supabase = useSupabaseClient()
-  const { api, fail, endSession, signOut } = useApi()
+  const { api, fail, endSession, signOut, uploadMedia, deleteMedia } = useApi()
 
   const business = ref<Business | null>(null)
   const campaigns = ref<CampaignSummary[]>([])
@@ -202,10 +204,32 @@ function createWorkspace() {
     }
   }
 
+  /** Every row of a campaign, loaded a page at a time. */
+  async function fetchRows(id: string): Promise<Recipient[]> {
+    const out: Recipient[] = []
+    for (let after = -1; ;) {
+      const page = await api<RecipientPage>(`/api/campaigns/${id}/recipients`, { query: { after } })
+      out.push(...page.rows)
+      if (page.next === null)
+        return out
+      after = page.next
+    }
+  }
+
+  /** Load the rows again after the server changed many of them (import, publish, a column change). */
+  async function reloadRows() {
+    const id = campaign.value?.id
+    if (!id)
+      return
+    const list = await fetchRows(id)
+    if (campaign.value?.id === id)
+      rows.value = list
+  }
+
   async function openCampaign(id: string) {
     const [ws, list] = await Promise.all([
       api<Workspace>(`/api/campaigns/${id}`),
-      api<Recipient[]>(`/api/campaigns/${id}/recipients`),
+      fetchRows(id),
     ])
     business.value = ws.business
     campaign.value = ws.campaign
@@ -259,6 +283,7 @@ function createWorkspace() {
       return
     try {
       await api(`/api/campaigns/${campaign.value.id}/recipients`, { method: 'DELETE' })
+      campaign.value = { ...campaign.value, importing: false }
       rows.value = []
       resetView()
       await refreshIndex()
@@ -277,7 +302,7 @@ function createWorkspace() {
       return
     lastEngagement = Date.now()
     try {
-      const fresh = await api<Recipient[]>(`/api/campaigns/${id}/recipients`)
+      const fresh = await fetchRows(id)
       if (campaign.value?.id !== id)
         return
       const byId = new Map(fresh.map(r => [r.id, r]))
@@ -301,23 +326,30 @@ function createWorkspace() {
     if (!campaign.value)
       return
     busy.value = 'import'
+    const id = campaign.value.id
     try {
-      const res = await api<{ recipients: Recipient[], settings: CampaignSettings }>(`/api/campaigns/${campaign.value.id}/import`, {
-        method: 'POST',
-        body: { rows: data, ...own },
-      })
-      // The sheet's own columns (M2.7) are saved with it; resetView() starts the design draft over from them.
-      campaign.value = { ...campaign.value, settings: { ...res.settings, photos: campaign.value.settings.photos } }
-      rows.value = res.recipients
+      // In parts of 5,000 rows, in order; the first part carries the sheet's own columns (M2.7).
+      const parts = Math.max(1, Math.ceil(data.length / PAGE_ROWS))
+      let res: { total: number, errors: number, settings: CampaignSettings } | null = null
+      for (let part = 0; part < parts; part++) {
+        res = await api<{ total: number, errors: number, settings: CampaignSettings }>(`/api/campaigns/${id}/import`, {
+          method: 'POST',
+          body: { part, parts, rows: data.slice(part * PAGE_ROWS, (part + 1) * PAGE_ROWS), ...(part === 0 ? own : {}) },
+        })
+      }
+      // resetView() starts the design draft over from the saved columns.
+      campaign.value = { ...campaign.value, settings: { ...res!.settings, photos: campaign.value.settings.photos }, importing: false }
+      rows.value = await fetchRows(id)
       resetView()
       refreshIndex().catch(() => {})
-      const n = counts.value
-      toast.success(`${n.total.toLocaleString('en-US')} rows imported${n.errors ? ` · ${n.errors} need fixing` : ''}`, {
+      toast.success(`${res!.total.toLocaleString('en-US')} rows imported${res!.errors ? ` · ${res!.errors} need fixing` : ''}`, {
         description: source,
       })
     }
     catch (e) {
       fail('Import failed', e)
+      // A part that didn't arrive leaves the upload unfinished: show what's there and say so.
+      openCampaign(id).catch(() => {})
     }
     finally {
       busy.value = null
@@ -375,7 +407,7 @@ function createWorkspace() {
 
   async function handleFile(file: File) {
     if (isBusiness.value) {
-      toast.error('This highlight reel is filled in with its form', { description: 'Sheets go into a highlight reel for each customer.' })
+      toast.error('This Highreel is filled in with its form', { description: 'Sheets go into a Highreel for each customer.' })
       return
     }
     if (isOldExcel(file)) {
@@ -457,18 +489,18 @@ function createWorkspace() {
     busy.value = 'publish'
     try {
       const res = await api<PublishResponse>(`/api/campaigns/${campaign.value.id}/publish`, { method: 'POST' })
-      rows.value = res.recipients
+      await reloadRows()
       campaign.value = { ...campaign.value, status: 'published', published_at: campaign.value.published_at ?? new Date().toISOString() }
       if (isBusiness.value) {
-        const token = res.recipients[0]?.token
-        toast.success('Your highlight reel is live', {
+        const token = rows.value[0]?.token
+        toast.success('Your Highreel is live', {
           description: 'Copy its link, or save the images for your posts.',
           action: token ? { label: 'Copy link', onClick: () => navigator.clipboard.writeText(recapUrl(token)) } : undefined,
           duration: 10_000,
         })
         return
       }
-      toast.success(`${res.published.toLocaleString('en-US')} highlight reels published`, {
+      toast.success(`${res.published.toLocaleString('en-US')} Highreels published`, {
         description: res.skipped ? `${res.skipped} rows skipped (need fixing)` : 'Every row has a link',
         // Sending happens on Share (M2.8); there already, the toast just says it's done.
         action: route.path.endsWith('/share') ? undefined : { label: 'Send them', onClick: () => router.push(`/app/c/${campaign.value!.id}/share`) },
@@ -619,16 +651,6 @@ function createWorkspace() {
   // --- Group photos (SPEC M2c; the logo is on Your brand since M2.6) ----------
   const mediaBusy = ref(false)
 
-  async function upload(path: string, blob: Blob) {
-    const { error } = await supabase.storage.from('media').upload(path, blob, {
-      contentType: blob.type,
-      cacheControl: '31536000',
-      upsert: false,
-    })
-    if (error)
-      throw error
-  }
-
   const photos = computed(() => campaign.value?.settings.photos ?? [])
 
   async function savePhotos(next: CampaignPhoto[], extra: CampaignPatch['settings'] = {}) {
@@ -649,24 +671,22 @@ function createWorkspace() {
     try {
       for (const file of chosen) {
         const img = await shrinkImage(file, 2000)
-        const id = crypto.randomUUID()
-        const path = `${business.value.id}/${campaign.value.id}/${id}.${img.ext}`
-        await upload(path, img.blob)
-        added.push({ id, path, caption: '', width: img.width, height: img.height })
+        const path = await uploadMedia(img.blob, { kind: 'photo', campaign: campaign.value.id })
+        added.push({ id: crypto.randomUUID(), path, caption: '', width: img.width, height: img.height })
       }
     }
     catch (e) {
       fail('Couldn\'t upload a photo', e)
     }
     if (added.length && !await savePhotos([...photos.value, ...added], consent ? { photos_consent: true } : {}))
-      await supabase.storage.from('media').remove(added.map(p => p.path))
+      await deleteMedia(added.map(p => p.path))
     mediaBusy.value = false
   }
 
   async function removePhoto(id: string) {
     const photo = photos.value.find(p => p.id === id)
     if (photo && await savePhotos(photos.value.filter(p => p.id !== id)))
-      await supabase.storage.from('media').remove([photo.path])
+      await deleteMedia([photo.path])
   }
 
   async function movePhoto(id: string, delta: -1 | 1) {
@@ -706,13 +726,12 @@ function createWorkspace() {
     if (!campaign.value)
       return false
     try {
-      const res = await api<{ settings: CampaignSettings, recipients: Recipient[] }>(`/api/campaigns/${campaign.value.id}/columns`, {
+      const res = await api<{ settings: CampaignSettings }>(`/api/campaigns/${campaign.value.id}/columns`, {
         method: 'PATCH',
         body: { key, ...change },
       })
       campaign.value = { ...campaign.value, settings: { ...res.settings, photos: campaign.value.settings.photos } }
-      if (res.recipients.length)
-        rows.value = res.recipients
+      await reloadRows()
       if (draft.value)
         Object.assign(draft.value, changeOwnColumn(draft.value, key, change))
       if ('remove' in change && activeCell.value?.colId === key)
@@ -732,7 +751,7 @@ function createWorkspace() {
     if (campaign.value?.settings.columns?.length) {
       const csv = `${t.columns.map(c => c.key).join(',')}\n`
       a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
-      a.download = `${campaign.value.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'highlight-reels'}-sheet.csv`
+      a.download = `${campaign.value.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'highreels'}-sheet.csv`
     }
     else {
       a.href = t.files.template

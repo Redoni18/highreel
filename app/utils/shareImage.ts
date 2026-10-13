@@ -59,7 +59,7 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): st
 function loadImage(url: string): Promise<HTMLImageElement | null> {
   return new Promise((resolve) => {
     const img = new Image()
-    img.crossOrigin = 'anonymous' // Storage sends CORS headers, so the canvas stays exportable
+    img.crossOrigin = 'anonymous' // keeps the canvas exportable (/media links are same-origin anyway)
     img.onload = () => resolve(img)
     img.onerror = () => resolve(null)
     img.src = url
@@ -266,8 +266,8 @@ export async function renderShareImage(p: RecapPayload, format: ShareFormat = 's
 export function shareFileName(p: RecapPayload, format: ShareFormat = 'story'): string {
   const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
   // A business recap is about the business, not a person.
-  const who = getTemplate(p.template_key).kind === 'business' ? '' : `-${slug(p.recipient.first_name) || 'highlight-reel'}`
-  return `${slug(p.business.name) || 'highlight-reel'}-${p.year}${who}${format === 'square' ? '-square' : ''}.png`
+  const who = getTemplate(p.template_key).kind === 'business' ? '' : `-${slug(p.recipient.first_name) || 'highreel'}`
+  return `${slug(p.business.name) || 'highreel'}-${p.year}${who}${format === 'square' ? '-square' : ''}.png`
 }
 
 export function downloadBlob(blob: Blob, filename: string) {

@@ -5,8 +5,7 @@
 import type { EmailConnection } from '#shared/utils/smtp'
 
 export default defineEventHandler(async (event): Promise<{ connection: EmailConnection | null, anonymous: boolean, accountEmail: string | null, dev: boolean }> => {
-  const { db, userId, anonymous, email } = await requireUser(event)
-  const business = await ensureBusiness(db, userId)
-  const c = await loadConnection(db, business.id)
+  const { db, anonymous, email } = await requireUser(event)
+  const c = await loadConnection(db)
   return { connection: c ? publicConnection(c) : null, anonymous, accountEmail: email, dev: import.meta.dev }
 })

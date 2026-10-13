@@ -5,8 +5,6 @@
 import type { WorkspaceIndex } from '#shared/types/recap'
 
 export default defineEventHandler(async (event): Promise<WorkspaceIndex> => {
-  const { db, userId, anonymous } = await requireUser(event)
-  const business = await ensureBusiness(db, userId)
-  const campaigns = await listCampaigns(db)
-  return { business, campaigns, anonymous }
+  const { db, business, anonymous } = await requireUser(event)
+  return { business, campaigns: await listCampaigns(db), anonymous }
 })

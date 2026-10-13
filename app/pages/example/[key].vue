@@ -18,10 +18,10 @@ const business = computed(() => payload.value.business.name)
 // Search and link previews name the public site (SPEC M2.11).
 useCanonical(`/example/${example.value!.key}`)
 useSeoMeta({
-  title: () => `Example: ${business.value}'s highlight reel · Highreel`,
-  description: () => `${example.value!.about}. An example of a highlight reel made with Highreel.`,
-  ogTitle: () => `Example: ${business.value}'s highlight reel`,
-  ogDescription: () => `${example.value!.about}. An example of a highlight reel made with Highreel.`,
+  title: () => `An example Highreel from ${business.value}`,
+  description: () => `${example.value!.about}. An example Highreel, the personal highlight reel each customer gets.`,
+  ogTitle: () => `An example Highreel from ${business.value}`,
+  ogDescription: () => `${example.value!.about}. An example Highreel, the personal highlight reel each customer gets.`,
   ogSiteName: 'Highreel',
   ogType: 'website',
   ogImage: siteHref('/og.png'),
@@ -31,7 +31,9 @@ useSeoMeta({
 })
 useHead({
   meta: [{ name: 'theme-color', content: () => payload.value.business.accent_color }],
-  bodyAttrs: { class: 'recap-page' },
+  // Its own class: in dev, styles of pages visited earlier stay on others, and
+  // this rule came after /r's wide-screen background and overrode it.
+  bodyAttrs: { class: 'example-page' },
 })
 </script>
 
@@ -40,7 +42,7 @@ useHead({
     <RecapPlayer :key="example!.key" class="frame" :payload="payload" mode="live" />
     <aside class="side" aria-label="About this example">
       <NuxtLink to="/" class="back">← highreel</NuxtLink>
-      <p class="side-title">An example highlight reel</p>
+      <p class="side-title">An example Highreel</p>
       <p class="side-about">{{ example!.about }}. Tap or use the arrow keys.</p>
       <nav class="others" aria-label="Other examples">
         <NuxtLink v-for="e in EXAMPLES" :key="e.key" :to="`/example/${e.key}`" :aria-current="e.key === example!.key ? 'page' : undefined">
@@ -53,7 +55,7 @@ useHead({
 </template>
 
 <style>
-body.recap-page {
+body.example-page {
   background: #0a0a0a;
   color: #fafafa;
   overscroll-behavior: none;

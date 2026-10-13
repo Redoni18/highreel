@@ -1,9 +1,10 @@
 <script setup lang="ts">
 // Terms of service (SPEC M2.12). Written for how Highreel works: businesses
-// upload their own customers, the reels go out from the business's own email
+// upload their own customers, the Highreels go out from the business's own email
 // account or WhatsApp, one price per campaign through Whop. Prerendered.
-// What each customer gets is a "highlight reel" here, not a "recap" (owner's
-// ask, 2026-10-12; legal.mjs checks the word doesn't come back).
+// What each customer gets is a "Highreel": §2 defines it as their highlight
+// reel, and after that the page uses the brand word (owner's ask, 2026-10-12),
+// never "recap" (legal.mjs checks the word doesn't come back).
 import LegalPage from '~/components/legal/LegalPage.vue'
 import { CONTACT_EMAIL, LEGAL_NAME } from '~/data/legal'
 
@@ -28,7 +29,7 @@ const sections = [
   { id: 'service', title: 'What Highreel does' },
   { id: 'account', title: 'Your account' },
   { id: 'your-data', title: 'Your data and your customers' },
-  { id: 'sending', title: 'Sending highlight reels' },
+  { id: 'sending', title: 'Sending Highreels' },
   { id: 'use', title: 'Fair use' },
   { id: 'prices', title: 'Prices, payment and refunds' },
   { id: 'ours', title: 'What\'s ours, what\'s yours' },
@@ -52,7 +53,7 @@ const mail = `mailto:${CONTACT_EMAIL}`
     <p>Highreel (highreel.app) is run by <strong>{{ LEGAL_NAME }}</strong>, based in Kosovo ("we", "us"). You can reach us at <a :href="mail">{{ CONTACT_EMAIL }}</a>. "You" means the business using Highreel and the person who signs up for it.</p>
 
     <h2 id="service">2. What Highreel does</h2>
-    <p>You upload a sheet with one row per customer. Highreel turns each row into a personal, animated highlight reel of that customer's year, in your brand and your words, published at a private link. You can send the links from your own email account, on WhatsApp, or download them to send any other way. You see who opened, saved and shared their reel.</p>
+    <p>You upload a sheet with one row per customer. Highreel turns each row into a Highreel: a personal, animated highlight reel of that customer's year, in your brand and your words, published at a private link. You can send the links from your own email account, on WhatsApp, or download them to send any other way. You see who opened, saved and shared their Highreel.</p>
     <p>You can try everything in a demo without an account. A demo lives in your browser until you add your email to keep it.</p>
 
     <h2 id="account">3. Your account</h2>
@@ -63,23 +64,23 @@ const mail = `mailto:${CONTACT_EMAIL}`
     </ul>
 
     <h2 id="your-data">4. Your data and your customers</h2>
-    <p>Your sheets, your customers' details, your logo, photos and wording stay yours. You let us store and process them only to run Highreel for you: to make, host and send your highlight reels and show you how they're doing. How we handle them is in our <NuxtLink to="/privacy">privacy policy</NuxtLink>, which also contains our data processing terms. For your customers' data you are the controller and we are your processor.</p>
+    <p>Your sheets, your customers' details, your logo, photos and wording stay yours. You let us store and process them only to run Highreel for you: to make, host and send your Highreels and show you how they're doing. How we handle them is in our <NuxtLink to="/privacy">privacy policy</NuxtLink>, which also contains our data processing terms. For your customers' data you are the controller and we are your processor.</p>
     <p>Because the data is about your customers, it's on you to have the right to use it this way. In particular:</p>
     <ul>
-      <li>Only upload people who are your customers, members or clients, with data you collected lawfully and may use to make them a highlight reel.</li>
-      <li>Don't upload special categories of data (health, religion, political views, sexual orientation, biometrics and the like), government ID numbers, payment card details or passwords. Highlight reels are meant for numbers like visits, orders, streaks and favourites.</li>
+      <li>Only upload people who are your customers, members or clients, with data you collected lawfully and may use to make them a Highreel.</li>
+      <li>Don't upload special categories of data (health, religion, political views, sexual orientation, biometrics and the like), government ID numbers, payment card details or passwords. Highreels are meant for numbers like visits, orders, streaks and favourites.</li>
       <li>Only add photos you're allowed to share with the people receiving them (many camps, clubs and schools already collect a photo release for this).</li>
       <li>Keep the data accurate, and act on your customers' requests to see, correct or delete their data. Deleting a row or a campaign in Highreel deletes it from our service.</li>
     </ul>
-    <p>A published highlight reel shows a first name, the numbers its slides use and your brand. It never shows an email address, phone number or your customer ID. Anyone who has a reel's link can open it, so send each link only to the person it belongs to.</p>
+    <p>A published Highreel shows a first name, the numbers its slides use and your brand. It never shows an email address, phone number or your customer ID. Anyone who has a Highreel's link can open it, so send each link only to the person it belongs to.</p>
 
-    <h2 id="sending">5. Sending highlight reels</h2>
+    <h2 id="sending">5. Sending Highreels</h2>
     <ul>
-      <li><strong>Email goes out from your own account.</strong> You connect your email account (Gmail, Outlook, your domain's mail server and others), and highlight reels are sent from your address, through your provider. You are the sender: your provider's terms and sending limits apply, and the messages count towards your account's reputation.</li>
-      <li><strong>Follow the rules on messaging people.</strong> Only send highlight reels to customers who expect to hear from you, and follow the laws that apply to you and to them, such as the GDPR and ePrivacy rules in the EU and UK and CAN-SPAM in the US. Every email we send for you has an unsubscribe link. When someone uses it, they get no more highlight reels by email from your business, and you can't override that.</li>
+      <li><strong>Email goes out from your own account.</strong> You connect your email account (Gmail, Outlook, your domain's mail server and others), and Highreels are sent from your address, through your provider. You are the sender: your provider's terms and sending limits apply, and the messages count towards your account's reputation.</li>
+      <li><strong>Follow the rules on messaging people.</strong> Only send Highreels to customers who expect to hear from you, and follow the laws that apply to you and to them, such as the GDPR and ePrivacy rules in the EU and UK and CAN-SPAM in the US. Every email we send for you has an unsubscribe link. When someone uses it, they get no more Highreels by email from your business, and you can't override that.</li>
       <li><strong>We protect your sending.</strong> We may hold back addresses that look mistyped or whose domain takes no email, skip addresses that bounced before, and stop or pause a send when your mail server refuses messages or too many addresses bounce.</li>
       <li><strong>WhatsApp messages are yours.</strong> Highreel opens a chat with each customer on your own device with the message filled in; you send it.</li>
-      <li>We store the password of your email account encrypted, use it only to send your highlight reels and the test emails you ask for, and never show it back to anyone.</li>
+      <li>We store the password of your email account encrypted, use it only to send your Highreels and the test emails you ask for, and never show it back to anyone.</li>
     </ul>
 
     <h2 id="use">6. Fair use</h2>
@@ -91,26 +92,26 @@ const mail = `mailto:${CONTACT_EMAIL}`
       <li>upload malware, probe or attack the service, get around its limits, or put an unreasonable load on it;</li>
       <li>copy, resell or rebuild the service, or scrape it, without our written permission.</li>
     </ul>
-    <p>If an account breaks these rules, we may take down highlight reels, pause sending or suspend the account. Where we can, we'll tell you first and give you a chance to fix it.</p>
+    <p>If an account breaks these rules, we may take down Highreels, pause sending or suspend the account. Where we can, we'll tell you first and give you a chance to fix it.</p>
 
     <h2 id="prices">7. Prices, payment and refunds</h2>
     <ul>
-      <li><strong>One price per campaign.</strong> A campaign is one round of highlight reels for one list of customers: your sheet, your brand and wording, and a personal reel for everyone on it. You pay once per campaign, by the size of the list, at the price shown on <NuxtLink to="/#pricing">our pricing</NuxtLink> when you buy. There's no subscription.</li>
+      <li><strong>One price per campaign.</strong> A campaign is one round of Highreels for one list of customers: your sheet, your brand and wording, and a personal Highreel for everyone on it. You pay once per campaign, by the size of the list, at the price shown on <NuxtLink to="/#pricing">our pricing</NuxtLink> when you buy. There's no subscription.</li>
       <li><strong>Payments are handled by Whop.</strong> Whop processes the payment and may collect sales tax or VAT where it applies; their terms apply to the payment itself. We never see your card details.</li>
       <li><strong>Price changes</strong> apply to purchases made after the change, never to a campaign you've already paid for. Founding prices are kept for the campaign they were bought for.</li>
-      <li><strong>Refunds.</strong> If you haven't sent or shared any highlight reel from a paid campaign yet, write to us within 14 days of paying and we'll refund it in full. Once reels from it have gone out, we'll work with you to fix whatever isn't right; we refund after that only where the law requires it or where we failed to deliver what we promised.</li>
+      <li><strong>Refunds.</strong> If you haven't sent or shared any Highreel from a paid campaign yet, write to us within 14 days of paying and we'll refund it in full. Once Highreels from it have gone out, we'll work with you to fix whatever isn't right; we refund after that only where the law requires it or where we failed to deliver what we promised.</li>
     </ul>
 
     <h2 id="ours">8. What's ours, what's yours</h2>
-    <p>Highreel's software, design, templates, animations and the Highreel name belong to {{ LEGAL_NAME }}. While you use Highreel, you may use them to make, send and share your highlight reels, and your customers may save and share theirs, including the share images. Your content stays yours. If you send us feedback or ideas, we may use them without owing you anything for it.</p>
+    <p>Highreel's software, design, templates, animations and the Highreel name belong to {{ LEGAL_NAME }}. While you use Highreel, you may use them to make, send and share your Highreels, and your customers may save and share theirs, including the share images. Your content stays yours. If you send us feedback or ideas, we may use them without owing you anything for it.</p>
 
     <h2 id="availability">9. Changes and availability</h2>
-    <p>We work to keep Highreel running and your highlight reels online, but we can't promise it will never be interrupted, slow or have mistakes. We keep improving it, so features can change. If we're going to remove something you rely on or close the service, we'll tell you at least 30 days ahead, and give you time to download your links and data.</p>
+    <p>We work to keep Highreel running and your Highreels online, but we can't promise it will never be interrupted, slow or have mistakes. We keep improving it, so features can change. If we're going to remove something you rely on or close the service, we'll tell you at least 30 days ahead, and give you time to download your links and data.</p>
 
     <h2 id="ending">10. Ending your use</h2>
     <ul>
-      <li>You can stop using Highreel at any time. You can delete highlight reels and campaigns in the app; to delete your whole account, write to us from its email address.</li>
-      <li>When a campaign is deleted, its highlight reel links stop working. When your account is deleted, we delete your data as our <NuxtLink to="/privacy#retention">privacy policy</NuxtLink> describes.</li>
+      <li>You can stop using Highreel at any time. You can delete Highreels and campaigns in the app; to delete your whole account, write to us from its email address.</li>
+      <li>When a campaign is deleted, its Highreel links stop working. When your account is deleted, we delete your data as our <NuxtLink to="/privacy#retention">privacy policy</NuxtLink> describes.</li>
       <li>We may suspend or close an account that seriously or repeatedly breaks these terms, or where the law requires it.</li>
     </ul>
 

@@ -125,7 +125,7 @@ export interface SheetExtra {
 }
 
 /** More new columns than this and the business picks them itself (nothing pre-ticked). */
-export const MAX_PRESELECTED = 12
+const MAX_PRESELECTED = 12
 const QUANTITY_RE = /^-?\d+(?:\.\d+)?$/
 const DATE_PREFIX_RE = /^\d{4}-\d{2}-\d{2}(?:[T ].*)?$/
 const EMAIL_LIKE_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/

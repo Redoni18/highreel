@@ -27,7 +27,7 @@ const deleteText = computed(() => {
       </button>
     </DropdownMenuTrigger>
     <DropdownMenuContent align="start" class="w-72 text-[13px]">
-      <DropdownMenuLabel class="text-[11px] font-medium text-muted-foreground">Highlight reels</DropdownMenuLabel>
+      <DropdownMenuLabel class="text-[11px] font-medium text-muted-foreground">Highreels</DropdownMenuLabel>
       <DropdownMenuItem v-for="c in ws.campaigns.value" :key="c.id" class="gap-2" @select="ws.switchCampaign(c.id)">
         <Check class="size-3.5" :class="c.id === ws.campaign.value?.id ? '' : 'invisible'" />
         <span class="min-w-0 flex-1 truncate">{{ c.name }}</span>
@@ -36,10 +36,10 @@ const deleteText = computed(() => {
       </DropdownMenuItem>
       <DropdownMenuSeparator />
       <DropdownMenuItem @select="newOpen = true">
-        <Plus /> New highlight reel
+        <Plus /> New Highreel
       </DropdownMenuItem>
       <DropdownMenuItem class="text-destructive focus:text-destructive" @select="deleteOpen = true">
-        <Trash2 class="text-destructive" /> Delete this highlight reel
+        <Trash2 class="text-destructive" /> Delete this Highreel
       </DropdownMenuItem>
     </DropdownMenuContent>
   </DropdownMenu>
@@ -49,7 +49,7 @@ const deleteText = computed(() => {
     v-model:open="deleteOpen"
     :title="`Delete “${ws.campaign.value?.name}”?`"
     :description="deleteText"
-    confirm-label="Delete highlight reel"
+    confirm-label="Delete Highreel"
     @confirm="ws.deleteCampaign()"
   />
 </template>

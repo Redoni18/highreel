@@ -23,7 +23,7 @@ const members = [
               <span class="app"><LandingShape kind="scallop" class="app-shape" /></span>
               <span class="note-body">
                 <span class="note-top"><b>Your business</b><span>now</span></span>
-                <span class="note-text">{{ m.name }}, your 2026 reel is here</span>
+                <span class="note-text">{{ m.name }}, your 2026 Highreel is here</span>
               </span>
             </div>
           </div>

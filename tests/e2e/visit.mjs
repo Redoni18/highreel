@@ -1,6 +1,6 @@
 // The "visit" template end to end (SPEC M2e): a farm campaign with a group
 // photo, activities label, publish, export keyed on participant_id, 8 slides.
-import { BASE, campaignId, demoSession, designItem, expect, finish, FIX, launch, needFixtures, OUT, publish, sheetCounts, tab, watchErrors } from './lib.mjs'
+import { BASE, campaignId, demoSession, designItem, expect, finish, FIX, launch, needFixtures, OUT, publish, sheetCounts, tab, watchErrors, rowsOf } from './lib.mjs'
 
 needFixtures()
 const browser = await launch()
@@ -12,7 +12,7 @@ await page.getByLabel(/what's your business called/).fill('Green Valley Farm')
 await page.getByRole('button', { name: 'Save', exact: true }).click()
 await page.waitForTimeout(400)
 await page.getByRole('button', { name: 'Switch campaign' }).click()
-await page.getByRole('menuitem', { name: 'New highlight reel' }).click()
+await page.getByRole('menuitem', { name: 'New Highreel' }).click()
 await page.getByLabel('Name').fill('Summer farm days')
 await page.getByRole('radio', { name: /Summer camp/ }).click()
 await page.getByRole('button', { name: 'Create' }).click()
@@ -36,7 +36,7 @@ await page.locator('[data-testid="photo-input"]').setInputFiles([`${FIX}/farm-1.
 await page.waitForFunction(() => document.querySelectorAll('[data-inspector="photos"] li img').length === 1, null, { timeout: 20000 })
 await publish(page)
 const c = campaignId(page)
-const token = await page.evaluate(async c => (await (await fetch(`/api/campaigns/${c}/recipients`)).json()).find(r => r.token && r.data.badge && r.data.days > 1).token, c)
+const token = (await rowsOf(page, c)).find(r => r.token && r.data.badge && r.data.days > 1).token
 const header = await page.evaluate(async c => (await (await fetch(`/api/campaigns/${c}/export.csv`)).text()).split('\n')[0], c)
 expect(header === 'participant_id,first_name,email,link', 'export keyed on participant_id', header)
 const payload = await (await fetch(`${BASE}/api/r/${token}`)).json()

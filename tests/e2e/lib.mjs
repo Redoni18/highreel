@@ -1,6 +1,7 @@
 // Shared helpers for the browser checks in tests/e2e. They drive the
 // installed Google Chrome headless through playwright-core (no browser
-// download), against the dev server on :3040 and local Supabase.
+// download), against the dev server on :3040. Emails (sign-in links, recap
+// emails) land in Mailpit, which runs with local Supabase until M2.14 P5.
 //
 //   supabase start && corepack pnpm dev      # in another terminal
 //   corepack pnpm e2e                        # all checks
@@ -8,6 +9,7 @@
 //
 // Screenshots and downloads go to tests/e2e/.out (gitignored).
 
+import { execFileSync } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright-core'
@@ -25,6 +27,26 @@ export const env = Object.fromEntries(
 )
 
 export const log = (...a) => console.log('    ', ...a)
+
+/**
+ * For page.waitForURL: the page is in the workspace. Not the glob '**\/app**':
+ * /login?next=/app/… and /confirm?…&next=/app/… match that too.
+ */
+export const inApp = url => new URL(url).pathname.startsWith('/app')
+
+/**
+ * Run SQL on the local D1 database (.wrangler/state/v3, shared with the dev
+ * server and `wrangler dev`) and get its rows: for what a test sets up or
+ * checks behind the app's back. Values are the test's own, never user input.
+ */
+export function sql(query) {
+  const out = execFileSync('corepack', ['pnpm', 'exec', 'wrangler', 'd1', 'execute', 'highreel', '--local', '--json', '--command', query], {
+    cwd: fileURLToPath(new URL('../../', import.meta.url)),
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  })
+  return JSON.parse(out.slice(out.indexOf('[')))[0].results
+}
 
 let failures = 0
 export function expect(ok, label, detail) {
@@ -64,15 +86,15 @@ export async function mailpitSearch(query) {
 export const mailpitMessage = id => fetch(`${MAILPIT}/api/v1/message/${id}`).then(r => r.json())
 export const mailpitHeaders = id => fetch(`${MAILPIT}/api/v1/message/${id}/headers`).then(r => r.json())
 
-/** The newest sign-in or confirmation link sent to an address. */
-export async function latestLink(to) {
+/** The newest sign-in link (/confirm?token=…) sent to an address; `after`: a link other than this one. */
+export async function latestLink(to, after) {
   for (let i = 0; i < 30; i++) {
     const msg = (await mailpitSearch(`to:${to}`))[0]
     if (msg) {
       const full = await mailpitMessage(msg.ID)
-      const link = (full.Text || full.HTML).match(/https?:\/\/[^\s"'<>]+verify[^\s"'<>]+/)?.[0]
-      if (link)
-        return link.replaceAll('&amp;', '&')
+      const link = (full.Text || full.HTML).match(/https?:\/\/[^\s"'<>]+\/confirm\?token=[^\s"'<>]+/)?.[0]?.replaceAll('&amp;', '&')
+      if (link && link !== after)
+        return link
     }
     await new Promise(r => setTimeout(r, 500))
   }
@@ -81,14 +103,15 @@ export async function latestLink(to) {
 
 /**
  * Turn the current demo session into a real account (the banner's "Keep my
- * work" and the confirmation link) and come back to the campaign at `url`.
+ * work" and its email link, opened in the same browser) and come back to the
+ * campaign at `url`.
  */
 export async function keepWork(page, email, url) {
   await page.getByLabel('Email to keep this work').fill(email)
   await page.getByRole('button', { name: 'Keep my work' }).click()
   await page.waitForSelector(`text=Check ${email}`)
   await page.goto(await latestLink(email))
-  await page.waitForURL('**/app**', { timeout: 15000 })
+  await page.waitForURL(inApp, { timeout: 15000 })
   await page.goto(url)
 }
 
@@ -96,7 +119,7 @@ export async function keepWork(page, email, url) {
 export async function publish(page) {
   await page.getByRole('button', { name: 'Publish', exact: true }).click()
   await page.getByRole('dialog').getByRole('button', { name: 'Publish' }).click()
-  await page.waitForSelector('text=highlight reels published')
+  await page.waitForSelector('text=Highreels published')
 }
 
 /** The sheet's row counts, from its filter buttons: { all, errors, ready, published }. */
@@ -120,13 +143,24 @@ export async function designItem(page, key) {
 
 export const campaignId = page => new URL(page.url()).pathname.match(/^\/app\/c\/([\w-]+)/)?.[1] ?? null
 
+/** Every row of a campaign, through the user's own session, a page at a time (SPEC M2.14 P1). */
+export function rowsOf(page, c = campaignId(page)) {
+  return page.evaluate(async (c) => {
+    const out = []
+    for (let after = -1; ;) {
+      const p = await (await fetch(`/api/campaigns/${c}/recipients?after=${after}`)).json()
+      out.push(...p.rows)
+      if (p.next === null)
+        return out
+      after = p.next
+    }
+  }, c)
+}
+
 /** A published row's token, read through the user's own session. */
-export function tokenFor(page, predicate = 'r => r.token') {
-  return page.evaluate(async ([c, p]) => {
-    const rows = await (await fetch(`/api/campaigns/${c}/recipients`)).json()
-    // eslint-disable-next-line no-eval
-    return rows.find(eval(p))?.token
-  }, [campaignId(page), predicate])
+export async function tokenFor(page, predicate = 'r => r.token') {
+  // eslint-disable-next-line no-eval
+  return (await rowsOf(page)).find(eval(predicate))?.token
 }
 
 export const rowLoc = (page, n) => page.locator('[data-row-id]').filter({ has: page.locator('[data-col="__row"] > div', { hasText: new RegExp(`^\\s*${n}\\s*$`) }) })

@@ -40,7 +40,7 @@ function startResize(e: PointerEvent) {
 </script>
 
 <template>
-  <aside class="relative flex shrink-0 flex-col border-l bg-subtle" :style="{ width: `${ws.previewWidth.value}px` }" aria-label="Highlight reel preview">
+  <aside class="relative flex shrink-0 flex-col border-l bg-subtle" :style="{ width: `${ws.previewWidth.value}px` }" aria-label="Highreel preview">
     <div
       class="absolute inset-y-0 -left-1 z-10 w-2 cursor-col-resize hover:bg-foreground/10"
       role="separator"
@@ -58,7 +58,7 @@ function startResize(e: PointerEvent) {
           target="_blank"
           rel="noopener"
           class="flex items-center gap-1 text-muted-foreground hover:text-foreground"
-          title="Open the published highlight reel"
+          title="Open the published Highreel"
         ><ExternalLink class="size-3.5" /></a>
       </template>
       <button type="button" class="ml-auto grid size-7 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground" aria-label="Hide preview (P)" title="Hide preview (P)" @click="ws.previewOpen.value = false">

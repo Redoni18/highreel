@@ -29,7 +29,7 @@ async function brand(page, fill) {
   const sheet = page.url()
   await page.goto(`${BASE}/app/brand`)
   await page.locator('[data-testid="logo-input"]').setInputFiles(`${FIX}/logo.png`)
-  await page.locator('img[src*="/storage/v1/object/sign/media/"]').first().waitFor()
+  await page.locator('img[src^="/media/"]').first().waitFor()
   await page.goto(sheet)
   await page.waitForSelector('[data-row-id]')
   await tab(page, 'Design')
@@ -110,7 +110,7 @@ if (!which || which === 'app') {
 if (!which || which === 'visit') {
   const page = await workspace('Green Valley Farm')
   await page.getByRole('button', { name: 'Switch campaign' }).click()
-  await page.getByRole('menuitem', { name: 'New highlight reel' }).click()
+  await page.getByRole('menuitem', { name: 'New Highreel' }).click()
   await page.getByLabel('Name').fill('Summer farm days')
   await page.getByRole('radio', { name: /Summer camp/ }).click()
   await page.getByRole('button', { name: 'Create' }).click()

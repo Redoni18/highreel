@@ -3,7 +3,12 @@
 // Same look as the share image (M2.5 P1): the accent with soft blobs and
 // grain (Paper: paper, grain, accent bar), mark, title, two stat tiles.
 
+/// <reference path="../wasm.d.ts" />
+
 import { initWasm, Resvg } from '@resvg/resvg-wasm'
+// A compiled WebAssembly.Module (unwasm's `?module`): imported as an ES module on
+// Workers (SPEC M2.14 P0), which can't compile wasm from bytes at runtime.
+import resvgWasm from '@resvg/resvg-wasm/index_bg.wasm?module'
 import type { RecapPayload } from '#shared/types/recap'
 import { templateFor } from '#shared/templates'
 import { mix, recapPalette } from '#shared/utils/color'
@@ -24,7 +29,7 @@ async function asset(storage: string, key: string): Promise<Uint8Array> {
 /** Load the wasm and fonts once per server process. */
 function setup(): Promise<Uint8Array[]> {
   ready ??= (async () => {
-    await initWasm(await asset('assets:resvg', 'index_bg.wasm'))
+    await initWasm(resvgWasm)
     return Promise.all([
       asset('assets:server', 'fonts:Geist-Bold.ttf'),
       asset('assets:server', 'fonts:Geist-Medium.ttf'),

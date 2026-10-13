@@ -47,15 +47,15 @@ async function unsubscribe() {
         <span class="mark" :style="{ background: accent, color: readableOn(accent) }" aria-hidden="true">{{ data.business.name.charAt(0).toUpperCase() }}</span>
         <template v-if="done">
           <h1>You're unsubscribed.</h1>
-          <p>{{ data.business.name }} won't email you highlight reels again. Your link still works.</p>
+          <p>{{ data.business.name }} won't email you Highreels again. Your link still works.</p>
         </template>
         <template v-else-if="!data.hasEmail">
           <h1>Nothing to unsubscribe.</h1>
-          <p>We don't have an email address for this highlight reel.</p>
+          <p>We don't have an email address for this Highreel.</p>
         </template>
         <template v-else>
-          <h1>Stop highlight reel emails from {{ data.business.name }}?</h1>
-          <p>You won't get highlight reels by email from them again. Their other emails, if any, are up to them.</p>
+          <h1>Stop Highreel emails from {{ data.business.name }}?</h1>
+          <p>You won't get Highreels by email from them again. Their other emails, if any, are up to them.</p>
           <!-- A plain form too, so it works before the page's script has loaded. -->
           <form method="post" :action="`/api/r/${token}/unsubscribe`" @submit.prevent="unsubscribe">
             <input type="hidden" name="page" value="1">

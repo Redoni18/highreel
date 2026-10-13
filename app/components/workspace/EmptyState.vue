@@ -19,7 +19,7 @@ const typeLabel = { text: 'text', email: 'email', phone: 'phone', date: 'date', 
   <div class="h-full overflow-auto">
     <div class="mx-auto flex max-w-3xl flex-col gap-7 px-6 pt-14 pb-20">
       <form v-if="ws.business.value?.name === 'My business'" class="flex flex-col gap-2 rounded-[20px] bg-muted p-4" @submit.prevent="saveName">
-        <label for="first-name" class="text-[14px] font-medium">First, what's your business called? It appears on every highlight reel.</label>
+        <label for="first-name" class="text-[14px] font-medium">First, what's your business called? It appears on every Highreel.</label>
         <div class="flex gap-2">
           <Input id="first-name" v-model="businessName" maxlength="60" placeholder="Your business name" class="h-9 max-w-72 rounded-full bg-background px-4" />
           <Button type="submit" variant="outline" :disabled="!businessName.trim()">Save</Button>
@@ -30,7 +30,7 @@ const typeLabel = { text: 'text', email: 'email', phone: 'phone', date: 'date', 
         <p class="w-fit rounded-full bg-muted px-3 py-1 text-[12px] font-medium text-muted-foreground">{{ ws.template.value.label }} template</p>
         <h1 class="text-[36px] leading-[1.1] font-semibold tracking-[-0.025em]">Start with your sheet.</h1>
         <p class="max-w-[38rem] text-[16px] text-muted-foreground">
-          One row per customer. Each valid row becomes a personal highlight reel with its own link.
+          One row per customer. Each valid row becomes a personal Highreel with its own link.
           Your own column names are fine: we'll match them, and any other column can become a slide of its own. Drop a file anywhere on this page, or:
         </p>
       </div>

@@ -3,7 +3,7 @@
 // WhatsApp's click-to-chat links (wa.me) take the full international number,
 // digits only, and the text.
 
-export const DEFAULT_WHATSAPP = 'Hi {first_name}! We made your {year} with {business} into a little highlight reel, just for you: {link}'
+export const DEFAULT_WHATSAPP = 'Hi {first_name}! We made your {year} with {business} into a little Highreel, just for you: {link}'
 export const WHATSAPP_MAX = 700
 
 /**

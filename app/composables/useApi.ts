@@ -16,14 +16,16 @@ export function isUnauthorized(e: unknown): boolean {
 let ending = false
 
 export function useApi() {
-  const supabase = useSupabaseClient()
+  const auth = useAuth()
+  const route = useRoute()
 
+  /** The server says the session is gone: sign in again, and come back here. */
   async function endSession() {
     if (ending)
       return
     ending = true
-    await supabase.auth.signOut({ scope: 'local' }).catch(() => {})
-    await navigateTo('/login?expired=1')
+    auth.forget()
+    await navigateTo({ path: '/login', query: { expired: '1', next: route.fullPath } })
     ending = false
   }
 
@@ -41,11 +43,21 @@ export function useApi() {
   }
 
   async function signOut() {
-    const { error } = await supabase.auth.signOut()
-    if (error)
-      await supabase.auth.signOut({ scope: 'local' })
+    await auth.signOut()
     await navigateTo('/login')
   }
 
-  return { api, fail, endSession, signOut }
+  /** Upload a shrunk logo or photo (SPEC M2.14 P2); the server picks its path in the business's folder. */
+  async function uploadMedia(blob: Blob, query: { kind: 'logo' } | { kind: 'photo', campaign: string }): Promise<string> {
+    const { path } = await api<{ path: string }>('/api/media', { method: 'POST', query, body: blob, headers: { 'content-type': blob.type } })
+    return path
+  }
+
+  /** Delete files the business no longer uses; a failure only leaves a stray file behind. */
+  async function deleteMedia(paths: string[]) {
+    if (paths.length)
+      await api('/api/media', { method: 'DELETE', body: { paths } }).catch(() => {})
+  }
+
+  return { api, fail, endSession, signOut, uploadMedia, deleteMedia }
 }

@@ -3,6 +3,6 @@
 export const LEGAL_NAME = 'HighReel'
 export const CONTACT_EMAIL = 'hello@highreel.app'
 /** When the terms and the privacy policy last changed (shown on both). */
-export const LEGAL_UPDATED = '12 October 2026'
+export const LEGAL_UPDATED = '13 October 2026'
 
 export interface LegalSection { id: string, title: string }

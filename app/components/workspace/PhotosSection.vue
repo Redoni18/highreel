@@ -30,7 +30,7 @@ function files(e: Event): File[] {
   <div class="flex flex-col gap-3">
     <div v-if="!consented" class="flex items-start gap-2.5">
       <Checkbox id="ph-consent" v-model="consent" class="mt-0.5" data-testid="photo-consent" />
-      <Label for="ph-consent" class="text-[13px] leading-snug font-normal">I'm allowed to share these photos with the people receiving this highlight reel.</Label>
+      <Label for="ph-consent" class="text-[13px] leading-snug font-normal">I'm allowed to share these photos with the people receiving this Highreel.</Label>
     </div>
 
     <ul v-if="ws.photos.value.length" class="grid gap-2 sm:grid-cols-2">

@@ -4,12 +4,7 @@
 // to the page, so the button works before (or without) JavaScript.
 
 export default defineEventHandler(async (event) => {
-  const { db, email, businessId } = await unsubscribeTarget(event)
-  if (email) {
-    const { error } = await db.from('email_optouts').upsert({ business_id: businessId, email }, { onConflict: 'business_id,email', ignoreDuplicates: true })
-    if (error)
-      dbError(error, 'Unsubscribing')
-  }
+  await (await unsubscribeTarget(event)).unsubscribe()
   const body = await readBody<Record<string, unknown> | string | null>(event).catch(() => null)
   if (body && typeof body === 'object' && body.page === '1')
     return sendRedirect(event, `/unsubscribe/${getRouterParam(event, 'token')}`, 303)

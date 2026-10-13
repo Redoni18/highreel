@@ -89,6 +89,8 @@
   --shape-poppy: #FF5B42;
   --shape-blue: #4560FF;
   --shape-violet: #8F66F6;
+  /* the wordmark's highlighter (Wordmark.vue; scripts/brand.mjs for the icons and logo files) */
+  --marker: #FFE45C;
 }
 
 .dark {
@@ -114,6 +116,8 @@
   --subtle: #1A1A1A;
   --ok: #2BD39E;
   --ok-text: #2BD39E;
+  /* the wordmark's highlighter on dark: light letters on yellow don't read */
+  --marker: #4560FF;
 }
 
 @layer base {
@@ -126,6 +130,14 @@
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* In-page jumps glide on the landing and the terms/privacy pages (their
+     contents lists, links to a section, "our pricing"); the app's own
+     scrolling stays instant, reduced motion turns it off (below), and page
+     changes stay instant (plugins/scroll-instant.client.ts). */
+  html:has(.landing, .legal) {
+    scroll-behavior: smooth;
   }
 
   body {
@@ -193,3 +205,12 @@
     box-shadow: inset 0 -2px 0 var(--color-amber-500);
   }
 }
+
+/* Switching light and dark (ThemeToggle): the old look stays put and the new one
+   grows over it as a circle from the button (the circle is animated in script). */
+:root.theme-switch::view-transition-old(root),
+:root.theme-switch::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+:root.theme-switch::view-transition-new(root) { z-index: 1; }

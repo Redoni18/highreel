@@ -1,15 +1,16 @@
 // The email each person gets (SPEC M2.8; since M2.9 sent from the business's
 // own account): the business's subject and message with {first_name},
 // {business} and {year} filled in, a button to the recap in the business's
-// colour, and a footer with the unsubscribe link. No Highreel branding: it comes
-// from the business. Built here so the server sends exactly what the Share
+// colour, and a footer with the unsubscribe link. It comes from the business:
+// no Highreel sender, logo or footer; only the button names what they get, their
+// Highreel (owner, 2026-10-12). Built here so the server sends exactly what the Share
 // tab previews.
 
 import { mix, normalizeHex, readableOn } from './color'
 
 export const DEFAULT_SUBJECT = '{first_name}, your {year} with {business}'
 export const DEFAULT_BODY = 'Hi {first_name},\n\nWe made something just for you: your {year} with {business}, in a few taps.\n\nThank you for being part of our year.'
-export const BUTTON_LABEL = 'Open your highlight reel'
+const BUTTON_LABEL = 'Open your Highreel'
 export const SUBJECT_MAX = 120
 export const BODY_MAX = 1000
 

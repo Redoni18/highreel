@@ -85,7 +85,7 @@ expect(await count() === before, 'and shows it again')
 // Selecting a slide jumps the phone there; a chip drops a placeholder in.
 await designItem(page, 'streak')
 await page.waitForTimeout(600)
-const scene = await page.locator('aside[aria-label="Highlight reel preview"] .recap .slide').last().getAttribute('data-scene')
+const scene = await page.locator('aside[aria-label="Highreel preview"] .recap .slide').last().getAttribute('data-scene')
 expect(scene === 'streak', 'selecting a slide shows it in the phone', scene)
 await page.locator('[data-tokens="d-copy-streak"]').getByRole('button', { name: '{first_name}' }).click()
 const line = await page.locator('#d-copy-streak').inputValue()

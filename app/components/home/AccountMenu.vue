@@ -32,7 +32,7 @@ const endOpen = ref(false)
   <ConfirmDialog
     v-model:open="endOpen"
     title="End the demo session?"
-    description="A demo session isn't tied to an email, so its highlight reels can't be opened again after you leave. Add your email in the banner to keep them."
+    description="A demo session isn't tied to an email, so its Highreels can't be opened again after you leave. Add your email in the banner to keep them."
     confirm-label="End session"
     @confirm="signOut()"
   />

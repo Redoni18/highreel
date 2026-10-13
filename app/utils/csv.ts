@@ -52,7 +52,7 @@ function cellText(v: unknown): string {
   return String(v).trim()
 }
 
-export async function parseXlsx(file: File, template: Template): Promise<ParsedSheet> {
+async function parseXlsx(file: File, template: Template): Promise<ParsedSheet> {
   const { readSheet } = await import('read-excel-file/browser')
   const data = (await readSheet(file)) as unknown[][]
   const [head = [], ...body] = data

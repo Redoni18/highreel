@@ -14,8 +14,8 @@ export const customTemplate: Template = {
   columns: [
     { key: 'customer_id', type: 'text', required: true, maxLength: 64, unique: true, rule: 'unique, ≤ 64 chars', usedFor: 'joining links back to your email tool', width: 132 },
     { key: 'first_name', type: 'text', required: true, minLength: 1, maxLength: 30, rule: '1–30 chars', usedFor: 'every slide', width: 132 },
-    { key: 'email', type: 'email', required: false, rule: 'valid email', usedFor: 'emailing the highlight reel, and the links file', width: 214 },
-    { key: 'phone', type: 'phone', required: false, rule: 'phone number, best with its country code', usedFor: 'WhatsApp only (never on the highlight reel)', width: 150 },
+    { key: 'email', type: 'email', required: false, rule: 'valid email', usedFor: 'emailing the Highreel, and the links file', width: 214 },
+    { key: 'phone', type: 'phone', required: false, rule: 'phone number, best with its country code', usedFor: 'WhatsApp only (never on the Highreel)', width: 150 },
     { key: 'personal_note', type: 'text', required: false, maxLength: 140, rule: '≤ 140 chars', usedFor: 'per-customer note', width: 260 },
   ],
   cover: '{first_name}, your {year} with {business}',

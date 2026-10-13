@@ -48,7 +48,7 @@ export function shiftHue(hex: string, degrees: number): string {
   return toHex([(r1 + m) * 255, (g1 + m) * 255, (b1 + m) * 255])
 }
 
-export function luminance(hex: string): number {
+function luminance(hex: string): number {
   const [r, g, b] = toRgb(hex).map((v) => {
     const c = v / 255
     return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
@@ -82,7 +82,7 @@ export interface RecapPalette {
 }
 
 export type RecapTheme = 'stories' | 'paper'
-export const PAPER = '#F4F1EA'
+const PAPER = '#F4F1EA'
 export const INK = '#151515'
 
 /** "Paper" (M2h): light paper, ink text, the accent only for highlights. */

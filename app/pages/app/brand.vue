@@ -20,8 +20,7 @@ import { shrinkImage } from '~/utils/media'
 import { EXAMPLES } from '~/data/examples'
 
 useHead({ title: 'Your brand · Highreel' })
-const { api, fail, endSession } = useApi()
-const supabase = useSupabaseClient()
+const { api, fail, endSession, uploadMedia, deleteMedia } = useApi()
 
 const business = ref<Business | null>(null)
 const anonymous = ref(false)
@@ -52,7 +51,7 @@ async function disconnect() {
     await api('/api/business/email', { method: 'DELETE' })
     if (mail.value)
       mail.value.connection = null
-    toast.success('Email disconnected', { description: 'Highlight reels can still go out by WhatsApp or the links file.' })
+    toast.success('Email disconnected', { description: 'Highreels can still go out by WhatsApp or the links file.' })
   }
   catch (e) {
     fail('Couldn\'t disconnect', e)
@@ -61,7 +60,7 @@ async function disconnect() {
 function connected(c: EmailConnection) {
   if (mail.value)
     mail.value.connection = c
-  toast.success('Email connected', { description: `Highlight reels now go out from ${c.from_email}. A test is in that inbox.` })
+  toast.success('Email connected', { description: `Highreels now go out from ${c.from_email}. A test is in that inbox.` })
 }
 onMounted(loadMail)
 
@@ -110,7 +109,7 @@ async function save() {
       body: { name: form.name.trim(), accent_color: form.accent, website_url: form.website.trim(), logo_shape: form.shape },
     })
     reset(business.value)
-    toast.success('Brand saved', { description: 'Every highlight reel uses it, published ones included.' })
+    toast.success('Brand saved', { description: 'Every Highreel uses it, published ones included.' })
   }
   catch (e) {
     fail('Couldn\'t save', e)
@@ -151,13 +150,10 @@ async function uploadLogo(file: File) {
   const previous = business.value.logo_path
   try {
     const img = await shrinkImage(file, 512, 'logo')
-    const path = `${business.value.id}/logo/${crypto.randomUUID()}.${img.ext}`
-    const { error } = await supabase.storage.from('media').upload(path, img.blob, { contentType: img.blob.type, cacheControl: '31536000', upsert: false })
-    if (error)
-      throw error
+    const path = await uploadMedia(img.blob, { kind: 'logo' })
     await setLogo(path)
     if (previous)
-      await supabase.storage.from('media').remove([previous])
+      await deleteMedia([previous])
   }
   catch (err) {
     fail('Couldn\'t upload the logo', err)
@@ -172,7 +168,7 @@ async function removeLogo() {
     return
   try {
     await setLogo(null)
-    await supabase.storage.from('media').remove([previous])
+    await deleteMedia([previous])
   }
   catch (err) {
     fail('Couldn\'t remove the logo', err)
@@ -204,12 +200,12 @@ const payload = computed<RecapPayload | null>(() => {
 
 <template>
   <div class="flex h-dvh flex-col overflow-hidden">
-    <DemoBanner v-if="anonymous" @kept="anonymous = false" />
+    <DemoBanner v-if="anonymous" />
     <header class="flex h-11 shrink-0 items-center gap-2 border-b px-3">
-      <NuxtLink to="/app" class="wordmark" aria-label="All highlight reels">highreel</NuxtLink>
+      <NuxtLink to="/app" class="wordmark" aria-label="All Highreels"><Wordmark /></NuxtLink>
       <span class="mx-1 h-5 w-px shrink-0 bg-border" aria-hidden="true" />
       <NuxtLink to="/app" class="inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 text-[14px] text-muted-foreground hover:bg-muted hover:text-foreground">
-        <ArrowLeft class="size-3.5" /> Your highlight reels
+        <ArrowLeft class="size-3.5" /> Your Highreels
       </NuxtLink>
     </header>
 
@@ -227,7 +223,7 @@ const payload = computed<RecapPayload | null>(() => {
           <div class="mx-auto flex w-full max-w-[680px] flex-col gap-6 px-8 pt-8 pb-14">
             <header class="flex flex-col gap-1.5">
               <h1 class="text-[28px] leading-[1.1] font-semibold tracking-[-0.025em]">Your brand</h1>
-              <p class="text-[14px] text-muted-foreground">On every highlight reel you make, published ones included. Change it here and they all follow.</p>
+              <p class="text-[14px] text-muted-foreground">On every Highreel you make, published ones included. Change it here and they all follow.</p>
             </header>
 
             <div class="settings">
@@ -244,7 +240,7 @@ const payload = computed<RecapPayload | null>(() => {
               <div class="set-row">
                 <div class="set-label">
                   <span id="br-logo">Logo</span>
-                  <p>Square images work best. Without one, highlight reels show your first letter.</p>
+                  <p>Square images work best. Without one, Highreels show your first letter.</p>
                 </div>
                 <div class="flex flex-col gap-3">
                   <div
@@ -283,7 +279,7 @@ const payload = computed<RecapPayload | null>(() => {
               <div class="set-row">
                 <div class="set-label">
                   <label for="br-accent">Colour</label>
-                  <p>Fills Stories highlight reels; Paper ones use it for highlights.</p>
+                  <p>Fills Stories Highreels; Paper ones use it for highlights.</p>
                 </div>
                 <div class="flex flex-col gap-3">
                   <div class="flex flex-wrap gap-1.5" role="group" aria-label="Suggested colours">
@@ -319,7 +315,7 @@ const payload = computed<RecapPayload | null>(() => {
               <div class="set-row">
                 <div class="set-label">
                   <label for="br-web">Website</label>
-                  <p>Your name links to it in the emails with your highlight reels.</p>
+                  <p>Your name links to it in the emails with your Highreels.</p>
                 </div>
                 <Input id="br-web" v-model="form.website" placeholder="https://" class="h-10 rounded-full px-4" />
               </div>
@@ -328,7 +324,7 @@ const payload = computed<RecapPayload | null>(() => {
               <div class="set-row" data-testid="brand-email">
                 <div class="set-label">
                   <span>Email</span>
-                  <p>Highlight reels go out through your own email account, from your address.</p>
+                  <p>Highreels go out through your own email account, from your address.</p>
                 </div>
                 <div v-if="!mail" class="flex items-center text-muted-foreground"><Loader2 class="size-4 animate-spin" /></div>
                 <div v-else-if="mail.connection" class="flex flex-col items-start gap-2.5">
@@ -366,7 +362,7 @@ const payload = computed<RecapPayload | null>(() => {
       <EmailConnectDialog v-if="mail" v-model:open="connectOpen" :connection="mail.connection" :business-name="business?.name ?? ''" :dev="mail.dev" @connected="connected" />
 
       <PhoneStage ref="stage" :payload="payload" :accent="form.accent" :ink="onAccent">
-        An example highlight reel in your colours.
+        An example Highreel in your colours.
       </PhoneStage>
     </div>
   </div>

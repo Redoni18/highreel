@@ -8,6 +8,7 @@ import { BODY_MAX, SUBJECT_MAX } from '#shared/utils/email'
 import { WHATSAPP_MAX } from '#shared/utils/whatsapp'
 import { MAX_PHOTOS, storableSettings } from '#shared/utils/recap'
 import { brandUpdate, checkText as text, checkUrl as url } from '../../utils/brand'
+import type { CampaignUpdate } from '../../utils/db'
 
 interface Body {
   name?: string
@@ -39,7 +40,7 @@ export default defineEventHandler(async (event): Promise<Workspace> => {
   const body = await readBody<Body>(event)
   const current = await loadWorkspace(db, id)
 
-  const campaignUpdate: Record<string, unknown> = {}
+  const campaignUpdate: CampaignUpdate = {}
   if (body.name !== undefined)
     campaignUpdate.name = text(body.name, 'Campaign name', 80, true)
 
@@ -106,20 +107,9 @@ export default defineEventHandler(async (event): Promise<Workspace> => {
     campaignUpdate.settings = storableSettings(next)
   }
 
-  if (Object.keys(campaignUpdate).length) {
-    const { error } = await db.from('campaigns').update(campaignUpdate).eq('id', id)
-    if (error)
-      dbError(error, 'Saving campaign')
-  }
-
-  if (body.business) {
-    const businessUpdate = brandUpdate(body.business, current.business.id)
-    if (Object.keys(businessUpdate).length) {
-      const { error } = await db.from('businesses').update(businessUpdate).eq('id', current.business.id)
-      if (error)
-        dbError(error, 'Saving brand')
-    }
-  }
-
-  return loadSignedWorkspace(db, id)
+  if (Object.keys(campaignUpdate).length)
+    await updateCampaign(db, id, campaignUpdate)
+  if (body.business)
+    await updateBusiness(db, brandUpdate(body.business, current.business.id))
+  return loadSignedWorkspace(event, db, id)
 })

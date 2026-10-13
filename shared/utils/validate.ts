@@ -47,7 +47,7 @@ function lenientInt(s: string): string {
   return NUMBER_RE.test(plain) && plain.includes('.') ? String(Math.round(Number(plain))) : plain
 }
 
-export function todayUtc(): string {
+function todayUtc(): string {
   return new Date().toISOString().slice(0, 10)
 }
 

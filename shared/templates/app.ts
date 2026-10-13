@@ -21,9 +21,9 @@ export const appTemplate: Template = {
     },
     {
       key: 'email', type: 'email', required: false,
-      rule: 'valid email', usedFor: 'emailing the highlight reel, and the links file', width: 214,
+      rule: 'valid email', usedFor: 'emailing the Highreel, and the links file', width: 214,
     },
-    { key: 'phone', type: 'phone', required: false, rule: 'phone number, best with its country code', usedFor: 'WhatsApp only (never on the highlight reel)', width: 150 },
+    { key: 'phone', type: 'phone', required: false, rule: 'phone number, best with its country code', usedFor: 'WhatsApp only (never on the Highreel)', width: 150 },
     {
       key: 'member_since', type: 'date', required: false, notFuture: true,
       rule: 'YYYY-MM-DD, not in the future', usedFor: '"With us since March 2025"', width: 136,

@@ -61,7 +61,7 @@ expect(size === '1080x1920', 'Save image downloads a 1080×1920 PNG', size)
 await p.keyboard.press('ArrowLeft')
 await p.waitForTimeout(600)
 expect(await slide() === 'Slide 6 of 7', 'arrow keys work with a button focused', await slide())
-const outside = requests.filter(u => !u.startsWith(BASE) && !u.startsWith('data:') && !u.startsWith('blob:') && !u.includes('/storage/v1/object/sign/'))
+const outside = requests.filter(u => !u.startsWith(BASE) && !u.startsWith('data:') && !u.startsWith('blob:'))
 expect(outside.length === 0, 'no third-party requests', outside)
 
 const desk = await (await browser.newContext({ viewport: { width: 1440, height: 900 } })).newPage()

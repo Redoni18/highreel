@@ -4,19 +4,17 @@
 // `remaining` is above 0. Rows without an
 // address, unsubscribed ones and rows already sent are skipped; a failed row
 // waits for "Try again" (`retry`), so a bad address can't loop forever.
-// `test` sends the previewed row's email to the owner instead. Runs as the
-// user: RLS keeps it to their recaps, and every email is logged for the
+// `test` sends the previewed row's email to the owner instead. Only this
+// business's recaps (server/utils/db.ts), and every email is logged for the
 // account's daily limit. Bounces (M2.11, server/utils/bounces.ts): addresses
 // are checked before sending (typos of big providers, domains that take no
 // mail), dead ones are remembered for the business and skipped from then on,
 // an answer about the account stops the run with the server's words, and a
 // batch where too many bounce pauses it.
 
-import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Recipient } from '#shared/types/recap'
 import type { Outcome } from '../../../utils/bounces'
 import { recapEmail } from '#shared/utils/email'
-import { hasErrors } from '#shared/utils/validate'
 
 const BATCH = 25
 /** Tests per business per day, so "Send a test" can't be a way around the limit. */
@@ -32,13 +30,12 @@ export default defineEventHandler(async (event) => {
   const { business, campaign } = await loadWorkspace(db, id)
   if (anonymous || !owner)
     throw createError({ statusCode: 403, message: 'Add your email to keep your work first' })
-  const connection = await loadConnection(db, business.id)
+  const connection = await loadConnection(db)
   if (!connection)
-    throw createError({ statusCode: 400, message: 'Connect your email first: highlight reels go out from your own address' })
+    throw createError({ statusCode: 400, message: 'Connect your email first: Highreels go out from your own address' })
   const account = await accountFor(event, connection)
   if (campaign.kind === 'business')
-    throw createError({ statusCode: 400, message: 'A business highlight reel is for posting: copy its link instead' })
-  const rows = await loadRecipients(db, id)
+    throw createError({ statusCode: 400, message: 'A business Highreel is for posting: copy its link instead' })
   const origin = siteOrigin(event)
 
   const mailFor = (row: Recipient, to: string, test = false) => {
@@ -65,31 +62,30 @@ export default defineEventHandler(async (event) => {
   }
 
   if (body.test) {
-    const live = rows.filter(r => r.token && !hasErrors(r.errors))
-    const row = live.find(r => r.id === body.recipient_id) ?? live[0]
+    const row = await testRow(db, id, body.recipient_id)
     if (!row)
-      throw createError({ statusCode: 400, message: 'Publish first: the test links to a real highlight reel' })
-    if (await testsToday(db, business.id) >= TEST_LIMIT)
+      throw createError({ statusCode: 400, message: 'Publish first: the test links to a real Highreel' })
+    if (await sendsSince(db, 'test', false) >= TEST_LIMIT)
       throw createError({ statusCode: 429, message: `Up to ${TEST_LIMIT} tests a day` })
     const [result] = await sendMails(account, [mailFor(row, owner, true)])
-    await log(db, [{ business_id: business.id, campaign_id: id, recipient_id: null, kind: 'test', ok: !!result?.ok, error: result?.error ?? null, provider_id: result?.id ?? null }])
+    await logSends(db, [{ campaign_id: id, recipient_id: null, kind: 'test', ok: !!result?.ok, error: result?.error ?? null, provider_id: result?.id ?? null }])
     if (!result?.ok)
       throw createError({ statusCode: 502, message: `The test didn't go out: ${result?.error ?? 'unknown error'}` })
     return { to: owner }
   }
 
   if (campaign.status !== 'published')
-    throw createError({ statusCode: 400, message: 'Publish first: the emails link to the highlight reels' })
+    throw createError({ statusCode: 400, message: 'Publish first: the emails link to the Highreels' })
   if (!campaign.settings.email_consent_at)
     throw createError({ statusCode: 400, message: 'Confirm these people are your customers first' })
 
-  const [optouts, bounces] = await Promise.all([optedOut(db, business.id), bouncedAddresses(db, business.id)])
-  const a = audience(rows, optouts, bounces, body.retry === true)
-  const room = Math.max(0, account.daily_limit - await sentToday(db, business.id))
-  if (a.pending.length && !room)
+  const retry = body.retry === true
+  const [a, sent] = await Promise.all([audienceCounts(db, id, retry), sendsSince(db, null, true)])
+  const room = Math.max(0, account.daily_limit - sent)
+  if (a.pending && !room)
     throw createError({ statusCode: 429, message: `You've reached today's limit for ${account.from_email} (${account.daily_limit}). The rest can go tomorrow.` })
 
-  const batch = a.pending.slice(0, Math.min(BATCH, room))
+  const batch = await pendingRows(db, id, retry, Math.min(BATCH, room))
   // Typos and domains that take no mail are held back before anything is sent.
   const local = isLocalAccount(account)
   const held = await precheck(batch.map(r => addressOf(r)!), domain => local && reserved(`x@${domain}`))
@@ -112,32 +108,15 @@ export default defineEventHandler(async (event) => {
 
   const now = new Date().toISOString()
   const okIds = [...outcomes].filter(([, o]) => o.ok).map(([r]) => r.id)
-  // In fifties: the ids go in the request's URL.
-  for (let i = 0; i < okIds.length; i += 50) {
-    const { error } = await db.from('recipients').update({ emailed_at: now, email_error: null }).in('id', okIds.slice(i, i + 50))
-    if (error)
-      dbError(error, 'Saving sends')
-  }
+  await markSent(db, id, okIds, now)
   const failures = [...outcomes].flatMap(([row, o]) => (o.ok || o.kind === 'account' ? [] : [{ row, kind: o.kind, reason: o.reason }]))
-  for (const f of failures) {
-    const { error } = await db.from('recipients').update({ email_error: (f.kind === 'bounce' ? `Bounced: ${f.reason}` : f.reason).slice(0, 200) }).eq('id', f.row.id)
-    if (error)
-      dbError(error, 'Saving sends')
-  }
+  await markFailed(db, id, failures.map(f => ({ id: f.row.id, error: (f.kind === 'bounce' ? `Bounced: ${f.reason}` : f.reason).slice(0, 200) })))
   const dead = failures.filter(f => f.kind === 'bounce')
-  if (dead.length) {
-    // One entry per address (two rows can share one).
-    const byAddress = new Map(dead.map(f => [addressOf(f.row)!, f.reason.slice(0, 200)]))
-    const { error } = await db.from('email_bounces').upsert(
-      [...byAddress].map(([email, reason]) => ({ business_id: business.id, email, reason })),
-      { onConflict: 'business_id,email', ignoreDuplicates: true },
-    )
-    if (error)
-      dbError(error, 'Saving bounces')
-  }
+  // One entry per address (two rows can share one).
+  const byAddress = new Map(dead.map(f => [addressOf(f.row)!, f.reason.slice(0, 200)]))
+  await addBounces(db, [...byAddress].map(([email, reason]) => ({ email, reason })))
   if (results.length) {
-    await log(db, toSend.slice(0, results.length).map((r, i) => ({
-      business_id: business.id,
+    await logSends(db, toSend.slice(0, results.length).map((r, i) => ({
       campaign_id: id,
       recipient_id: r.id,
       kind: 'recap' as const,
@@ -149,7 +128,7 @@ export default defineEventHandler(async (event) => {
 
   const answered = [...outcomes.values()].filter(o => o.ok || o.kind !== 'account').length
   const pause = tooManyBounces(dead.length, answered)
-  const left = a.pending.length - answered
+  const left = a.pending - answered
   const more = room > batch.length && !stop && !pause
   return {
     sent: okIds.length,
@@ -163,17 +142,3 @@ export default defineEventHandler(async (event) => {
     sentAt: now,
   }
 })
-
-async function testsToday(db: SupabaseClient, businessId: string): Promise<number> {
-  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-  const { count, error } = await db.from('email_sends').select('id', { count: 'exact', head: true }).eq('business_id', businessId).eq('kind', 'test').gte('created_at', since)
-  if (error)
-    dbError(error, 'Counting tests')
-  return count ?? 0
-}
-
-async function log(db: SupabaseClient, entries: Record<string, unknown>[]) {
-  const { error } = await db.from('email_sends').insert(entries)
-  if (error)
-    dbError(error, 'Logging sends')
-}

@@ -29,7 +29,7 @@ export function suggestions(campaigns: CampaignTotals[], max = 8): Suggestion[] 
   for (const c of campaigns) {
     const t = getTemplate(c.template_key)
     if (t.audience)
-      add(`${t.audience} got a highlight reel`, c.published)
+      add(`${t.audience} got a Highreel`, c.published)
   }
   for (const c of campaigns) {
     for (const total of getTemplate(c.template_key).totals ?? [])

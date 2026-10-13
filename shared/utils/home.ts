@@ -33,7 +33,7 @@ export function yearSummary(year: number, campaigns: HomeCampaign[]): Phrase[] {
   const lines: Phrase[] = []
 
   if (sent) {
-    lines.push([`In ${year} you sent `, n(sent), ` ${plural(sent, 'highlight reel', 'highlight reels')} in `, n(sentCampaigns.length), ` ${plural(sentCampaigns.length, 'campaign', 'campaigns')}.`])
+    lines.push([`In ${year} you sent `, n(sent), ` ${plural(sent, 'Highreel', 'Highreels')} in `, n(sentCampaigns.length), ` ${plural(sentCampaigns.length, 'campaign', 'campaigns')}.`])
     const opened = sum('opened')
     if (opened) {
       const pct = Math.round((opened / sent) * 100)
@@ -54,7 +54,7 @@ export function yearSummary(year: number, campaigns: HomeCampaign[]): Phrase[] {
   }
 
   for (const c of campaigns.filter(c => c.kind === 'business' && c.published > 0))
-    lines.push([`Your highlight reel “${c.name}” was viewed `, n(c.views), ` ${plural(c.views, 'time', 'times')}.`])
+    lines.push([`Your Highreel “${c.name}” was viewed `, n(c.views), ` ${plural(c.views, 'time', 'times')}.`])
   return lines
 }
 

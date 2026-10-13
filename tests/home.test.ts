@@ -22,7 +22,7 @@ describe('yearSummary', () => {
       campaign({ id: 'b', published: 75, opened: 52, saved: 11, shared: 8, clicked: 4 }),
     ])
     expect(lines.map(text)).toEqual([
-      'In 2026 you sent 195 highlight reels in 2 campaigns.',
+      'In 2026 you sent 195 Highreels in 2 campaigns.',
       '132 were opened (68%), 41 saved, 18 shared, and 9 tapped your button.',
     ])
   })
@@ -33,7 +33,7 @@ describe('yearSummary', () => {
   })
 
   test('singulars, nothing opened, nothing sent', () => {
-    expect(yearSummary(2026, [campaign({ published: 1 })]).map(text)).toEqual(['In 2026 you sent 1 highlight reel in 1 campaign.', 'None opened yet.'])
+    expect(yearSummary(2026, [campaign({ published: 1 })]).map(text)).toEqual(['In 2026 you sent 1 Highreel in 1 campaign.', 'None opened yet.'])
     expect(yearSummary(2026, [campaign({ published: 10, opened: 1 })]).map(text)[1]).toBe('1 was opened (10%).')
     expect(yearSummary(2026, [campaign({ status: 'draft', row_count: 20 })]).map(text)).toEqual(['Nothing sent in 2026 yet.'])
     expect(yearSummary(2026, [])).toEqual([])
@@ -41,7 +41,7 @@ describe('yearSummary', () => {
 
   test('a business recap gets its own line, outside the customer counts', () => {
     const lines = yearSummary(2026, [campaign({ kind: 'business', name: 'Our 2026', published: 1, views: 38 })])
-    expect(lines.map(text)).toEqual(['Your highlight reel “Our 2026” was viewed 38 times.'])
+    expect(lines.map(text)).toEqual(['Your Highreel “Our 2026” was viewed 38 times.'])
   })
 })
 
@@ -93,8 +93,8 @@ describe('business recap suggestions (SPEC M2.5 P4)', () => {
       { template_key: 'visit', items_label: 'animals fed', published: 120, sums: { activities_done: 1690, days: 300 } },
       { template_key: 'app', items_label: 'habits checked off', published: 5, sums: { items_created: 100 } },
     ])).toEqual([
-      { value: 200, label: 'customers got a highlight reel' },
-      { value: 120, label: 'visitors got a highlight reel' },
+      { value: 200, label: 'customers got a Highreel' },
+      { value: 120, label: 'visitors got a Highreel' },
       { value: 236100, label: 'habits checked off' },
       { value: 41200, label: 'active days' },
       { value: 1690, label: 'animals fed' },

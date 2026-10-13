@@ -11,14 +11,14 @@ import type { ColumnType, CustomColumn, SceneKind, ShareStatDef, SlideDef, Slide
 export type OwnSettings = Pick<CampaignSettings, 'columns' | 'slides'>
 
 export const MAX_OWN_COLUMNS = 30
-export const MAX_SLIDES = 40
+const MAX_SLIDES = 40
 /** Placeholders every line already has; a column can't take their names. */
 export const RESERVED_KEYS = ['first_name', 'year', 'business', 'items_label']
 export const TOKEN_SHAPES: TokenShape[] = ['shapes', 'dots', 'hearts', 'stars']
 /** A list slide shows up to this many columns. */
 export const MAX_LIST = 5
 /** Added numbers show from 1 (a "0 gifts made" slide helps nobody); added ranks to the top 25%. */
-export const DEFAULT_MIN = 1
+const DEFAULT_MIN = 1
 export const DEFAULT_TOP = 25
 
 /** The scene library (SPEC M2.7, M2.10): what Design calls each scene. */
@@ -76,7 +76,7 @@ export function scenesFor(def: Pick<SlideDef, 'kind' | 'scene' | 'list' | 'rankB
 }
 
 /** "Gifts_made" → "gifts made" */
-export function humanize(header: string): string {
+function humanize(header: string): string {
   return header.replace(/[_\s]+/g, ' ').trim().toLowerCase()
 }
 
@@ -106,13 +106,13 @@ export function ownColumnDef(c: CustomColumn): TemplateColumn {
 }
 
 /** The column a "top X%" slide fills with the percentage. */
-export const topColumn = (column: string) => `top_${column}`
+const topColumn = (column: string) => `top_${column}`
 
 /** The key an added slide must have: "c_<column>" for its value, "top_<column>" for its rank. */
 export const addedKey = (column: string, show: SlideSetting['show']) => (show === 'top' ? topColumn(column) : `c_${column}`)
 
 /** Lists are numbered: "list_1", "list_2"… */
-export const LIST_KEY_RE = /^list_\d{1,3}$/
+const LIST_KEY_RE = /^list_\d{1,3}$/
 export function nextListKey(slides: SlideSetting[]): string {
   let n = 1
   while (slides.some(s => s.key === `list_${n}`))
@@ -126,7 +126,7 @@ export function slideable(col: TemplateColumn, base: Template): boolean {
 }
 
 /** A default scene for an added column, by its name. */
-export function defaultScene(col: Pick<TemplateColumn, 'key' | 'type'>): SceneKind {
+function defaultScene(col: Pick<TemplateColumn, 'key' | 'type'>): SceneKind {
   if (col.type === 'date')
     return 'date'
   if (col.type === 'decimal')
@@ -137,7 +137,7 @@ export function defaultScene(col: Pick<TemplateColumn, 'key' | 'type'>): SceneKi
 }
 
 /** The name an added slide goes by ("gifts made"). */
-export function addedLabel(s: SlideSetting, col: TemplateColumn): string {
+function addedLabel(s: SlideSetting, col: TemplateColumn): string {
   return s.label?.trim() || humanize(col.label ?? col.key)
 }
 

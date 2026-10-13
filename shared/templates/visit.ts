@@ -13,8 +13,8 @@ export const visitTemplate: Template = {
   columns: [
     { key: 'participant_id', type: 'text', required: true, maxLength: 64, unique: true, rule: 'unique, ≤ 64 chars', usedFor: 'joining links back to your contact list', width: 140 },
     { key: 'first_name', type: 'text', required: true, minLength: 1, maxLength: 30, rule: '1–30 chars', usedFor: 'every slide', width: 132 },
-    { key: 'email', type: 'email', required: false, rule: 'valid email', usedFor: 'emailing the highlight reel (a parent\'s)', width: 214 },
-    { key: 'phone', type: 'phone', required: false, rule: 'a parent\'s phone, best with its country code', usedFor: 'WhatsApp only (never on the highlight reel)', width: 150 },
+    { key: 'email', type: 'email', required: false, rule: 'valid email', usedFor: 'emailing the Highreel (a parent\'s)', width: 214 },
+    { key: 'phone', type: 'phone', required: false, rule: 'a parent\'s phone, best with its country code', usedFor: 'WhatsApp only (never on the Highreel)', width: 150 },
     { key: 'visit_date', type: 'date', required: false, notFuture: true, rule: 'YYYY-MM-DD, not in the future', usedFor: '"Your visit: June 2026"', width: 120 },
     { key: 'days', type: 'int', required: false, min: 1, max: 366, rule: '1–366', usedFor: 'days slide', width: 80 },
     { key: 'activities_done', type: 'int', required: false, min: 0, max: 1000, rule: '0–1000', usedFor: 'activities slide (label set per campaign)', width: 140 },

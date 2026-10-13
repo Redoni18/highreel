@@ -51,7 +51,7 @@ function downloadTemplate() {
 <template>
   <header class="relative grid h-11 shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-b px-3">
     <div class="flex min-w-0 items-center gap-1">
-      <NuxtLink to="/app" class="wordmark" aria-label="All highlight reels" title="All highlight reels">highreel</NuxtLink>
+      <NuxtLink to="/app" class="wordmark" aria-label="All Highreels" title="All Highreels"><Wordmark /></NuxtLink>
       <span class="mr-1 ml-1.5 h-5 w-px shrink-0 bg-border" aria-hidden="true" />
       <template v-if="ws.business.value && ws.campaign.value">
         <NuxtLink to="/app/brand" class="h-8 truncate rounded-full px-2.5 text-[15px] leading-8 font-medium hover:bg-muted" title="Your brand: name, logo, colour">{{ ws.business.value.name }}</NuxtLink>

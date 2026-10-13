@@ -96,7 +96,7 @@ watch(() => [n.value.published, ws.anonymous.value], loadStatus)
 
 const connectOpen = ref(false)
 function connected() {
-  toast.success('Email connected', { description: 'A test is in that inbox. Highlight reels go out from it now.' })
+  toast.success('Email connected', { description: 'A test is in that inbox. Highreels go out from it now.' })
   loadStatus()
 }
 
@@ -203,7 +203,7 @@ async function sendAll(retry = false) {
     if (stopped)
       toast.error(p.sent ? `Stopped after ${fmt(p.sent)} sent` : 'Nothing went out', { description: [stopped, description].filter(Boolean).join(' '), duration: 12000 })
     else
-      toast.success(`${fmt(p.sent)} ${p.sent === 1 ? 'highlight reel' : 'highlight reels'} sent`, { description })
+      toast.success(`${fmt(p.sent)} ${p.sent === 1 ? 'Highreel' : 'Highreels'} sent`, { description })
   }
   catch (e) {
     fail('Sending stopped', e)
@@ -369,29 +369,29 @@ async function saveImage(format: ShareFormat) {
         <section class="flex flex-col gap-4" aria-labelledby="s-publish" data-testid="share-publish">
           <h2 id="s-publish" class="section-title"><span class="step-n">1</span>Publish</h2>
           <template v-if="ws.isBusiness.value">
-            <p v-if="ws.isPublished.value" class="lead">Your highlight reel is live<template v-if="since">{{ ` since ${since}` }}</template>. Saving the form updates it in place.</p>
+            <p v-if="ws.isPublished.value" class="lead">Your Highreel is live<template v-if="since">{{ ` since ${since}` }}</template>. Saving the form updates it in place.</p>
             <template v-else>
-              <p class="lead">Nothing is public yet. Publishing saves the form and gives the highlight reel its link.</p>
-              <Button size="lg" class="w-fit" :disabled="!!ws.busy.value || hasErrors(ws.businessRow.value.errors)" @click="ws.publishBusiness()">Publish your highlight reel</Button>
+              <p class="lead">Nothing is public yet. Publishing saves the form and gives the Highreel its link.</p>
+              <Button size="lg" class="w-fit" :disabled="!!ws.busy.value || hasErrors(ws.businessRow.value.errors)" @click="ws.publishBusiness()">Publish your Highreel</Button>
               <p v-if="hasErrors(ws.businessRow.value.errors)" class="hint">Fill in the first number and its label in <NuxtLink :to="`/app/c/${campaign.id}`" class="underline underline-offset-2">Content</NuxtLink> first.</p>
             </template>
           </template>
           <template v-else>
             <p v-if="!n.total" class="lead">No one to send to yet: <NuxtLink :to="`/app/c/${campaign.id}`" class="underline underline-offset-4">add your sheet</NuxtLink> first.</p>
             <template v-else-if="!ws.isPublished.value">
-              <p class="lead"><b>{{ fmt(n.ready) }}</b> {{ n.ready === 1 ? 'highlight reel is' : 'highlight reels are' }} ready to go out.<template v-if="n.errors">{{ ' ' }}<b>{{ fmt(n.errors) }}</b> {{ n.errors === 1 ? 'row needs' : 'rows need' }} fixing and will be skipped.</template></p>
+              <p class="lead"><b>{{ fmt(n.ready) }}</b> {{ n.ready === 1 ? 'Highreel is' : 'Highreels are' }} ready to go out.<template v-if="n.errors">{{ ' ' }}<b>{{ fmt(n.errors) }}</b> {{ n.errors === 1 ? 'row needs' : 'rows need' }} fixing and will be skipped.</template></p>
               <div class="flex flex-wrap items-center gap-2">
-                <Button size="lg" :disabled="!n.ready || !!ws.busy.value" @click="publishOpen = true">Publish {{ fmt(n.ready) }} {{ n.ready === 1 ? 'highlight reel' : 'highlight reels' }}</Button>
+                <Button size="lg" :disabled="!n.ready || !!ws.busy.value" @click="publishOpen = true">Publish {{ fmt(n.ready) }} {{ n.ready === 1 ? 'Highreel' : 'Highreels' }}</Button>
                 <Button v-if="n.errors" variant="outline" size="lg" @click="fixRows">Fix {{ n.errors === 1 ? 'it' : 'them' }} first</Button>
               </div>
             </template>
             <template v-else>
-              <p class="lead"><b>{{ fmt(n.published) }}</b> {{ n.published === 1 ? 'highlight reel is' : 'highlight reels are' }} live<template v-if="since">{{ ` since ${since}` }}</template>.<template v-if="n.ready">{{ ' ' }}<b>{{ fmt(n.ready) }}</b> new {{ n.ready === 1 ? 'row is' : 'rows are' }} ready.</template><template v-if="n.errors">{{ ` ${fmt(n.errors)} still ${n.errors === 1 ? 'needs' : 'need'} fixing.` }}</template></p>
+              <p class="lead"><b>{{ fmt(n.published) }}</b> {{ n.published === 1 ? 'Highreel is' : 'Highreels are' }} live<template v-if="since">{{ ` since ${since}` }}</template>.<template v-if="n.ready">{{ ' ' }}<b>{{ fmt(n.ready) }}</b> new {{ n.ready === 1 ? 'row is' : 'rows are' }} ready.</template><template v-if="n.errors">{{ ` ${fmt(n.errors)} still ${n.errors === 1 ? 'needs' : 'need'} fixing.` }}</template></p>
               <div v-if="n.ready || n.errors" class="flex flex-wrap items-center gap-2">
                 <Button v-if="n.ready" size="lg" :disabled="!!ws.busy.value" @click="publishOpen = true">Publish {{ fmt(n.ready) }} new</Button>
                 <Button v-if="n.errors" variant="outline" size="lg" @click="fixRows">Fix {{ n.errors === 1 ? 'it' : 'them' }}</Button>
               </div>
-              <p class="hint">Editing a published row in the Sheet updates its highlight reel; its link stays the same.</p>
+              <p class="hint">Editing a published row in the Sheet updates its Highreel; its link stays the same.</p>
             </template>
           </template>
         </section>
@@ -452,12 +452,12 @@ async function saveImage(format: ShareFormat) {
               <span v-if="status.sent && status.noEmail">{{ fmt(status.noEmail) }} without an email</span>
             </p>
 
-            <div v-if="status.anonymous" class="note">Add your email in the banner at the top first, to keep your work. Then connect the email account highlight reels go out from.</div>
+            <div v-if="status.anonymous" class="note">Add your email in the banner at the top first, to keep your work. Then connect the email account Highreels go out from.</div>
             <div v-else-if="!status.connection" class="connect" data-testid="email-connect">
               <span class="grid size-11 shrink-0 place-items-center rounded-full bg-background text-primary"><Mail class="size-5" /></span>
               <div class="flex min-w-0 flex-1 flex-col gap-1">
                 <p class="font-semibold">Send from your own email</p>
-                <p class="hint">Highlight reels go out through your email account, from your address, so people know who they're from. Gmail, Workspace, Microsoft 365, iCloud, Zoho, Resend, Postmark, SendGrid and more.</p>
+                <p class="hint">Highreels go out through your email account, from your address, so people know who they're from. Gmail, Workspace, Microsoft 365, iCloud, Zoho, Resend, Postmark, SendGrid and more.</p>
               </div>
               <Button class="shrink-0" data-testid="connect-email" @click="connectOpen = true">Connect your email</Button>
             </div>
@@ -473,7 +473,7 @@ async function saveImage(format: ShareFormat) {
               <div class="field">
                 <Label for="s-body">Message</Label>
                 <Textarea id="s-body" v-model="body" :maxlength="BODY_MAX" rows="6" class="min-h-0" :placeholder="DEFAULT_BODY" @blur="saveCopy" />
-                <p class="hint"><span class="font-mono">{first_name}</span>, <span class="font-mono">{business}</span> and <span class="font-mono">{year}</span> fill in for each person. The button to their highlight reel and an unsubscribe link come after it.</p>
+                <p class="hint"><span class="font-mono">{first_name}</span>, <span class="font-mono">{business}</span> and <span class="font-mono">{year}</span> fill in for each person. The button to their Highreel and an unsubscribe link come after it.</p>
               </div>
               <div v-if="!consented" class="flex items-start gap-2.5">
                 <Checkbox id="s-consent" v-model="consent" class="mt-0.5" data-testid="email-consent" />
@@ -557,15 +557,15 @@ async function saveImage(format: ShareFormat) {
         <section v-if="sampleToken" class="flex flex-col gap-3" aria-labelledby="s-preview">
           <h2 id="s-preview" class="section-title">How a link looks</h2>
           <p class="hint">In WhatsApp, iMessage, Slack and LinkedIn, each link shows a preview with that person's numbers.</p>
-          <img :src="`/api/r/${sampleToken}/og.png`" alt="Link preview of one highlight reel" width="1200" height="630" class="w-full max-w-lg rounded-2xl border">
-          <a :href="`/r/${sampleToken}`" target="_blank" rel="noopener" class="inline-flex w-fit items-center gap-1.5 text-[13px] text-muted-foreground underline underline-offset-4 hover:text-foreground">Open a highlight reel <ExternalLink class="size-3.5" /></a>
+          <img :src="`/api/r/${sampleToken}/og.png`" alt="Link preview of one Highreel" width="1200" height="630" class="w-full max-w-lg rounded-2xl border">
+          <a :href="`/r/${sampleToken}`" target="_blank" rel="noopener" class="inline-flex w-fit items-center gap-1.5 text-[13px] text-muted-foreground underline underline-offset-4 hover:text-foreground">Open a Highreel <ExternalLink class="size-3.5" /></a>
         </section>
 
         <!-- How it's going -->
         <section v-if="!ws.isBusiness.value && n.published" class="flex flex-col gap-3" aria-labelledby="s-going">
           <h2 id="s-going" class="section-title"><span class="step-n">3</span>How it's going</h2>
           <p class="going" data-testid="going">
-            <b>{{ fmt(going.opened) }}</b> of {{ fmt(n.published) }} opened their highlight reel ({{ going.pct }}%).
+            <b>{{ fmt(going.opened) }}</b> of {{ fmt(n.published) }} opened their Highreel ({{ going.pct }}%).
             <b>{{ fmt(going.saved) }}</b> saved the image, <b>{{ fmt(going.shared) }}</b> shared it and <b>{{ fmt(going.clicked) }}</b> tapped your button.
           </p>
           <p class="hint">Who did what is in the Sheet's <span class="font-mono">viewed</span> and <span class="font-mono">did</span> columns.</p>
@@ -590,7 +590,7 @@ async function saveImage(format: ShareFormat) {
       v-model:open="confirmOpen"
       tone="primary"
       :title="`Send ${fmt(status?.pending ?? 0)} ${status?.pending === 1 ? 'email' : 'emails'}?`"
-      :description="`Each person gets their own highlight reel link, from ${status?.connection?.from_name} <${status?.connection?.from_email}>. People without an email, who unsubscribed or whose address bounced are skipped.`"
+      :description="`Each person gets their own Highreel link, from ${status?.connection?.from_name} <${status?.connection?.from_email}>. People without an email, who unsubscribed or whose address bounced are skipped.`"
       confirm-label="Send now"
       @confirm="sendAll()"
     />

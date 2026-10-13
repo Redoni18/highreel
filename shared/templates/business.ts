@@ -14,7 +14,7 @@ export const businessTemplate: Template = {
   key: 'business',
   kind: 'business',
   label: 'Your business year',
-  description: 'One highlight reel of your year for your followers: headline numbers, the highlight, milestones, photos and a thank-you.',
+  description: 'One Highreel of your year for your followers: headline numbers, the highlight, milestones, photos and a thank-you.',
   // No sheet to download: the business fills in a form.
   files: { template: '', sample: '' },
   columns: [

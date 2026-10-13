@@ -20,7 +20,7 @@ const recap = page.url()
 id = campaignId(page)
 
 // Nothing to ask about yet.
-await page.getByRole('link', { name: 'All highlight reels' }).click()
+await page.getByRole('link', { name: 'All Highreels' }).click()
 await page.waitForURL(u => new URL(u).pathname === '/app')
 expect(!(await ask.isVisible()), 'no edits: leaving doesn\'t ask')
 await page.goto(recap)
@@ -34,7 +34,7 @@ await tab(page, 'Design')
 expect(await page.locator('[data-testid="theme"] [data-value="paper"]').getAttribute('data-state') === 'on', 'the edit survives switching tabs')
 
 // Leaving asks; Keep editing stays.
-await page.getByRole('link', { name: 'All highlight reels' }).click()
+await page.getByRole('link', { name: 'All Highreels' }).click()
 await ask.waitFor()
 await ask.getByRole('button', { name: 'Keep editing' }).click()
 await page.waitForTimeout(300)
@@ -51,7 +51,7 @@ expect(await theme() === 'stories', 'Discard changes leaves for Your brand and s
 await page.goto(recap.replace(/\/?$/, '/design'))
 await page.waitForSelector('[data-testid="theme"]')
 await paper()
-await page.getByRole('link', { name: 'All highlight reels' }).click()
+await page.getByRole('link', { name: 'All Highreels' }).click()
 await ask.waitFor()
 await ask.getByRole('button', { name: 'Save and leave' }).click()
 await page.waitForURL(u => new URL(u).pathname === '/app')

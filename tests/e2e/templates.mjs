@@ -14,9 +14,9 @@ const campaign = async () => {
 }
 
 await demoSession(page)
-await page.getByRole('link', { name: 'All highlight reels' }).click()
+await page.getByRole('link', { name: 'All Highreels' }).click()
 await page.waitForURL(u => new URL(u).pathname === '/app')
-await page.getByRole('button', { name: 'New highlight reel' }).click()
+await page.getByRole('button', { name: 'New Highreel' }).click()
 const dialog = page.getByRole('dialog')
 const offered = await dialog.locator('[data-starter]').count()
 expect(offered === 11, 'New recap offers ten business types and your own sheet', offered)
@@ -39,12 +39,12 @@ await designItem(page, 'activities')
 expect(await page.getByLabel('Activities label').inputValue() === 'classes taken', 'the slides show the template\'s wording')
 await designItem(page, 'cover')
 await page.waitForTimeout(500)
-const bg = await page.locator('aside[aria-label="Highlight reel preview"] .recap .slide').last().evaluate(el => getComputedStyle(el).backgroundColor)
+const bg = await page.locator('aside[aria-label="Highreel preview"] .recap .slide').last().evaluate(el => getComputedStyle(el).backgroundColor)
 expect(bg === 'rgb(226, 69, 122)', 'in the business\'s colour', bg)
 
 // A business that has its own colour keeps it.
 await page.getByRole('button', { name: 'Switch campaign' }).click()
-await page.getByRole('menuitem', { name: 'New highlight reel' }).click()
+await page.getByRole('menuitem', { name: 'New Highreel' }).click()
 const gym = campaignId(page)
 await page.getByRole('dialog').getByRole('radio', { name: /Café/ }).click()
 await page.getByRole('dialog').getByRole('button', { name: 'Create' }).click()

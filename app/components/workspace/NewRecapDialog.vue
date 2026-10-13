@@ -28,7 +28,7 @@ const name = ref('')
 const starterKey = ref(starters[0]!.key)
 const saving = ref(false)
 
-const defaultName = (k: CampaignKind, y: number) => (k === 'business' ? `Our ${y}` : `${y} highlight reels`)
+const defaultName = (k: CampaignKind, y: number) => (k === 'business' ? `Our ${y}` : `${y} Highreels`)
 // Keep the suggested name in step with kind and year until it's edited.
 const touched = ref(false)
 watch([kind, year], () => {
@@ -63,10 +63,10 @@ async function submit() {
     <DialogContent class="sm:max-w-2xl">
       <form class="flex min-h-0 flex-col gap-4" @submit.prevent="submit">
         <DialogHeader>
-          <DialogTitle>New highlight reel</DialogTitle>
+          <DialogTitle>New Highreel</DialogTitle>
           <DialogDescription>Start from a template for your kind of business. You can change the colour and every line in Brand.</DialogDescription>
         </DialogHeader>
-        <RadioGroup v-if="businessTemplate" v-model="kind" class="grid grid-cols-2 gap-1.5" aria-label="What kind of highlight reel">
+        <RadioGroup v-if="businessTemplate" v-model="kind" class="grid grid-cols-2 gap-1.5" aria-label="What kind of Highreel">
           <Label
             v-for="k in (['customers', 'business'] as const)"
             :key="k"
@@ -75,7 +75,7 @@ async function submit() {
             :data-checked="kind === k"
           >
             <span class="flex w-full items-center justify-between gap-2 text-[14px] font-semibold">{{ k === 'customers' ? 'For each customer' : 'Your business year' }}<RadioGroupItem :id="`nr-kind-${k}`" :value="k" /></span>
-            <span class="leading-snug text-muted-foreground">{{ k === 'customers' ? 'Upload a sheet; everyone gets their own link.' : 'One highlight reel for your social media.' }}</span>
+            <span class="leading-snug text-muted-foreground">{{ k === 'customers' ? 'Upload a sheet; everyone gets their own link.' : 'One Highreel for your social media.' }}</span>
           </Label>
         </RadioGroup>
 

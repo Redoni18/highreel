@@ -10,7 +10,7 @@ export interface Business {
   name: string
   accent_color: string
   logo_shape: LogoShape
-  /** Storage path of the logo (M2c) */
+  /** R2 key of the logo: {business_id}/logo/{uuid}.png (M2c, M2.14 P2) */
   logo_path: string | null
   /** Signed URL for showing the logo; filled in by the server */
   logo_url: string | null
@@ -20,7 +20,7 @@ export interface Business {
 /** A group photo shown to every recipient of a campaign (SPEC M2c). */
 export interface CampaignPhoto {
   id: string
-  /** Storage path: {business_id}/{campaign_id}/{uuid}.webp */
+  /** R2 key: {business_id}/{campaign_id}/{uuid}.webp (M2.14 P2) */
   path: string
   caption: string
   width: number
@@ -75,6 +75,8 @@ export interface Campaign {
   settings: CampaignSettings
   status: CampaignStatus
   published_at: string | null
+  /** A sheet upload that didn't finish (it arrives in parts, SPEC M2.14 P1): publishing waits for it. */
+  importing?: boolean
 }
 
 export interface Workspace {
@@ -184,8 +186,14 @@ export interface PatchRecipientResponse {
   others: Recipient[]
 }
 
+/** POST /api/campaigns/:id/publish: counts; the browser reloads the rows. */
 export interface PublishResponse {
   published: number
   skipped: number
-  recipients: Recipient[]
+}
+
+/** GET /api/campaigns/:id/recipients?after=: a page of rows in sheet order, and where the next one starts. */
+export interface RecipientPage {
+  rows: Recipient[]
+  next: number | null
 }

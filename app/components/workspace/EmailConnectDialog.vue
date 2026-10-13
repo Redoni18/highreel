@@ -113,7 +113,7 @@ async function connect() {
     <DialogContent class="max-h-[92dvh] overflow-y-auto sm:max-w-lg">
       <DialogHeader>
         <DialogTitle>{{ connection ? 'Change your email' : 'Connect your email' }}</DialogTitle>
-        <DialogDescription>Highlight reels go out through your own email account, from your address, so people see who they're from. We check the login and send you a test before saving.</DialogDescription>
+        <DialogDescription>Highreels go out through your own email account, from your address, so people see who they're from. We check the login and send you a test before saving.</DialogDescription>
       </DialogHeader>
 
       <form class="flex flex-col gap-4" @submit.prevent="connect">

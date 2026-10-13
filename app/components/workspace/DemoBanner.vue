@@ -1,38 +1,34 @@
 <script setup lang="ts">
-// Shown in demo (anonymous) sessions: add an email to keep the work. The
-// confirmation link turns the same user into a permanent account (SPEC M2a.3).
+// Shown in demo (anonymous) sessions: add an email to keep the work (SPEC
+// M2a.3, M2.14 P3). The emailed link signs in to the account for that address
+// (a new one, or one without Highreels yet) and this demo's work moves into
+// it; opened in another browser, /confirm moves it there. An address whose
+// account already has Highreels is refused before anything is sent.
+// Turnstile vouches for the request (BotCheck, loaded on first use).
 import { toast } from 'vue-sonner'
 
-const supabase = useSupabaseClient()
-const emit = defineEmits<{ kept: [] }>()
+const auth = useAuth()
+const route = useRoute()
+const bot = ref<{ token: () => Promise<string> }>()
 const email = ref('')
 const sending = ref(false)
 const sentTo = ref<string | null>(null)
 
 async function keep() {
   sending.value = true
-  const { error } = await supabase.auth.updateUser(
-    { email: email.value.trim() },
-    { emailRedirectTo: `${window.location.origin}/confirm` },
-  )
+  try {
+    await auth.sendLink(email.value.trim(), route.fullPath, await bot.value!.token(), true)
+    sentTo.value = email.value.trim()
+  }
+  catch (e) {
+    toast.error('Couldn\'t send the link', { description: authError(e, 'Try again in a moment.') })
+  }
   sending.value = false
-  if (error) {
-    toast.error('Couldn\'t send the link', { description: error.message })
-    return
-  }
-  // With email confirmations off (some local setups) the change applies at once.
-  const { data } = await supabase.auth.refreshSession()
-  if (data.user && !data.user.is_anonymous) {
-    toast.success('Your work is saved', { description: `Sign in with ${data.user.email} from now on.` })
-    emit('kept')
-    return
-  }
-  sentTo.value = email.value.trim()
 }
 </script>
 
 <template>
-  <div class="flex h-9 shrink-0 items-center gap-3 bg-primary/8 px-3 text-[13px]">
+  <div class="relative flex h-9 shrink-0 items-center gap-3 bg-primary/8 px-3 text-[13px]">
     <span class="rounded-full bg-primary px-2.5 py-0.5 text-[12px] font-medium text-primary-foreground">Demo session</span>
     <template v-if="sentTo">
       <span class="text-muted-foreground">Check {{ sentTo }} and open the link to keep this work.</span>
@@ -53,5 +49,7 @@ async function keep() {
         </button>
       </form>
     </template>
+    <!-- Shows only if Cloudflare wants a click. -->
+    <BotCheck ref="bot" lazy class="absolute top-10 right-3 z-50" />
   </div>
 </template>

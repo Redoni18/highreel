@@ -1,5 +1,5 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
-import { fileURLToPath } from 'node:url'
+import { builtinModules } from 'node:module'
 import tailwindcss from '@tailwindcss/vite'
 
 export default defineNuxtConfig({
@@ -7,7 +7,6 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
 
   modules: [
-    '@nuxtjs/supabase',
     'shadcn-nuxt',
     '@nuxtjs/color-mode',
     '@nuxt/fonts',
@@ -15,19 +14,10 @@ export default defineNuxtConfig({
 
   css: ['~/assets/css/main.css'],
 
-  // The Supabase browser client loads lazily (app/plugins/supabase-lazy.client.ts),
-  // so recap pages and the landing don't ship supabase-js. Drop the module's
-  // eager client plugin and point the lazy one at it.
-  alias: {
-    '#supabase-client-plugin': fileURLToPath(new URL('./node_modules/@nuxtjs/supabase/dist/runtime/plugins/supabase.client.js', import.meta.url)),
-  },
   hooks: {
-    'app:resolve'(app) {
-      app.plugins = app.plugins.filter(p => !/@nuxtjs\/supabase\/dist\/runtime\/plugins\/supabase\.client/.test(p.src))
-    },
     // No prefetch hints (SPEC M2.5 P2): on a phone, the landing and recaps
     // spent their first seconds downloading chunks for pages they never open
-    // (supabase-js, the workspace layout, error pages). Those chunks still
+    // (the workspace layout, error pages). Those chunks still
     // load when a route needs them.
     'build:manifest'(manifest) {
       for (const meta of Object.values(manifest))
@@ -47,9 +37,24 @@ export default defineNuxtConfig({
   ],
 
   runtimeConfig: {
-    // Encrypts the SMTP passwords businesses connect (SPEC M2.9). Required in
-    // production; a development server derives one from the Supabase secret key.
+    // Encrypts the SMTP passwords businesses connect (SPEC M2.9) and signs
+    // /media links (M2.14 P2). Required in production; a development server
+    // has a stand-in.
     secretsKey: '',
+    // Sign-in (Better Auth, SPEC M2.14 P3, server/utils/auth.ts). NUXT_AUTH_SECRET
+    // signs session cookies: required in production (any long random string),
+    // derived from the one above in development.
+    authSecret: '',
+    // Cloudflare Turnstile's secret for the sign-in bot check (NUXT_TURNSTILE_SECRET).
+    // Locally its test key, which always passes (.env.example).
+    turnstileSecret: '',
+    // Better Auth's per-IP limits on sign-in. Local runs set NUXT_AUTH_RATE_LIMIT=false:
+    // tests start many demo sessions from one address.
+    authRateLimit: true,
+    // Google sign-in: the provider exists only with both (NUXT_GOOGLE_CLIENT_ID,
+    // NUXT_GOOGLE_CLIENT_SECRET); NUXT_PUBLIC_AUTH_GOOGLE draws the button.
+    googleClientId: '',
+    googleClientSecret: '',
     public: {
       // Base for recap links in the export; blank means "the current origin".
       siteUrl: '',
@@ -59,36 +64,29 @@ export default defineNuxtConfig({
       siteOrigin: 'https://highreel.app',
       // Show "Continue with Google" on /login (needs a Google OAuth client, SPEC M2a.2).
       authGoogle: false,
+      // Turnstile's site key (NUXT_PUBLIC_TURNSTILE_SITE_KEY), for /login and "Keep my work".
+      turnstileSiteKey: '',
     },
   },
 
-  // Auth + RLS (SPEC M2a). Reads SUPABASE_URL, SUPABASE_KEY (publishable) and
-  // SUPABASE_SECRET_KEY from .env. Workspace routes use the user's session;
-  // only token-addressed recap routes use the secret key.
-  supabase: {
-    types: false,
-    redirectOptions: {
-      login: '/login',
-      callback: '/confirm',
-      include: ['/app', '/app/**'],
-      saveRedirectToCookie: true,
-    },
-    cookieOptions: {
-      maxAge: 60 * 60 * 24 * 30,
-      sameSite: 'lax',
-      // Safari drops Secure cookies on http://localhost.
-      secure: process.env.NODE_ENV === 'production',
-    },
-  },
-
-  // Link-preview images (SPEC M2g): resvg's WebAssembly comes from node_modules;
-  // the Geist TTFs live in server/assets/fonts (served as assets:server).
   nitro: {
-    // Serve pre-compressed JS/CSS when the Node server is used (Cloudflare compresses on its own).
-    compressPublicAssets: true,
-    serverAssets: [
-      { baseName: 'resvg', dir: fileURLToPath(new URL('./node_modules/@resvg/resvg-wasm', import.meta.url)) },
-    ],
+    // One Worker on Cloudflare (SPEC M2.14, wrangler.jsonc). `pnpm dev` emulates
+    // its bindings (event.context.cloudflare.env); budgets and Lighthouse run on
+    // the built Worker (`wrangler dev`). Cloudflare compresses responses itself,
+    // so there are no pre-compressed copies.
+    preset: 'cloudflare_module',
+    // Link-preview images (SPEC M2g): resvg's WebAssembly is an ESM import
+    // (server/utils/og.ts), a compiled module on Workers; the Geist TTFs live
+    // in server/assets/fonts (served as assets:server).
+    experimental: { wasm: true },
+    // Bundled CommonJS that requires a Node built-in gets what Node gives it,
+    // the module's default export. Nitro's "auto" gave nodemailer the
+    // namespace on Workers, where node:events is an ES module, and its
+    // `class Mail extends require('events')` threw "Class extends value
+    // [object Module]" (SPEC M2.14 P0; nodemailer issue #1621).
+    commonJS: {
+      requireReturnsDefault: id => (id.startsWith('node:') || builtinModules.includes(id) ? 'preferred' : 'auto'),
+    },
   },
 
   routeRules: {

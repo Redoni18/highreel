@@ -21,7 +21,7 @@ defineExpose({ player })
 </script>
 
 <template>
-  <aside class="stage relative hidden w-[min(36vw,440px)] shrink-0 flex-col items-center justify-center gap-4 border-l px-6 lg:flex" :style="{ '--accent': accent }" aria-label="Highlight reel preview">
+  <aside class="stage relative hidden w-[min(36vw,440px)] shrink-0 flex-col items-center justify-center gap-4 border-l px-6 lg:flex" :style="{ '--accent': accent }" aria-label="Highreel preview">
     <PhoneFrame v-if="payload" class="phone" :ink="tone">
       <RecapPlayer ref="player" :payload="payload" mode="preview" :autoplay="false" />
     </PhoneFrame>

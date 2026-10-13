@@ -25,7 +25,7 @@ if (import.meta.server && error.value) {
 }
 
 const texts = computed(() => data.value ? shareTexts(templateFor(data.value.template_key, data.value.settings), data.value) : null)
-const title = computed(() => texts.value?.title ?? 'Highlight reel not found')
+const title = computed(() => texts.value?.title ?? 'Highreel not found')
 const accent = computed(() => data.value?.business.accent_color ?? '#0a0a0a')
 const paper = computed(() => data.value?.settings.theme === 'paper')
 
@@ -97,7 +97,7 @@ const player = ref<InstanceType<typeof RecapPlayer> | null>(null)
     </template>
     <div v-else class="missing">
       <p class="font-mono text-xs opacity-60">{{ error?.statusCode ?? 404 }}</p>
-      <h1 class="text-xl font-semibold tracking-tight">This highlight reel isn't available.</h1>
+      <h1 class="text-xl font-semibold tracking-tight">This Highreel isn't available.</h1>
       <p class="text-sm opacity-70">The link may be mistyped, or the business has taken it down.</p>
     </div>
   </main>

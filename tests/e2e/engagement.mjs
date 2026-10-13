@@ -1,5 +1,5 @@
 // Engagement columns (SPEC M2d) and the first-run business-name prompt.
-import { BASE, campaignId, demoSession, expect, finish, launch, publish, tab, watchErrors, saveSummaryImage } from './lib.mjs'
+import { BASE, campaignId, demoSession, expect, finish, launch, publish, tab, watchErrors, saveSummaryImage, rowsOf } from './lib.mjs'
 
 const browser = await launch()
 const page = await (await browser.newContext({ viewport: { width: 1440, height: 900 } })).newPage()
@@ -14,7 +14,7 @@ await page.getByRole('button', { name: 'Use sample data' }).click()
 await page.waitForSelector('[data-row-id]')
 await publish(page)
 const c = campaignId(page)
-const tokens = await page.evaluate(async c => (await (await fetch(`/api/campaigns/${c}/recipients`)).json()).filter(r => r.token).slice(0, 3).map(r => r.token), c)
+const tokens = (await rowsOf(page, c)).filter(r => r.token).slice(0, 3).map(r => r.token)
 
 const v = await browser.newContext({ viewport: { width: 390, height: 844 }, acceptDownloads: true })
 for (const t of tokens) {

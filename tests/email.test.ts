@@ -24,7 +24,7 @@ describe('recap email', () => {
     const m = recapEmail(base)
     expect(m.subject).toBe('Ana, your 2026 with Habitly')
     expect(m.text).toContain('Hi Ana,')
-    expect(m.text).toContain('Open your highlight reel: https://recap.local/r/abcdefghijkl')
+    expect(m.text).toContain('Open your Highreel: https://recap.local/r/abcdefghijkl')
     expect(m.text).toContain('Unsubscribe: https://recap.local/unsubscribe/abcdefghijkl')
     expect(m.html).toContain('href="https://recap.local/r/abcdefghijkl"')
     expect(m.html).toContain('href="https://recap.local/unsubscribe/abcdefghijkl"')
@@ -102,7 +102,7 @@ describe('WhatsApp numbers and messages', () => {
 
   test('the link goes at the end unless the text places it', () => {
     const vars = { first_name: 'Ana', business: 'Habitly', year: 2026, link: 'https://r.test/r/abc' }
-    expect(whatsappText('', vars)).toBe('Hi Ana! We made your 2026 with Habitly into a little highlight reel, just for you: https://r.test/r/abc')
+    expect(whatsappText('', vars)).toBe('Hi Ana! We made your 2026 with Habitly into a little Highreel, just for you: https://r.test/r/abc')
     expect(whatsappText('Hey {first_name}, look', vars)).toBe('Hey Ana, look\n\nhttps://r.test/r/abc')
     expect(whatsappText('{link} is yours, {first_name}', vars)).toBe('https://r.test/r/abc is yours, Ana')
     // Messages saved before {link} still fill in their old {recap_url}.

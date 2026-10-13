@@ -329,7 +329,7 @@ function statusOf(it: Item): string {
   const i = indexOf(it.key)
   if (player.value && i < 0)
     return `${person.value} doesn't get this slide.${rule}`
-  return `${player.value && i >= 0 ? `Slide ${i + 1} of ${player.value.count} in ${person.value}'s highlight reel.` : ''}${rule}`.trim()
+  return `${player.value && i >= 0 ? `Slide ${i + 1} of ${player.value.count} in ${person.value}'s Highreel.` : ''}${rule}`.trim()
 }
 
 // Placeholders a line offers: the slide's own column first, then the ones every line has.
@@ -355,7 +355,7 @@ async function save() {
   const ok = await ws.saveDesign()
   saving.value = false
   if (ok)
-    toast.success('Design saved', { description: ws.isPublished.value ? 'Published highlight reels show it now.' : undefined })
+    toast.success('Design saved', { description: ws.isPublished.value ? 'Published Highreels show it now.' : undefined })
 }
 function discard() {
   ws.draft.value = saved()
@@ -420,7 +420,7 @@ function discard() {
                 <button type="button" class="row" :aria-current="active === it.key ? 'true' : undefined" @click="select(it.key)">
                   <component :is="it.icon" class="row-icon" />
                   <span class="row-text"><span class="row-name">{{ it.title }}</span><span class="row-line">{{ lineOf(it) }}</span></span>
-                  <UserX v-if="!it.entry?.hidden && !shown(it.key)" class="ml-auto size-3.5 shrink-0 text-muted-foreground/70" :aria-label="`Not in ${person}'s highlight reel`" data-not-shown />
+                  <UserX v-if="!it.entry?.hidden && !shown(it.key)" class="ml-auto size-3.5 shrink-0 text-muted-foreground/70" :aria-label="`Not in ${person}'s Highreel`" data-not-shown />
                 </button>
                 <Button type="button" variant="ghost" size="icon-xs" class="eye" :aria-label="it.entry?.hidden ? `Show ${it.title.toLowerCase()}` : `Hide ${it.title.toLowerCase()}`" :aria-pressed="!it.entry?.hidden" @click="toggleHidden(it.key)">
                   <EyeOff v-if="it.entry?.hidden" />

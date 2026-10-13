@@ -1,67 +1,64 @@
-// Publish: re-validate every row, compute "top X%" among valid rows, give each
-// valid row without a link a token, and mark the campaign published.
-// Publishing again refreshes ranks and links rows fixed since.
+// Publish: check every row again (a page at a time, server/utils/sheet.ts),
+// compute "top X%" among valid rows, give each valid row without a link a
+// token, and mark the campaign published, all in one transaction. Publishing
+// again refreshes ranks and links rows fixed since. Answers with counts; the
+// browser reloads the rows (SPEC M2.14 P1).
 
 import { nanoid } from 'nanoid'
 import type { PublishResponse } from '#shared/types/recap'
-import { idColumnOf, templateFor } from '#shared/templates'
+import { templateFor } from '#shared/templates'
 import { rankableColumns, storedRankKey } from '#shared/templates/own'
-import { computeTopPercents, hasErrors, validateSheet } from '#shared/utils/validate'
+import { computeTopPercents } from '#shared/utils/validate'
 
 export default defineEventHandler(async (event): Promise<PublishResponse> => {
   const { db } = await requireUser(event)
   const id = requireUuid(getRouterParam(event, 'id'))
   const { campaign } = await loadWorkspace(db, id)
+  if (campaign.importing)
+    throw createError({ statusCode: 409, message: 'The last sheet upload didn\'t finish. Upload the sheet again, then publish.' })
   const template = templateFor(campaign.template_key, campaign.settings)
-  const idColumn = idColumnOf(template)
+  const by = template.rank?.by
+  // "Top X%" by every number column too, so a "top" slide added after publishing has its numbers (M2.7).
+  const ranked = rankableColumns(template)
 
-  const rows = await loadRecipients(db, id)
+  const rows = await checkSheet(db, id, template, { business: campaign.kind === 'business', collect: [by ?? '', ...ranked] })
   if (!rows.length)
     throw createError({ statusCode: 400, message: 'Nothing to publish yet' })
 
-  const results = validateSheet(rows.map(r => r.raw), template)
-  const valid = results.map(r => !hasErrors(r.errors))
-  const by = template.rank?.by
-  const ranks = by
-    ? computeTopPercents(results.map((r, i) => ({ valid: valid[i]!, value: r.data[by] })))
-    : results.map(() => null)
-  // "Top X%" by every number column, so a "top" slide added after publishing has its numbers (M2.7).
-  const ranked = rankableColumns(template).map(col => ({
-    key: storedRankKey(col),
-    values: computeTopPercents(results.map((r, i) => ({ valid: valid[i]!, value: r.data[col] }))),
-  }))
+  const valid = rows.map(r => r.valid)
+  const top = (k: number) => computeTopPercents(rows.map((r, i) => ({ valid: valid[i]!, value: r.values[k] })))
+  const ranks = by ? top(0) : rows.map(() => null)
+  const byColumn = ranked.map((col, j) => ({ key: storedRankKey(col), values: top(j + 1) }))
 
   // A row fixed after publishing could share its id with a row that already
   // has a link; the database refuses that, so it waits.
-  const linkedIds = new Set(rows.filter(r => r.token).map(r => r.raw[idColumn] ?? ''))
-
+  const linkedIds = new Set(rows.filter(r => r.token).map(r => r.customer_id))
   let published = 0
   const updates = rows.map((row, i) => {
-    let token = row.token
-    if (!token && valid[i] && !linkedIds.has(row.raw[idColumn] ?? '')) {
+    let token: string | null = null
+    if (!row.token && valid[i] && !linkedIds.has(row.customer_id)) {
       token = nanoid(12)
-      linkedIds.add(row.raw[idColumn] ?? '')
+      linkedIds.add(row.customer_id)
     }
-    if (token && valid[i])
+    if ((row.token || token) && valid[i])
       published++
     return {
       id: row.id,
-      // A business recap's one row has no id column (SPEC M2.5 P4).
-      customer_id: campaign.kind === 'business' ? 'business' : row.raw[idColumn] ?? '',
-      data: { ...results[i]!.data, computed_top_percent: ranks[i], ...Object.fromEntries(ranked.map(r => [r.key, r.values[i]])) },
-      errors: results[i]!.errors,
       token,
+      ranks: { computed_top_percent: ranks[i] ?? null, ...Object.fromEntries(byColumn.map(c => [c.key, c.values[i] ?? null])) },
     }
   })
 
-  const recipients = await bulkUpdateRecipients(db, updates)
-
-  const { error } = await db
-    .from('campaigns')
-    .update({ status: 'published', published_at: campaign.published_at ?? new Date().toISOString() })
-    .eq('id', id)
-  if (error)
-    dbError(error, 'Publishing campaign')
-
-  return { published, skipped: rows.length - published, recipients }
+  try {
+    await runBatch(db, [
+      ...publishRowStatements(db, id, updates),
+      campaignUpdateStatement(db, id, { status: 'published', published_at: campaign.published_at ?? new Date().toISOString() }),
+    ])
+  }
+  catch (e) {
+    if (e instanceof DuplicatePublishedId)
+      throw createError({ statusCode: 409, message: 'Two rows with the same id would both get a link. Fix the duplicate and publish again.' })
+    throw e
+  }
+  return { published, skipped: rows.length - published }
 })

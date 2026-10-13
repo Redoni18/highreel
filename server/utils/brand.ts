@@ -1,7 +1,7 @@
 // The business's brand (name, colour, website, logo): the checks shared by
 // PATCH /api/business (Your brand, SPEC M2.6) and PATCH /api/campaigns/:id.
 
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { H3Event } from 'h3'
 import type { Business } from '#shared/types/recap'
 import { normalizeHex } from '#shared/utils/color'
 import { isHttpUrl, normalizeSettings } from '#shared/utils/recap'
@@ -28,8 +28,8 @@ export function checkUrl(value: unknown, field: string): string {
 export interface BrandInput { name?: unknown, accent_color?: unknown, website_url?: unknown, logo_path?: unknown, logo_shape?: unknown }
 
 /** The columns to update on `businesses`; throws 400 on anything invalid. Logos must be in the business's own folder. */
-export function brandUpdate(b: BrandInput, businessId: string): Record<string, unknown> {
-  const out: Record<string, unknown> = {}
+export function brandUpdate(b: BrandInput, businessId: string): BusinessUpdate {
+  const out: BusinessUpdate = {}
   if (b.name !== undefined)
     out.name = checkText(b.name, 'Business name', 60, true)
   if (b.accent_color !== undefined) {
@@ -48,12 +48,12 @@ export function brandUpdate(b: BrandInput, businessId: string): Record<string, u
   if (b.logo_path !== undefined) {
     if (b.logo_path !== null && (typeof b.logo_path !== 'string' || !b.logo_path.startsWith(`${businessId}/logo/`) || b.logo_path.includes('..')))
       throw createError({ statusCode: 400, message: 'Logo is outside your folder' })
-    out.logo_path = b.logo_path
+    out.logo_path = b.logo_path as string | null
   }
   return out
 }
 
 /** The business with a signed logo URL (1 h), for the workspace. */
-export async function signedBusiness(db: SupabaseClient, business: Business): Promise<Business> {
-  return (await signMedia(db, business, normalizeSettings({}), 3600)).business
+export async function signedBusiness(event: H3Event, business: Business): Promise<Business> {
+  return (await signMedia(event, business, normalizeSettings({}), 3600)).business
 }

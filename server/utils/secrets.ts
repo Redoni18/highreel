@@ -1,8 +1,9 @@
 // Encrypting what businesses give us to send on their behalf (SPEC M2.9: SMTP
 // passwords and API keys). AES-256-GCM with Web Crypto (runs on Node and on
 // Cloudflare). The key is NUXT_SECRETS_KEY; a development server without one
-// derives a key from the Supabase secret key so local work just runs, and a
-// production server without one refuses rather than store anything weakly.
+// uses a fixed stand-in so local work just runs, and a production server
+// without one refuses rather than store anything weakly.
+// Media links are signed with a key derived from the same secret (media.ts).
 
 import type { H3Event } from 'h3'
 
@@ -12,14 +13,18 @@ const unb64 = (s: string) => new Uint8Array(Buffer.from(s, 'base64'))
 
 let cached: { from: string, key: Promise<CryptoKey> } | null = null
 
-function keyFor(event: H3Event): Promise<CryptoKey> {
+/** The server's secret (NUXT_SECRETS_KEY), or a development stand-in. */
+export function secretMaterial(event: H3Event): string {
   const configured = String(useRuntimeConfig(event).secretsKey || '')
-  let material = configured
-  if (!material) {
-    if (!import.meta.dev)
-      throw createError({ statusCode: 500, message: 'NUXT_SECRETS_KEY isn\'t set on the server' })
-    material = `recap-dev:${process.env.SUPABASE_SECRET_KEY ?? 'local'}`
-  }
+  if (configured)
+    return configured
+  if (!import.meta.dev)
+    throw createError({ statusCode: 500, message: 'NUXT_SECRETS_KEY isn\'t set on the server' })
+  return 'highreel-dev:local'
+}
+
+function keyFor(event: H3Event): Promise<CryptoKey> {
+  const material = secretMaterial(event)
   if (cached?.from !== material) {
     cached = {
       from: material,

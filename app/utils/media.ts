@@ -1,4 +1,4 @@
-// Shrink an image in the browser before it goes to Storage (SPEC M2c):
+// Shrink an image in the browser before it's uploaded (SPEC M2c, POST /api/media):
 // photos to 2000 px on the long edge as WebP (JPEG if the browser can't encode
 // WebP); logos to 512 px as PNG, which keeps transparency and is the format
 // the server's link-preview renderer can draw (it can't decode WebP).

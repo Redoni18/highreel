@@ -4,7 +4,7 @@
 // options, reorders, adds a "top X%" and a new column, removes a slide;
 // published recaps play the added slides (hearts, a calendar page) and carry
 // no id or email. A template recap can hide one of its own slides.
-import { BASE, campaignId, demoSession, designItem, expect, finish, launch, publish, sheetCounts, tab, watchErrors } from './lib.mjs'
+import { BASE, campaignId, demoSession, designItem, expect, finish, launch, publish, sheetCounts, tab, watchErrors, rowsOf } from './lib.mjs'
 
 const browser = await launch()
 const page = await (await browser.newContext({ viewport: { width: 1440, height: 900 } })).newPage()
@@ -12,7 +12,7 @@ const errors = []
 watchErrors(page, errors)
 const api = path => page.evaluate(async p => (await fetch(p)).json(), path)
 const campaign = async () => (await api(`/api/campaigns/${campaignId(page)}`)).campaign
-const preview = 'aside[aria-label="Highlight reel preview"] .recap .slide'
+const preview = 'aside[aria-label="Highreel preview"] .recap .slide'
 const slideScene = () => page.locator(preview).last().getAttribute('data-scene')
 
 await demoSession(page)
@@ -36,9 +36,9 @@ const days = c.settings.slides?.find(s => s.key === 'active_days')
 expect(streak?.hidden === true && days?.scene === 'count' && days?.tokens === 'stars', 'Save keeps the slide list', c.settings.slides)
 
 // --- "Your own sheet" with the Keepsake sample -------------------------------------
-await page.getByRole('link', { name: 'All highlight reels' }).click()
+await page.getByRole('link', { name: 'All Highreels' }).click()
 await page.waitForURL(u => new URL(u).pathname === '/app')
-await page.getByRole('button', { name: 'New highlight reel' }).click()
+await page.getByRole('button', { name: 'New Highreel' }).click()
 await page.getByRole('dialog').getByRole('radio', { name: /Your own sheet/ }).click()
 await page.getByRole('dialog').getByRole('button', { name: 'Create' }).click()
 await page.waitForURL('**/app/c/*')
@@ -58,7 +58,7 @@ await page.waitForSelector('[data-row-id]')
 await page.waitForTimeout(300)
 const counts = await sheetCounts(page)
 expect(counts.all === 150 && counts.errors === 3, '150 rows, the 3 planted errors flagged', counts)
-const rows = await api(`/api/campaigns/${campaignId(page)}/recipients`)
+const rows = await rowsOf(page)
 const flagged = rows.filter(r => Object.keys(r.errors).length).map(r => `${r.row_index + 1}:${Object.entries(r.errors).map(([k, v]) => `${k}=${v}`).join()}`)
 expect(JSON.stringify(flagged) === JSON.stringify(['6:gifts_made=Needs a whole number', '31:first_gift=Use YYYY-MM-DD', '102:customer_id=Already used in row 101']), 'the planted errors, in the right cells', flagged)
 expect(rows[0].raw.joined === undefined && rows[0].data.gifts_made === 14, 'an unticked column isn\'t imported; numbers are numbers', rows[0].data)
@@ -150,7 +150,7 @@ expect(await page.locator('[data-row-id] [data-col="thank_you_notes"]').count() 
 
 // --- Published: the recap plays the added slides ---------------------------------------
 await publish(page)
-const rowsNow = await api(`/api/campaigns/${campaignId(page)}/recipients`)
+const rowsNow = await rowsOf(page)
 const lea = rowsNow.find(r => r.token && r.data.gifts_made >= 1 && r.data['computed_top:gifts_made'] <= 25 && r.data.first_gift && r.data.maker_badge)
 const pub = await (await fetch(`${BASE}/api/r/${lea.token}`)).json()
 const values = pub.recipient.values
@@ -181,7 +181,7 @@ expect(JSON.stringify(scenes) === JSON.stringify(['cover', 'count', 'date', 'cou
 
 // --- Decimals: amounts from another tool, currency signs and decimal commas ---------------
 await page.goto(`${BASE}/app`)
-await page.getByRole('button', { name: 'New highlight reel' }).click()
+await page.getByRole('button', { name: 'New Highreel' }).click()
 await page.getByRole('dialog').getByRole('radio', { name: /Your own sheet/ }).click()
 await page.getByRole('dialog').getByRole('button', { name: 'Create' }).click()
 await page.waitForSelector('text=Your own sheet template')
@@ -191,7 +191,7 @@ const types = await page.locator('[data-own-column]').evaluateAll(trs => trs.map
 expect(JSON.stringify(types) === JSON.stringify(['spent:Decimal', 'orders:Number']), 'amounts with cents are decimals', types)
 await page.getByRole('button', { name: /Import 3 rows/ }).click()
 await page.waitForSelector('[data-row-id]')
-const spent = (await api(`/api/campaigns/${campaignId(page)}/recipients`)).map(r => r.data.spent)
+const spent = (await rowsOf(page)).map(r => r.data.spent)
 expect(JSON.stringify(spent) === JSON.stringify([24.99, 1204.5, 12]), 'currency signs and decimal commas read as numbers', spent)
 await tab(page, 'Design')
 const spentSlide = await designItem(page, 'c_spent')

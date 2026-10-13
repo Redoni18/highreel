@@ -4,7 +4,7 @@
 // in-place editing. TanStack Table owns column sizing; TanStack Virtual owns
 // which rows are in the DOM.
 import { useVirtualizer } from '@tanstack/vue-virtual'
-import { columnResizingFeature, columnSizingFeature, tableFeatures, useTable } from '@tanstack/vue-table'
+import { type ColumnDef, columnResizingFeature, columnSizingFeature, tableFeatures, useTable } from '@tanstack/vue-table'
 import { Activity, AtSign, Calendar, CaseSensitive, Check, Copy, Download, Eye, Hash, Link2, Mail, MailX, MessageCircle, MousePointerClick, Phone, Share2 } from '@lucide/vue'
 import { toast } from 'vue-sonner'
 import type { Recipient } from '#shared/types/recap'
@@ -49,7 +49,7 @@ const editableIds = computed(() => gridColumns.value.filter(c => c.kind === 'dat
 
 // --- TanStack Table: column sizing and resizing --------------------------------
 const features = tableFeatures({ columnSizingFeature, columnResizingFeature })
-const tableColumns = computed(() => gridColumns.value.map(c => ({
+const tableColumns = computed((): ColumnDef<typeof features, Recipient>[] => gridColumns.value.map(c => ({
   id: c.id,
   size: c.size,
   minSize: c.kind === 'data' || c.kind === 'link' ? 64 : c.size,
@@ -58,8 +58,7 @@ const tableColumns = computed(() => gridColumns.value.map(c => ({
 })))
 const table = useTable({
   features,
-  // Plain column objects; the generic ColumnDef type adds nothing for sizing-only columns.
-  columns: tableColumns as any,
+  columns: tableColumns,
   data: ws.visibleRows,
   getRowId: (r: Recipient) => r.id,
   enableColumnResizing: true,

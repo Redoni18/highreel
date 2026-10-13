@@ -2,6 +2,8 @@
 // Sheet, step one of a recap (SPEC §6, M2.6): the data and a live preview,
 // nothing else. A business recap shows its form (Content) here instead.
 // Drop a file anywhere to import it; ⌘F / Ctrl+F searches, P toggles the preview.
+import { Button } from '@/components/ui/button'
+
 const ws = useWorkspace()
 const route = useRoute()
 const router = useRouter()
@@ -72,6 +74,11 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
       <BusinessForm v-if="ws.isBusiness.value" class="min-h-0 flex-1" />
       <EmptyState v-else-if="!ws.rows.value.length" class="flex-1" />
       <template v-else>
+        <!-- A sheet arrives in parts (SPEC M2.14 P1); one that stopped halfway can't be published. -->
+        <div v-if="ws.campaign.value?.importing" role="status" data-testid="import-unfinished" class="flex items-center gap-3 border-b bg-muted px-4 py-2 text-[13px]">
+          <span class="min-w-0 flex-1">The last upload didn't finish: only the first {{ ws.rows.value.length.toLocaleString('en-US') }} rows arrived. Upload the sheet again to publish it.</span>
+          <Button size="sm" variant="outline" @click="ws.pickFile()">Upload again</Button>
+        </div>
         <DataGrid class="min-h-0 flex-1" />
         <BottomBar />
       </template>

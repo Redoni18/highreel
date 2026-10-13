@@ -40,7 +40,7 @@ await filter(/^All/).click()
 async function slidesFor(n) {
   await rowLoc(page, n).locator('[data-col="first_name"]').click()
   await page.waitForTimeout(200)
-  return (await page.locator('aside[aria-label="Highlight reel preview"] .font-mono').innerText()).trim()
+  return (await page.locator('aside[aria-label="Highreel preview"] .font-mono').innerText()).trim()
 }
 expect(await slidesFor(12) === 'slide 1/6', 'Kai (2-day streak) has no streak slide', await slidesFor(12))
 expect(await slidesFor(4) === 'slide 1/8', 'Liam (top 3%) gets the rank slide', await slidesFor(4))
@@ -73,7 +73,7 @@ expect((await page.locator('header').getByRole('button', { name: /Publish/ }).in
 
 // 10,000 rows in a new campaign
 await page.getByRole('button', { name: 'Switch campaign' }).click()
-await page.getByRole('menuitem', { name: 'New highlight reel' }).click()
+await page.getByRole('menuitem', { name: 'New Highreel' }).click()
 await page.getByLabel('Name').fill('10k test')
 await page.getByRole('button', { name: 'Create' }).click()
 await page.waitForSelector('text=Use sample data')

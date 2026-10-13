@@ -1,7 +1,8 @@
 // Logo and group photos (SPEC M2c): consent gate, browser shrinking, captions,
 // order, photo slides, signed URLs without paths, share image, cleanup on delete.
-// Since M2.6 the logo is on Your brand and the photos in a recap's Design tab.
-import { BASE, campaignId, demoSession, designItem, env, expect, finish, FIX, launch, needFixtures, OUT, publish, tab, tokenFor, watchErrors, saveSummaryImage } from './lib.mjs'
+// Since M2.6 the logo is on Your brand and the photos in a recap's Design tab;
+// since M2.14 P2 files live in R2 behind signed /media/ links.
+import { BASE, campaignId, demoSession, designItem, expect, finish, FIX, launch, needFixtures, OUT, publish, tab, tokenFor, watchErrors, saveSummaryImage } from './lib.mjs'
 
 needFixtures()
 const browser = await launch()
@@ -15,7 +16,7 @@ const sheet = page.url()
 
 await page.goto(`${BASE}/app/brand`)
 await page.locator('[data-testid="logo-input"]').setInputFiles(`${FIX}/logo.png`)
-await page.locator('img[src*="/storage/v1/object/sign/media/"]').first().waitFor()
+await page.locator('img[src^="/media/"]').first().waitFor()
 expect(await page.getByRole('button', { name: 'Replace', exact: true }).isVisible(), 'logo uploads on Your brand')
 await page.goto(sheet)
 await page.waitForSelector('[data-row-id]')
@@ -39,11 +40,20 @@ const logoExt = await page.evaluate(async c => (await (await fetch(`/api/campaig
 expect(logoExt === 'png', 'logos are stored as PNG', logoExt)
 
 await publish(page)
-const c = campaignId(page)
 const token = await tokenFor(page, 'r => r.token && r.row_index === 1')
 const payload = await (await fetch(`${BASE}/api/r/${token}`)).json()
-expect(payload.settings.photos.length === 2 && payload.settings.photos.every(p => p.path === '' && p.url.includes('token=')), 'public payload: signed URLs, no storage paths')
-expect(payload.business.logo_url?.includes('token=') && payload.settings.photos_consent_at === null, 'public payload: signed logo, consent date hidden')
+const signedLink = /^\/media\/[\w/-]+\.\w+\?exp=\d+&sig=[0-9a-f]{32}$/
+expect(payload.settings.photos.length === 2 && payload.settings.photos.every(p => p.path === '' && signedLink.test(p.url)), 'public payload: signed URLs, no storage paths', payload.settings.photos[0]?.url)
+expect(signedLink.test(payload.business.logo_url ?? '') && payload.settings.photos_consent_at === null, 'public payload: signed logo, consent date hidden')
+const photoUrl = `${BASE}${payload.settings.photos[0].url}`
+const photo = await fetch(photoUrl)
+expect(photo.status === 200 && photo.headers.get('content-type') === 'image/webp' && /private, max-age=\d+/.test(photo.headers.get('cache-control') ?? ''), 'a signed link serves the photo', [photo.status, photo.headers.get('content-type'), photo.headers.get('cache-control')])
+const tampered = photoUrl.replace(/sig=(.)/, (_, c) => `sig=${c === '0' ? '1' : '0'}`)
+expect((await fetch(tampered)).status === 404, 'a tampered signature gets a 404')
+expect((await fetch(photoUrl.replace(/exp=\d+/, 'exp=1000000000'))).status === 404, 'an expired (or edited) expiry gets a 404')
+const preview = await fetch(`${BASE}/api/r/${token}/og.png`)
+const previewAgain = await fetch(`${BASE}/api/r/${token}/og.png`)
+expect(preview.status === 200 && previewAgain.status === 200 && Buffer.compare(Buffer.from(await preview.arrayBuffer()), Buffer.from(await previewAgain.arrayBuffer())) === 0, 'the link preview is drawn once and served again')
 
 const r = await (await browser.newContext({ viewport: { width: 390, height: 844 }, acceptDownloads: true })).newPage()
 await r.goto(`${BASE}/r/${token}`, { waitUntil: 'networkidle' })
@@ -63,17 +73,12 @@ const d = await saveSummaryImage(r)
 await d.saveAs(`${OUT}/media-share.png`)
 expect(true, 'share image saves with logo')
 
-const biz = await page.evaluate(async c => (await (await fetch(`/api/campaigns/${c}`)).json()).business.id, c)
 await page.getByRole('button', { name: 'Switch campaign' }).click()
-await page.getByRole('menuitem', { name: 'Delete this highlight reel' }).click()
-await page.getByRole('dialog').getByRole('button', { name: 'Delete highlight reel' }).click()
-await page.waitForSelector('text=Make your first highlight reel')
-const left = await fetch(`${env.SUPABASE_URL}/storage/v1/object/list/media`, {
-  method: 'POST',
-  headers: { 'Authorization': `Bearer ${env.SUPABASE_SECRET_KEY}`, 'apikey': env.SUPABASE_SECRET_KEY, 'content-type': 'application/json' },
-  body: JSON.stringify({ prefix: `${biz}/${c}/`, limit: 100 }),
-}).then(x => x.json())
-expect(Array.isArray(left) && left.length === 0, 'deleting the campaign removes its photos', left.length)
+await page.getByRole('menuitem', { name: 'Delete this Highreel' }).click()
+await page.getByRole('dialog').getByRole('button', { name: 'Delete Highreel' }).click()
+await page.waitForSelector('text=Make your first Highreel')
+// The link still verifies; the file behind it is gone.
+expect((await fetch(photoUrl)).status === 404, 'deleting the campaign removes its photos', photoUrl)
 expect((await fetch(`${BASE}/api/r/${token}`)).status === 404, 'its recaps stop working')
 await browser.close()
 finish(errors)

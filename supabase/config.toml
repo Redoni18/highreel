@@ -1,3 +1,8 @@
+# Highreel no longer uses Supabase (SPEC M2.14): the database is D1 and sign-in is
+# Better Auth. `supabase start` is kept only for its Mailpit (inbox 54424, SMTP
+# 54425), the local inbox for sign-in links and recap emails, until M2.14 P5 runs
+# Mailpit on its own and this folder goes.
+#
 # For detailed configuration reference documentation, visit:
 # https://supabase.com/docs/guides/local-development/cli/config
 # A string used to distinguish different Supabase projects on the same host. Defaults to the
@@ -66,10 +71,7 @@ schema_paths = []
 
 [db.seed]
 # If enabled, seeds the database after migrations during a db reset.
-enabled = true
-# Specifies an ordered list of seed files to load during db reset.
-# Supports glob patterns relative to supabase directory: "./seeds/*.sql"
-sql_paths = ["./seed.sql"]
+enabled = false
 
 [db.network_restrictions]
 # Enable management of network restrictions.

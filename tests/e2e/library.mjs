@@ -8,7 +8,7 @@ const browser = await launch()
 const errors = []
 const page = await (await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' })).newPage()
 watchErrors(page, errors)
-const slide = () => page.locator('aside[aria-label="Highlight reel preview"] .recap .slide').last()
+const slide = () => page.locator('aside[aria-label="Highreel preview"] .recap .slide').last()
 const squash = s => s.replace(/\s+/g, ' ').trim().toLowerCase()
 
 /** Click each animation of a slide; return what the phone drew and whether `expected` reads in it. */
@@ -47,9 +47,9 @@ expect(tops.length === 5 && ok(tops), 'a top % has 5, each with her 54 %', bad(t
 await page.getByRole('button', { name: 'Discard' }).click()
 
 // Dates and lists, on a "Your own sheet" recap (Keepsake).
-await page.getByRole('link', { name: 'All highlight reels' }).click()
+await page.getByRole('link', { name: 'All Highreels' }).click()
 await page.waitForURL(u => new URL(u).pathname === '/app')
-await page.getByRole('button', { name: 'New highlight reel' }).click()
+await page.getByRole('button', { name: 'New Highreel' }).click()
 await page.getByRole('dialog').getByRole('radio', { name: /Your own sheet/ }).click()
 await page.getByRole('dialog').getByRole('button', { name: 'Create' }).click()
 await page.waitForSelector('text=Use sample data')

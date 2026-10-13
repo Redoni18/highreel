@@ -14,7 +14,7 @@ definePageMeta({ key: 'workspace' })
 
 const ws = provideWorkspace()
 const route = useRoute()
-useHead({ title: () => `${ws.campaign.value?.name ?? 'Highlight reel'} · Highreel` })
+useHead({ title: () => (ws.campaign.value?.name ? `${ws.campaign.value.name} · Highreel` : 'Highreel') })
 const publishOpen = ref(false)
 const fileInput = ref<HTMLInputElement | null>(null)
 
@@ -80,17 +80,17 @@ function onFileChosen(e: Event) {
 
 <template>
   <div class="flex h-dvh flex-col overflow-hidden">
-    <DemoBanner v-if="ws.anonymous.value" @kept="ws.refreshIndex()" />
+    <DemoBanner v-if="ws.anonymous.value" />
     <TopBar @publish="publishOpen = true" />
 
     <div v-if="ws.loading.value" class="flex flex-1 items-center justify-center text-muted-foreground">
       <Loader2 class="size-4 animate-spin" />
     </div>
     <div v-else-if="ws.loadError.value" class="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
-      <p class="text-[18px] font-semibold">Couldn't open this highlight reel</p>
+      <p class="text-[18px] font-semibold">Couldn't open this Highreel</p>
       <p class="max-w-md text-[14px] text-muted-foreground">{{ ws.loadError.value }}</p>
       <div class="flex gap-2">
-        <Button variant="outline" as-child><NuxtLink to="/app">Back to your highlight reels</NuxtLink></Button>
+        <Button variant="outline" as-child><NuxtLink to="/app">Back to your Highreels</NuxtLink></Button>
         <Button variant="ghost" @click="ws.load()">Try again</Button>
       </div>
     </div>
@@ -103,7 +103,7 @@ function onFileChosen(e: Event) {
       <DialogContent class="max-w-md">
         <DialogHeader>
           <DialogTitle>Save your design changes?</DialogTitle>
-          <DialogDescription>You changed how this highlight reel looks or what it says in Design. Save them before you go, or leave them out.</DialogDescription>
+          <DialogDescription>You changed how this Highreel looks or what it says in Design. Save them before you go, or leave them out.</DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button variant="outline" size="sm" :disabled="leavingSave" @click="leaving = null">Keep editing</Button>

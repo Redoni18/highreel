@@ -49,7 +49,7 @@ const confirmText = computed(() => {
     return { title: '', description: '', label: '' }
   if ('remove' in p) {
     const what = slides.value ? `Its ${slides.value === 1 ? 'slide goes' : `${slides.value} slides go`} too. ` : ''
-    return { title: `Remove ${key.value}?`, description: `${what}Its cells leave this highlight reel; upload your sheet again to bring the column back.`, label: 'Remove column' }
+    return { title: `Remove ${key.value}?`, description: `${what}Its cells leave this Highreel; upload your sheet again to bring the column back.`, label: 'Remove column' }
   }
   return {
     title: `Make ${key.value} ${NAMES[p.type]}?`,

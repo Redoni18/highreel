@@ -7,18 +7,8 @@ export default defineEventHandler(async (event) => {
   const id = requireUuid(getRouterParam(event, 'id'))
   const body = (await readBody<{ recipient_id?: string, sent?: boolean }>(event)) ?? {}
   const recipient = requireUuid(body.recipient_id, 'recipient')
-  const at = body.sent === false ? null : new Date().toISOString()
-  const { data, error } = await db
-    .from('recipients')
-    .update({ whatsapp_at: at })
-    .eq('id', recipient)
-    .eq('campaign_id', id)
-    .not('token', 'is', null)
-    .select('id, whatsapp_at')
-    .maybeSingle()
-  if (error)
-    dbError(error, 'Saving WhatsApp')
-  if (!data)
+  const row = await setWhatsapp(db, id, recipient, body.sent === false ? null : new Date().toISOString())
+  if (!row)
     throw createError({ statusCode: 404, message: 'Not found' })
-  return data
+  return row
 })

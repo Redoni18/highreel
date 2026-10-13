@@ -47,7 +47,7 @@ async function save(): Promise<boolean> {
   saving.value = false
   if (ok) {
     form.value = saved()
-    toast.success('Saved', { description: ws.isPublished.value ? 'Your published highlight reel shows it now.' : undefined })
+    toast.success('Saved', { description: ws.isPublished.value ? 'Your published Highreel shows it now.' : undefined })
   }
   return ok
 }
@@ -98,7 +98,7 @@ const fmt = (n: number) => n.toLocaleString('en-US')
       <header class="flex flex-col gap-1.5">
         <p class="note-hand text-[24px]">step one, your {{ ws.campaign.value?.year }}</p>
         <h1 class="text-[32px] leading-tight font-semibold tracking-[-0.025em] text-balance">Tell your followers about your year</h1>
-        <p class="text-muted-foreground">One highlight reel about {{ ws.business.value?.name }}, to post on Instagram, Facebook or LinkedIn. The preview plays it as you type; nothing is public until you publish.</p>
+        <p class="text-muted-foreground">One Highreel about {{ ws.business.value?.name }}, to post on Instagram, Facebook or LinkedIn. The preview plays it as you type; nothing is public until you publish.</p>
       </header>
 
       <section class="flex flex-col gap-3" aria-labelledby="bf-numbers">
@@ -133,7 +133,7 @@ const fmt = (n: number) => n.toLocaleString('en-US')
           </div>
         </div>
         <div v-if="suggestions.length" class="flex flex-col gap-1.5 pl-7">
-          <p class="hint">From your {{ ws.campaign.value?.year }} highlight reels:</p>
+          <p class="hint">From your {{ ws.campaign.value?.year }} Highreels:</p>
           <div class="flex flex-wrap gap-1.5">
             <button
               v-for="s in suggestions"

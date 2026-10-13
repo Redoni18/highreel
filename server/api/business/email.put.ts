@@ -22,10 +22,9 @@ interface Body {
 }
 
 export default defineEventHandler(async (event): Promise<{ connection: EmailConnection }> => {
-  const { db, userId, anonymous } = await requireUser(event)
+  const { db, business, anonymous } = await requireUser(event)
   if (anonymous)
     throw createError({ statusCode: 403, message: 'Add your email to keep your work first, then connect an account to send from' })
-  const business = await ensureBusiness(db, userId)
   const body = (await readBody<Body>(event)) ?? {}
 
   const preset = presetFor(String(body.provider ?? 'other'))
@@ -49,7 +48,7 @@ export default defineEventHandler(async (event): Promise<{ connection: EmailConn
     throw createError({ statusCode: 400, message: 'Daily limit: a number from 1 to 100,000' })
 
   // A blank password keeps the saved one, but only for the same server and login.
-  const saved = await loadConnection(db, business.id)
+  const saved = await loadConnection(db)
   let password = typeof body.password === 'string' ? body.password.trim() : ''
   if (password.length > 500)
     throw createError({ statusCode: 400, message: 'That password is too long' })
@@ -63,14 +62,13 @@ export default defineEventHandler(async (event): Promise<{ connection: EmailConn
   const [test] = await sendMails(account, [{
     to: from_email,
     subject: `${from_name} is connected to Highreel`,
-    text: `Highreel can now send your highlight reels from ${from_email}.\n\nThey go out through your own account, so they come from you, and copies may show up in your Sent folder. You can change or disconnect this on Your brand at any time.`,
-    html: `<p style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.5;color:#222">Highreel can now send your highlight reels from <b>${from_email}</b>.</p><p style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.5;color:#222">They go out through your own account, so they come from you, and copies may show up in your Sent folder. You can change or disconnect this on Your brand at any time.</p>`,
+    text: `Highreel can now send your Highreels from ${from_email}.\n\nThey go out through your own account, so they come from you, and copies may show up in your Sent folder. You can change or disconnect this on Your brand at any time.`,
+    html: `<p style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.5;color:#222">Highreel can now send your Highreels from <b>${from_email}</b>.</p><p style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.5;color:#222">They go out through your own account, so they come from you, and copies may show up in your Sent folder. You can change or disconnect this on Your brand at any time.</p>`,
   }])
   if (!test?.ok)
     throw createError({ statusCode: 400, message: `Logged in, but the test email didn't go out: ${test?.error ?? 'unknown error'}` })
 
-  const row = {
-    business_id: business.id,
+  const stored = await saveConnection(db, {
     provider: preset.key,
     host,
     port,
@@ -82,10 +80,6 @@ export default defineEventHandler(async (event): Promise<{ connection: EmailConn
     reply_to: reply || null,
     daily_limit: limit,
     verified_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  }
-  const { data, error } = await db.from('email_connections').upsert(row, { onConflict: 'business_id' }).select('*').single()
-  if (error)
-    dbError(error, 'Saving your email account')
-  return { connection: publicConnection(data) }
+  })
+  return { connection: publicConnection(stored) }
 })
