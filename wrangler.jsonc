@@ -38,6 +38,12 @@
     // The highreel.app Turnstile widget (Managed), made 2026-10-13.
     "NUXT_PUBLIC_TURNSTILE_SITE_KEY": "0x4AAAAAAFVD_ceO81JBqZSn"
   },
+  // The scheduled jobs (P4): the same expressions as server/schedule.ts, which
+  // says which tasks each one runs. `wrangler dev --test-scheduled` adds
+  // /__scheduled?cron=… to fire one locally.
+  "triggers": {
+    "crons": ["0 * * * *", "0 3 * * *"]
+  },
   // Sign-in emails (P3), from hello@highreel.app once the domain is onboarded for
   // Email Sending. Highlight reel emails never use this: they go through the
   // business's own account.

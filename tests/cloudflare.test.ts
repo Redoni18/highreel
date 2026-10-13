@@ -1,5 +1,7 @@
+import { existsSync, readFileSync } from 'node:fs'
 import { describe, expect, test } from 'vitest'
 import { orderHeaders } from '../modules/cloudflare-headers/headers'
+import { SCHEDULE } from '../server/schedule'
 
 // What Nitro's Cloudflare preset wrote from routeRules (most specific first).
 const NITRO = `/_nuxt/builds/meta/*
@@ -45,5 +47,20 @@ describe('orderHeaders (SPEC M2.14 P0)', () => {
 
   test('running it twice changes nothing', () => {
     expect(orderHeaders(out)).toBe(out)
+  })
+})
+
+describe('scheduled jobs (SPEC M2.14 P4)', () => {
+  const wrangler = readFileSync(new URL('../wrangler.jsonc', import.meta.url), 'utf8')
+  const crons = JSON.parse(wrangler.match(/"crons":\s*(\[[^\]]*\])/)![1]!) as string[]
+
+  test('the Worker has a Cron Trigger for every schedule, and no other', () => {
+    // A trigger runs the tasks of its own expression: one missing never runs.
+    expect([...crons].sort()).toEqual(Object.keys(SCHEDULE).sort())
+  })
+
+  test('every scheduled task exists', () => {
+    for (const name of Object.values(SCHEDULE).flat())
+      expect(existsSync(new URL(`../server/tasks/${name.replace(':', '/')}.ts`, import.meta.url)), name).toBe(true)
   })
 })

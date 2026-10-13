@@ -15,7 +15,7 @@ catch {
 if (!existsSync(`${FIX}/sample-10000.csv`))
   execFileSync('node', [`${here}fixtures.mjs`], { stdio: 'inherit' })
 
-const checks = ['workspace', 'recap', 'scenes', 'misc', 'landing', 'auth', 'media', 'engagement', 'visit', 'xlsx', 'paper', 'session', 'home', 'business', 'templates', 'tabs', 'custom', 'editor', 'send', 'whatsapp', 'library', 'unsaved', 'bounces', 'legal', 'saveimages', 'wordmark']
+const checks = ['workspace', 'recap', 'scenes', 'misc', 'landing', 'auth', 'media', 'engagement', 'visit', 'xlsx', 'paper', 'session', 'home', 'business', 'templates', 'tabs', 'custom', 'editor', 'send', 'whatsapp', 'library', 'unsaved', 'bounces', 'legal', 'saveimages', 'wordmark', 'cleanup']
 const only = process.argv.slice(2)
 const failed = []
 for (const name of checks.filter(c => !only.length || only.includes(c))) {

@@ -136,7 +136,7 @@ const mail = `mailto:${CONTACT_EMAIL}`
     <ul>
       <li><strong>Highreels and customer data</strong>: until the business deletes the campaign or its account. Deleting a campaign deletes its rows, Highreels and photos straight away.</li>
       <li><strong>Unsubscribes and bounced addresses</strong>: kept per business for as long as its account exists, so a later campaign doesn't email those people again.</li>
-      <li><strong>Accounts</strong>: until you ask us to delete yours, then within 30 days. Demo sessions that are never kept: 30 days.</li>
+      <li><strong>Accounts</strong>: until you ask us to delete yours, then within 30 days. We keep a note of the request (your email address and its dates) for 30 days after that, to confirm it to you. Demo sessions that are never kept: 30 days.</li>
       <li><strong>Backups</strong> made by our database provider expire within 30 days. <strong>Payment and accounting records</strong> are kept as long as tax law requires.</li>
     </ul>
 

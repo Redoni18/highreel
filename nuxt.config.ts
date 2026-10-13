@@ -1,6 +1,7 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 import { builtinModules } from 'node:module'
 import tailwindcss from '@tailwindcss/vite'
+import { SCHEDULE } from './server/schedule'
 
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
@@ -78,7 +79,11 @@ export default defineNuxtConfig({
     // Link-preview images (SPEC M2g): resvg's WebAssembly is an ESM import
     // (server/utils/og.ts), a compiled module on Workers; the Geist TTFs live
     // in server/assets/fonts (served as assets:server).
-    experimental: { wasm: true },
+    // Tasks: the scheduled jobs in server/tasks (SPEC M2.14 P4), run by the
+    // Worker's Cron Triggers (wrangler.jsonc). In dev, POST /_nitro/tasks/:name
+    // runs one now (that endpoint exists only on the dev server).
+    experimental: { wasm: true, tasks: true },
+    scheduledTasks: SCHEDULE,
     // Bundled CommonJS that requires a Node built-in gets what Node gives it,
     // the module's default export. Nitro's "auto" gave nodemailer the
     // namespace on Workers, where node:events is an ES module, and its

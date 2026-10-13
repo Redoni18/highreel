@@ -110,6 +110,36 @@ describe('sign-in (auth.ts)', () => {
   })
 })
 
+describe('scheduled jobs (cleanup.ts)', () => {
+  // No request and no signed-in business: they go by user (an old demo, an
+  // address the owner was asked to delete), never by ids from outside.
+  const all = statements('server/utils/cleanup.ts')
+
+  test('has statements to check', () => {
+    expect(all.length).toBeGreaterThan(5)
+  })
+
+  test('reach businesses through their owner', () => {
+    for (const s of all.filter(s => mentions(s.sql, 'businesses') || OWNED.some(t => mentions(s.sql, t))))
+      expect(s.sql, s.fn).toMatch(/owner_id = "user"\.id/)
+  })
+
+  test('delete users one by one, by id, and demos only while they\'re still old demos', () => {
+    const deletes = all.filter(s => /delete from "user"/.test(s.sql))
+    expect(deletes.length).toBe(2)
+    for (const s of deletes)
+      expect(s.sql, s.fn).toMatch(/^delete from "user" where id = \?/)
+    expect(deletes.find(s => s.fn === 'deleteDemo')?.sql).toMatch(/"isAnonymous" = 1 and "createdAt" < \?/)
+  })
+
+  test('look demos up as anonymous users, and accounts to delete as not anonymous', () => {
+    const lookups = all.filter(s => /^select "user"\.id/.test(s.sql))
+    expect(lookups.map(s => s.fn).sort()).toEqual(['cleanupDemos', 'deleteRequestedAccounts'])
+    expect(lookups.find(s => s.fn === 'cleanupDemos')!.sql).toMatch(/"user"\."isAnonymous" = 1/)
+    expect(lookups.find(s => s.fn === 'deleteRequestedAccounts')!.sql).toMatch(/coalesce\("user"\."isAnonymous", 0\) = 0/)
+  })
+})
+
 describe('token routes (recap.ts, unsubscribe.ts)', () => {
   const token = [...statements('server/utils/recap.ts'), ...statements('server/utils/unsubscribe.ts')]
 
@@ -133,7 +163,7 @@ test('routes never write SQL', () => {
 })
 
 test('no other server file talks to the database', () => {
-  const allowed = new Set(['server/utils/db.ts', 'server/utils/recap.ts', 'server/utils/unsubscribe.ts', 'server/utils/auth.ts', 'server/utils/cloudflare.ts', 'server/utils/sheet.ts'])
+  const allowed = new Set(['server/utils/db.ts', 'server/utils/recap.ts', 'server/utils/unsubscribe.ts', 'server/utils/auth.ts', 'server/utils/cleanup.ts', 'server/utils/cloudflare.ts', 'server/utils/sheet.ts'])
   for (const file of files('server').filter(f => f.endsWith('.ts') && !allowed.has(f)))
     expect(readFileSync(join(root, file), 'utf8'), file).not.toMatch(/\.prepare\(|\.DB\b/)
 })
