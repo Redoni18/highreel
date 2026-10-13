@@ -1,7 +1,20 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+import { readFileSync } from 'node:fs'
 import { builtinModules } from 'node:module'
 import tailwindcss from '@tailwindcss/vite'
 import { SCHEDULE } from './server/schedule'
+
+// A release (`corepack pnpm run deploy`, locally or on GitHub) prerenders the
+// landing and legal pages with the public settings inside them, and a page
+// opened from there keeps them: take them from wrangler.jsonc's vars, what the
+// Worker runs with, never from a local .env. The live landing once carried
+// Turnstile's test key that way, so its demo button sent a test token
+// (2026-10-13). scripts/check-release.mjs checks the build before it ships.
+if (process.env.HIGHREEL_RELEASE) {
+  const wrangler = readFileSync('wrangler.jsonc', 'utf8')
+  for (const [, name = '', value = ''] of wrangler.matchAll(/"(NUXT_PUBLIC_\w+)":\s*"([^"]*)"/g))
+    process.env[name] = value
+}
 
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',

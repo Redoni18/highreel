@@ -1,0 +1,51 @@
+# Every push to master releases highreel.app (CLAUDE.md): the type check and
+# unit tests first, then any new migrations on the live database, then the
+# Worker. Each run shows on its commit, under Actions, and under the repo's
+# Deployments (production). Needs the repository secret CLOUDFLARE_API_TOKEN
+# (Cloudflare → My Profile → API Tokens: "Edit Cloudflare Workers" plus
+# Account · D1 · Edit). Browser checks (e2e) stay local: they need the dev
+# server and Mailpit, and Turnstile challenges headless browsers on the live site.
+name: Deploy
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+# One release at a time, in push order.
+concurrency:
+  group: production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: production
+      url: https://highreel.app
+    env:
+      CLOUDFLARE_ACCOUNT_ID: 37c47287a6d7a375dfcea6f5f7f706b7
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - name: Cloudflare token present
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "::error::Add the repository secret CLOUDFLARE_API_TOKEN (Settings → Secrets and variables → Actions), then re-run this workflow."
+            exit 1
+          fi
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .node-version
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test
+      - name: Migrations on the live database
+        run: pnpm db:migrate:remote
+      - name: Build and deploy
+        run: pnpm run deploy
