@@ -91,6 +91,9 @@
   --shape-violet: #8F66F6;
   /* the wordmark's highlighter (Wordmark.vue; scripts/brand.mjs for the icons and logo files) */
   --marker: #FFE45C;
+  /* scrollbars: a quiet thumb on no track (see the base layer) */
+  --scrollbar: rgb(0 0 0 / 0.2);
+  color-scheme: light;
 }
 
 .dark {
@@ -118,6 +121,9 @@
   --ok-text: #2BD39E;
   /* the wordmark's highlighter on dark: light letters on yellow don't read */
   --marker: #4560FF;
+  --scrollbar: rgb(255 255 255 / 0.2);
+  /* the browser's own parts (scrollbars, form controls) in their dark style too */
+  color-scheme: dark;
 }
 
 @layer base {
@@ -171,6 +177,17 @@
   ::selection {
     background: var(--foreground);
     color: var(--background);
+  }
+
+  /* Scrollbars: thin, a translucent thumb and no track, so they sit quietly
+     on whatever surface is behind them, light or dark. Standard properties
+     only: ::-webkit-scrollbar would turn macOS's overlay scrollbars into
+     always-shown ones. A component can still hide its own (RecapSaver). */
+  html {
+    scrollbar-color: var(--scrollbar) transparent;
+  }
+  * {
+    scrollbar-width: thin;
   }
 
   @media (prefers-reduced-motion: reduce) {

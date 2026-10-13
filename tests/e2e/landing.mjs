@@ -283,11 +283,21 @@ await bare.close()
 await th.goto(`${BASE}/login`)
 const loginBg = await th.evaluate(() => getComputedStyle(document.body).backgroundColor)
 expect(loginBg === 'rgb(20, 20, 20)', 'sign-in follows it (the app\'s dark colours)', loginBg)
+// Scrollbars (2026-10-13): thin, a translucent thumb on no track, and the browser's
+// own parts in the page's scheme (dark mode had white scrollbar tracks).
+const bars = () => th.evaluate(() => {
+  const html = getComputedStyle(document.documentElement)
+  return { scheme: html.colorScheme, color: html.scrollbarColor, width: getComputedStyle(document.body).scrollbarWidth }
+})
+const darkBars = await bars()
+expect(darkBars.scheme === 'dark' && darkBars.color === 'rgba(255, 255, 255, 0.2) rgba(0, 0, 0, 0)' && darkBars.width === 'thin', 'dark mode: dark browser parts, thin quiet scrollbars', darkBars)
 await th.goto(BASE, { waitUntil: 'networkidle' })
 await th.getByTestId('theme-toggle').click()
 await th.waitForFunction(() => !document.documentElement.classList.contains('dark'))
 await th.waitForTimeout(900)
 expect(await surface() === 'rgb(255, 255, 255)' && await th.evaluate(() => localStorage.getItem('color-mode')) === 'light', 'and back to light')
+const lightBars = await bars()
+expect(lightBars.scheme === 'light' && lightBars.color === 'rgba(0, 0, 0, 0.2) rgba(0, 0, 0, 0)' && lightBars.width === 'thin', 'light mode: the same scrollbars in a dark grey', lightBars)
 // The price cards' Get started opens the email form under its own heading.
 await th.locator('.tier a').first().click()
 await th.waitForURL('**/login?start=1')
