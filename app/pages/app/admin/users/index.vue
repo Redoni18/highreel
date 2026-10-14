@@ -86,7 +86,10 @@ async function unblock(email: string) {
   <section class="flex flex-col gap-4" aria-labelledby="users-title">
     <div class="flex flex-wrap items-center gap-3">
       <h1 id="users-title" class="mr-2 text-[22px] font-semibold tracking-[-0.02em]">Users</h1>
-      <Segmented v-model="kind" :options="kinds" label="Which users" />
+      <!-- With four-figure counts the pills outgrow a phone: they scroll in their own box, not the page. -->
+      <div class="max-w-full overflow-x-auto [scrollbar-width:none]">
+        <Segmented v-model="kind" :options="kinds" label="Which users" />
+      </div>
       <div class="relative ml-auto w-full sm:w-72">
         <Search class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input v-model="search" type="search" aria-label="Search users" :placeholder="kind === 'blocked' ? 'Address or note' : 'Email, business or id'" class="h-9 rounded-full pl-9" />

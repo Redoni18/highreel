@@ -9,9 +9,10 @@ import type { PublishResponse } from '#shared/types/recap'
 import { templateFor } from '#shared/templates'
 import { rankableColumns, storedRankKey } from '#shared/templates/own'
 import { computeTopPercents } from '#shared/utils/validate'
+import { bestTier } from '#shared/utils/pricing'
 
 export default defineEventHandler(async (event): Promise<PublishResponse> => {
-  const { db } = await requireUser(event)
+  const { db, anonymous } = await requireUser(event)
   const id = requireUuid(getRouterParam(event, 'id'))
   const { campaign } = await loadWorkspace(db, id)
   if (campaign.importing)
@@ -48,6 +49,19 @@ export default defineEventHandler(async (event): Promise<PublishResponse> => {
       ranks: { computed_top_percent: ranks[i] ?? null, ...Object.fromEntries(byColumn.map(c => [c.key, c.values[i] ?? null])) },
     }
   })
+
+  if (paysToPublish(event, anonymous, campaign)) {
+    const covered = bestTier(campaign.paid)?.max ?? 0
+    if (published > covered) {
+      const fmt = (x: number) => x.toLocaleString('en-US')
+      throw createError({
+        statusCode: 402,
+        message: covered
+          ? `This campaign is paid for up to ${fmt(covered)} customers and ${fmt(published)} would get a Highreel. Upgrade it to publish them all.`
+          : 'Pay for this campaign to publish it.',
+      })
+    }
+  }
 
   try {
     await runBatch(db, [

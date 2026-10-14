@@ -7,7 +7,7 @@
 import { useEventListener } from '@vueuse/core'
 import { toast } from 'vue-sonner'
 import type { InjectionKey } from 'vue'
-import type { Business, Campaign, CampaignPhoto, CampaignSettings, CampaignSummary, CreatedCampaign, PatchRecipientResponse, PublishResponse, Recipient, RecipientPage, RecapPayload, Workspace, WorkspaceIndex } from '#shared/types/recap'
+import type { Business, Campaign, CampaignPhoto, CampaignSettings, CampaignSummary, CheckoutConfirmation, CreatedCampaign, PatchRecipientResponse, PublishResponse, Recipient, RecipientPage, RecapPayload, Workspace, WorkspaceIndex } from '#shared/types/recap'
 import type { CustomColumn, ParsedRow, RawRow } from '#shared/templates/types'
 import { getTemplate, templateFor } from '#shared/templates'
 import { changeColumn as changeOwnColumn, slideEntries, type OwnSettings } from '#shared/templates/own'
@@ -17,6 +17,7 @@ import { applyMapping, autoMap, needsMapping, preselect, settingsForSheet, sheet
 import { shrinkImage } from '~/utils/media'
 import { MAX_PHOTOS, toRecapRecipient } from '#shared/utils/recap'
 import { EXAMPLES } from '~/data/examples'
+import { chargeFor } from '#shared/utils/pricing'
 
 export type RowStatus = 'saving' | 'error' | 'ready' | 'published'
 
@@ -503,6 +504,36 @@ function createWorkspace() {
     }
   }
 
+  // --- Paying for a campaign (SPEC §10) --------------------------------------
+
+  /** Whop's checkout, when publishing takes a payment: 'sandbox' takes test cards. */
+  const checkout = useRuntimeConfig().public.checkout as '' | 'sandbox' | 'production'
+  /** Accounts pay per campaign to publish; demos and a business's own Highreel are free (server: paysToPublish). */
+  const paysToPublish = computed(() => !!checkout && !anonymous.value && !isBusiness.value)
+  /**
+   * What publishing every row without errors costs on top of what's paid: null
+   * when nothing (free, or covered); undefined above the biggest size.
+   */
+  const charge = computed(() => {
+    if (!paysToPublish.value || !campaign.value)
+      return null
+    return chargeFor(counts.value.ready + counts.value.published, campaign.value.paid ?? [])
+  })
+
+  /**
+   * Ask the server to read a payment back from Whop; a paid one counts for the
+   * campaign at once. `keepalive`: Whop takes the tab to its return page right
+   * after the checkout completes (and from there back to Share, SPEC §10), and
+   * the payment should be recorded even if this page is gone by then.
+   */
+  async function confirmPayment(payment: string): Promise<CheckoutConfirmation> {
+    const id = campaign.value!.id
+    const res = await api<CheckoutConfirmation>(`/api/campaigns/${id}/checkout/confirm`, { method: 'POST', body: { payment }, keepalive: true })
+    if (campaign.value?.id === id)
+      campaign.value = { ...campaign.value, paid: res.paid }
+    return res
+  }
+
   async function publish() {
     if (!campaign.value)
       return
@@ -829,6 +860,10 @@ function createWorkspace() {
     pickFile,
     editCell,
     publish,
+    checkout,
+    paysToPublish,
+    charge,
+    confirmPayment,
     updateCampaign,
     exportLinks,
     recapUrl,

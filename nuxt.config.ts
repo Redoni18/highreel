@@ -70,6 +70,11 @@ export default defineNuxtConfig({
     // NUXT_GOOGLE_CLIENT_SECRET); NUXT_PUBLIC_AUTH_GOOGLE draws the button.
     googleClientId: '',
     googleClientSecret: '',
+    // Whop, the checkout (SPEC §10, server/utils/whop.ts): the API key of the
+    // Whop account NUXT_PUBLIC_CHECKOUT names (NUXT_WHOP_API_KEY) and its
+    // webhook's signing secret, `ws_…` (NUXT_WHOP_WEBHOOK_SECRET).
+    whopApiKey: '',
+    whopWebhookSecret: '',
     public: {
       // Base for recap links in the export; blank means "the current origin".
       siteUrl: '',
@@ -81,6 +86,11 @@ export default defineNuxtConfig({
       authGoogle: false,
       // Turnstile's site key (NUXT_PUBLIC_TURNSTILE_SITE_KEY), for /login and "Keep my work".
       turnstileSiteKey: '',
+      // Payments (NUXT_PUBLIC_CHECKOUT, SPEC §10): '' publishes free; 'sandbox'
+      // takes Whop's test cards (local only: scripts/check-release.mjs stops a
+      // release with it); 'production' takes money. Accounts pay per campaign
+      // to publish; demos and a business's own Highreel stay free.
+      checkout: '',
     },
   },
 

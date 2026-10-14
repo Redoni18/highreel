@@ -97,7 +97,7 @@ const mail = `mailto:${CONTACT_EMAIL}`
 
     <h2 id="prices">7. Prices, payment and refunds</h2>
     <ul>
-      <li><strong>One price per campaign.</strong> A campaign is one round of Highreels for one list of customers: your sheet, your brand and wording, and a personal Highreel for everyone on it. You pay once per campaign, by the size of the list, at the price shown on <NuxtLink to="/#pricing">our pricing</NuxtLink> when you buy. There's no subscription.</li>
+      <li><strong>One price per campaign.</strong> A campaign is one round of Highreels for one list of customers: your sheet, your brand and wording, and a personal Highreel for everyone on it. You pay once per campaign, by the size of the list, at the price shown on <NuxtLink to="/#pricing">our pricing</NuxtLink> when you buy, before its Highreels are published. If the list later grows past the size you paid for, publishing the extra customers costs the difference to the bigger size. There's no subscription.</li>
       <li><strong>Payments are handled by Whop.</strong> Whop processes the payment and may collect sales tax or VAT where it applies; their terms apply to the payment itself. We never see your card details.</li>
       <li><strong>Price changes</strong> apply to purchases made after the change, never to a campaign you've already paid for. Founding prices are kept for the campaign they were bought for.</li>
       <li><strong>Refunds.</strong> If you haven't sent or shared any Highreel from a paid campaign yet, write to us within 14 days of paying and we'll refund it in full. Once Highreels from it have gone out, we'll work with you to fix whatever isn't right; we refund after that only where the law requires it or where we failed to deliver what we promised.</li>

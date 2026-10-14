@@ -161,7 +161,7 @@ await page.waitForURL(u => new URL(u).pathname === '/app/admin/payments')
 await page.waitForSelector(`[data-row="${payment}"]`)
 const pay = Object.fromEntries(await page.locator(`[data-row="${payment}"] td`).evaluateAll(tds => tds.map(td => [td.dataset.col, td.innerText.trim()])))
 expect(pay.owner === email && pay.amount === '$99' && pay.tier === 'founding' && pay.status === 'paid', 'Payments lists it with the account and amount', pay)
-expect(/^\$[\d,]+(\.\d\d)?( \+ .+)? from \d+ payments?/.test((await texts('[data-testid="summary"]'))[0]), 'and the total', await texts('[data-testid="summary"]'))
+expect(/^[^\d\s]+[\d,]+(\.\d\d)?( \+ .+)? from \d+ payments?/.test((await texts('[data-testid="summary"]'))[0]), 'and the total (the biggest currency first)', await texts('[data-testid="summary"]'))
 
 // On a phone: no sideways page scroll; the tables scroll in their box.
 await page.setViewportSize({ width: 390, height: 844 })

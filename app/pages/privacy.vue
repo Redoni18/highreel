@@ -74,7 +74,7 @@ const mail = `mailto:${CONTACT_EMAIL}`
       <li><strong>Sign-in records:</strong> for each session, when it started and was last used, and the IP address and browser it came from, to keep accounts secure. They're deleted when the session ends. Sign-in attempts are also counted per IP address to stop abuse, and those counts are deleted within a day.</li>
       <li><strong>Your business:</strong> its name, logo, brand colour and website, and the Highreels you make: sheets, wording, photos, settings.</li>
       <li><strong>The email account you connect to send Highreels:</strong> its server, login, sending address and name. The password is stored encrypted and only used to send your Highreels and the tests you ask for. It's never shown back, not even to you.</li>
-      <li><strong>Payments:</strong> Whop handles them. We learn what you bought and whether it was paid, never your card details.</li>
+      <li><strong>Payments:</strong> Whop handles them. You pay in Whop's checkout, shown on our page, and give your email, card and billing address to Whop, not to us (we fill in your account's email address there; you can change it). We tell Whop which business and campaign a payment is for; Whop tells us what was bought, the amount and currency, when it was paid and whether it was refunded. We never see your card details.</li>
       <li><strong>Sending records:</strong> when each email was sent and whether it went through, to keep to your email account's daily limit. This log holds no recipient addresses.</li>
     </ul>
     <h3>Why, and on what basis</h3>
@@ -116,6 +116,7 @@ const mail = `mailto:${CONTACT_EMAIL}`
       <li>Signing in sets a cookie that keeps you signed in to the workspace for 30 days after your last visit. It's needed for the workspace to work and isn't used for anything else.</li>
       <li>The sign-in page, and the box for keeping a demo's work, load Cloudflare Turnstile, which checks that a person, not a bot, is signing in. It looks at signals from your browser for that check only.</li>
       <li>Your browser may keep a light or dark display setting in its local storage.</li>
+      <li>Paying for a campaign loads Whop's checkout, on that step only. It runs in Whop's own frames, with Whop's fraud checks and payment partners, which may set their own cookies or read signals from your browser to prevent fraud, under Whop's privacy policy.</li>
       <li>Our home page, the examples, these terms and privacy pages and the sign-in page load Cloudflare Web Analytics to count visits: the page, the site you came from, your country, the kind of browser and device, and how fast the page loaded. It sets no cookies, stores nothing in your browser and doesn't track you across sites. Highreels and unsubscribe pages don't load it.</li>
       <li>We don't set cookies for people viewing a Highreel or our home page, and we use no advertising, analytics or social media cookies, so there's nothing to consent to.</li>
     </ul>
@@ -124,7 +125,7 @@ const mail = `mailto:${CONTACT_EMAIL}`
     <p>We use a few providers to run Highreel. They process data only for us, under data processing agreements:</p>
     <ul>
       <li><strong>Cloudflare</strong>: hosting and delivering the site, our database (accounts and sign-in included) and the logos and photos businesses upload, stored in the EU; the bot check on signing in (Turnstile); sending our sign-in emails; and counting visits to our public pages (Web Analytics). Like any host, it handles visitors' IP addresses to deliver pages and block attacks.</li>
-      <li><strong>Whop</strong>: payments, for businesses that buy a campaign.</li>
+      <li><strong>Whop</strong>: payments, for businesses that buy a campaign. Whop is the seller of record for those payments: it takes them, collects sales tax or VAT where it applies, and looks after the payment details you give it under its own privacy policy. Whop also keeps a customer account for the email address you pay with, which you can claim on Whop to see your receipts. We share with it which business and campaign a payment is for, and fill in your account's email address in its checkout.</li>
     </ul>
     <p>If you sign in with Google, Google tells us your name and email address under its own privacy policy; we use them only to sign you in.</p>
     <p>Emails with Highreels go through the business's own email provider, which the business chooses and has its own agreement with. WhatsApp messages are sent by the business from its own device.</p>

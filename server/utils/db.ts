@@ -87,6 +87,7 @@ function toCampaign(row: Record<string, any>): Campaign {
     status: row.status,
     published_at: row.published_at ?? null,
     importing: row.import_next != null,
+    paid: [],
   }
 }
 
@@ -193,15 +194,28 @@ export async function listCampaigns(db: Db): Promise<CampaignSummary[]> {
 
 /** The campaign and its business; 404 unless the campaign is this business's. */
 export async function loadWorkspace(db: Db, campaignId: string): Promise<Workspace> {
-  const [campaign, business] = await db.d1.batch<Record<string, any>>([
+  const [campaign, business, paid] = await db.d1.batch<Record<string, any>>([
     db.d1.prepare('select * from campaigns where id = ? and business_id = ?').bind(campaignId, db.businessId),
     db.d1.prepare('select * from businesses where id = ?').bind(db.businessId),
+    paidStatement(db, campaignId),
   ])
   const c = campaign!.results[0]
   const b = business!.results[0]
   if (!c || !b)
     notFound()
-  return { business: toBusiness(b), campaign: toCampaign(c) }
+  return { business: toBusiness(b), campaign: { ...toCampaign(c), paid: paid!.results.map(r => r.tier as string) } }
+}
+
+// The sizes a campaign is paid for (SPEC §10): its payments that weren't
+// refunded. Only Whop's webhook and the checkout's confirm route write them
+// (server/utils/payments.ts).
+function paidStatement(db: Db, campaignId: string) {
+  return db.d1.prepare(`select tier from payments where campaign_id = ? and business_id = ? and status = 'paid' and tier is not null`).bind(campaignId, db.businessId)
+}
+
+export async function paidTiers(db: Db, campaignId: string): Promise<string[]> {
+  const { results } = await paidStatement(db, campaignId).all<{ tier: string }>()
+  return results.map(r => r.tier)
 }
 
 /** The campaign with its business, logo and photos signed for the workspace (1 h). */

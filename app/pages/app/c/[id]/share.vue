@@ -23,6 +23,7 @@ import { type EmailConnection, presetFor } from '#shared/utils/smtp'
 import { DEFAULT_WHATSAPP, WHATSAPP_MAX, waLink, waNumber, whatsappText } from '#shared/utils/whatsapp'
 import { shareTexts } from '#shared/utils/slides'
 import { downloadBlob, renderShareImage, shareFileName, type ShareFormat } from '~/utils/shareImage'
+import { bestTier, dollars } from '#shared/utils/pricing'
 
 const ws = useWorkspace()
 const { api, fail } = useApi()
@@ -39,6 +40,46 @@ function fixRows() {
   ws.filter.value = 'errors'
   navigateTo(`/app/c/${campaign.value.id}`)
 }
+
+// --- Paying (SPEC §10) ------------------------------------------------------------------
+const paidFor = computed(() => (ws.paysToPublish.value ? bestTier(campaign.value.paid) : null))
+const route = useRoute()
+const router = useRouter()
+// Back from Whop: after every payment Whop takes the tab to its return page
+// and then here, with ?checkout=return&payment_id=pay_…&status=success (and
+// after a 3D Secure or bank step, `payment` and `status`). The status only
+// picks what to say; whether it's paid is the server's to ask Whop.
+onMounted(async () => {
+  const q = route.query
+  if (q.checkout !== 'return')
+    return
+  const payment = [q.payment, q.payment_id, q.receipt_id].find((v): v is string => typeof v === 'string' && v.startsWith('pay_'))
+  const status = typeof q.status === 'string' ? q.status : null
+  await router.replace({ query: {} })
+  if (status === 'failed' || status === 'canceled') {
+    toast.error('The payment didn\'t go through', { description: 'Nothing was taken. Publish to try again.' })
+    return
+  }
+  if (!payment)
+    return
+  try {
+    const res = await ws.confirmPayment(payment)
+    if (res.status === 'paid') {
+      toast.success('Payment received')
+      if (!ws.charge.value && n.value.ready)
+        await ws.publish()
+    }
+    else if (res.status === 'pending') {
+      toast('Whop is still collecting your payment', { description: 'Publish once it\'s through.' })
+    }
+    else {
+      toast.error('The payment didn\'t go through', { description: 'Nothing was taken. Publish to try again.' })
+    }
+  }
+  catch (e) {
+    fail('Couldn\'t confirm the payment', e)
+  }
+})
 
 // The first published row: its link preview and a recap to open.
 const live = computed(() => ws.rows.value.filter(r => r.token && !hasErrors(r.errors)))
@@ -384,6 +425,9 @@ async function saveImage(format: ShareFormat) {
                 <Button size="lg" :disabled="!n.ready || !!ws.busy.value" @click="publishOpen = true">Publish {{ fmt(n.ready) }} {{ n.ready === 1 ? 'Highreel' : 'Highreels' }}</Button>
                 <Button v-if="n.errors" variant="outline" size="lg" @click="fixRows">Fix {{ n.errors === 1 ? 'it' : 'them' }} first</Button>
               </div>
+              <p v-if="ws.charge.value?.upgrade && paidFor" class="hint" data-testid="price-hint">The list has grown past the {{ fmt(paidFor.max) }} customers paid for: publishing it takes an upgrade to {{ fmt(ws.charge.value.tier.max) }}, <b>{{ dollars(ws.charge.value.price) }}</b>.</p>
+              <p v-else-if="ws.charge.value" class="hint" data-testid="price-hint">Publishing takes one payment for this campaign: <b>{{ dollars(ws.charge.value.price) }}</b> for up to {{ fmt(ws.charge.value.tier.max) }} customers<template v-if="ws.charge.value.tier.was"> (founding price, usually {{ dollars(ws.charge.value.tier.was) }})</template>.</p>
+              <p v-else-if="paidFor" class="hint">Paid for up to {{ fmt(paidFor.max) }} customers.</p>
             </template>
             <template v-else>
               <p class="lead"><b>{{ fmt(n.published) }}</b> {{ n.published === 1 ? 'Highreel is' : 'Highreels are' }} live<template v-if="since">{{ ` since ${since}` }}</template>.<template v-if="n.ready">{{ ' ' }}<b>{{ fmt(n.ready) }}</b> new {{ n.ready === 1 ? 'row is' : 'rows are' }} ready.</template><template v-if="n.errors">{{ ` ${fmt(n.errors)} still ${n.errors === 1 ? 'needs' : 'need'} fixing.` }}</template></p>
@@ -391,6 +435,7 @@ async function saveImage(format: ShareFormat) {
                 <Button v-if="n.ready" size="lg" :disabled="!!ws.busy.value" @click="publishOpen = true">Publish {{ fmt(n.ready) }} new</Button>
                 <Button v-if="n.errors" variant="outline" size="lg" @click="fixRows">Fix {{ n.errors === 1 ? 'it' : 'them' }}</Button>
               </div>
+              <p v-if="ws.charge.value?.upgrade && paidFor" class="hint" data-testid="price-hint">The list has grown past the {{ fmt(paidFor.max) }} customers paid for: publishing the new rows takes an upgrade to {{ fmt(ws.charge.value.tier.max) }}, <b>{{ dollars(ws.charge.value.price) }}</b>.</p>
               <p class="hint">Editing a published row in the Sheet updates its Highreel; its link stays the same.</p>
             </template>
           </template>

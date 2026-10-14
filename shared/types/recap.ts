@@ -77,6 +77,8 @@ export interface Campaign {
   published_at: string | null
   /** A sheet upload that didn't finish (it arrives in parts, SPEC M2.14 P1): publishing waits for it. */
   importing?: boolean
+  /** The sizes paid for and not refunded (TierKey, shared/utils/pricing.ts; SPEC §10). */
+  paid: string[]
 }
 
 export interface Workspace {
@@ -195,6 +197,31 @@ export interface PatchRecipientResponse {
 export interface PublishResponse {
   published: number
   skipped: number
+}
+
+/** Whop's checkout this server uses (SPEC §10): 'sandbox' takes test cards. */
+export type CheckoutEnvironment = 'sandbox' | 'production'
+
+/** POST /api/campaigns/:id/checkout: a Whop checkout for this campaign's size. */
+export interface CheckoutSession {
+  /** Whop's checkout configuration, `ch_…`, for the embedded checkout */
+  id: string
+  /** Whop's own checkout page for the same purchase */
+  purchase_url: string
+  environment: CheckoutEnvironment
+  tier: string
+  /** customers it covers */
+  max: number
+  /** USD cents */
+  price: number
+  upgrade: boolean
+}
+
+/** POST /api/campaigns/:id/checkout/confirm: the payment as Whop has it, and what the campaign is paid for now. */
+export interface CheckoutConfirmation {
+  /** paid: recorded; pending: Whop is still collecting it; failed: nothing was taken */
+  status: 'paid' | 'pending' | 'failed'
+  paid: string[]
 }
 
 /** GET /api/campaigns/:id/recipients?after=: a page of rows in sheet order, and where the next one starts. */

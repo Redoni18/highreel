@@ -264,6 +264,44 @@ describe('blocking and removing accounts (moderation.ts)', () => {
   })
 })
 
+describe('payments (payments.ts)', () => {
+  // Written on Whop's word only (SPEC §10): the signed webhook, or the confirm
+  // route after it reads the payment from Whop. A payment goes to the
+  // business its metadata names, and to the campaign only if it's that
+  // business's; a refund changes the one payment Whop names.
+  const all = statements('server/utils/payments.ts')
+
+  test('has statements to check', () => {
+    expect(all.length).toBe(3)
+  })
+
+  test('inserts a payment for a campaign of the business it names, or for that business alone', () => {
+    const inserts = all.filter(s => /^insert into payments\b/.test(s.sql))
+    expect(inserts.length).toBe(2)
+    expect(inserts[0]!.sql).toMatch(/from campaigns c where c\.id = \? and c\.business_id = \? on conflict \(provider, provider_id\) do nothing$/)
+    expect(inserts[0]!.bind).toMatch(/ref\.campaignId, ref\.businessId\)?$/)
+    expect(inserts[1]!.sql).toMatch(/from businesses b where b\.id = \? on conflict \(provider, provider_id\) do nothing$/)
+    expect(inserts[1]!.bind).toMatch(/ref\.businessId\)?$/)
+  })
+
+  test('marks refunded only the payment Whop names', () => {
+    const updates = all.filter(s => /^update\b/.test(s.sql))
+    expect(updates.map(s => s.sql)).toEqual([`update payments set status = 'refunded', refunded_at = ? where provider = 'whop' and provider_id = ? and status = 'paid'`])
+  })
+
+  test('writes nothing but payments', () => {
+    for (const s of all)
+      expect(s.sql).toMatch(/^(?:insert into payments|update payments)\b/)
+  })
+
+  test('the routes that reach it check Whop first', () => {
+    for (const file of files('server/api').filter(f => /\brecord(?:Payment|Refund)\(/.test(readFileSync(join(root, f), 'utf8')))) {
+      const route = readFileSync(join(root, file), 'utf8')
+      expect(route, file).toMatch(/verifyWebhook\(|getPayment\(/)
+    }
+  })
+})
+
 test('no DELETE route reads a body (Nitro on Cloudflare passes one only to POST, PUT and PATCH)', () => {
   const deletes = files('server/api').filter(f => f.endsWith('.delete.ts'))
   expect(deletes.length).toBeGreaterThan(0)
@@ -279,7 +317,7 @@ test('routes never write SQL', () => {
 })
 
 test('no other server file talks to the database', () => {
-  const allowed = new Set(['server/utils/db.ts', 'server/utils/recap.ts', 'server/utils/unsubscribe.ts', 'server/utils/auth.ts', 'server/utils/cleanup.ts', 'server/utils/cloudflare.ts', 'server/utils/sheet.ts', 'server/utils/admin.ts', 'server/utils/moderation.ts'])
+  const allowed = new Set(['server/utils/db.ts', 'server/utils/recap.ts', 'server/utils/unsubscribe.ts', 'server/utils/auth.ts', 'server/utils/cleanup.ts', 'server/utils/cloudflare.ts', 'server/utils/sheet.ts', 'server/utils/admin.ts', 'server/utils/moderation.ts', 'server/utils/payments.ts'])
   for (const file of files('server').filter(f => f.endsWith('.ts') && !allowed.has(f)))
     expect(readFileSync(join(root, file), 'utf8'), file).not.toMatch(/\.prepare\(|\.DB\b/)
 })

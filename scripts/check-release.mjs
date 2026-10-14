@@ -13,6 +13,14 @@ for (const page of ['index.html', 'terms/index.html', 'privacy/index.html']) {
   if (got !== want)
     problems.push(`${page}: Turnstile site key ${JSON.stringify(got)}, the Worker's is ${JSON.stringify(want)}`)
 }
+// Whop's sandbox takes test cards: a release that took them would record
+// test payments in the live database (SPEC §10).
+if (/"NUXT_PUBLIC_CHECKOUT":\s*"sandbox"/.test(wrangler))
+  problems.push('wrangler.jsonc sets NUXT_PUBLIC_CHECKOUT to "sandbox": the live site takes "" (free) or "production"')
+for (const page of ['index.html', 'terms/index.html', 'privacy/index.html']) {
+  if (/checkout:"sandbox"/.test(readFileSync(`.output/public/${page}`, 'utf8')))
+    problems.push(`${page}: built with NUXT_PUBLIC_CHECKOUT=sandbox`)
+}
 if (!want || problems.length) {
   console.error(`Not deploying: the prerendered pages don't match wrangler.jsonc's vars.\n${problems.join('\n') || 'wrangler.jsonc has no NUXT_PUBLIC_TURNSTILE_SITE_KEY.'}\nBuild with HIGHREEL_RELEASE=1 (corepack pnpm run deploy does).`)
   process.exit(1)

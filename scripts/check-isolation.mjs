@@ -91,6 +91,8 @@ const attempts = {
   'POST send': await B.call(`${c}/send`, 'POST', {}),
   'POST send test': await B.call(`${c}/send`, 'POST', { test: true }),
   'POST WhatsApp mark': await B.call(`${c}/whatsapp`, 'POST', { recipient_id: aRow.id, sent: false }),
+  'POST checkout': await B.call(`${c}/checkout`, 'POST', {}),
+  'POST checkout confirm': await B.call(`${c}/checkout/confirm`, 'POST', { payment: 'pay_abcdef123' }),
   'PATCH A\'s row': await B.call(`/api/recipients/${aRow.id}`, 'PATCH', { column: 'first_name', value: 'Stolen' }),
   'POST photo into A\'s campaign': await B.call(`/api/media?kind=photo&campaign=${A.campaign}`, 'POST', png, 'image/png'),
 }
