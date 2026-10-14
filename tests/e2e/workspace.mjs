@@ -24,6 +24,7 @@ const visible = await page.evaluate(() => {
   }).length
 })
 expect(visible >= 20, '20+ rows fully visible at 1280×800', visible)
+expect(await page.locator('.grid-scroll').evaluate(el => getComputedStyle(el).scrollbarWidth) === 'thin', 'the sheet keeps its scrollbar (the tables hide theirs)')
 
 await filter('Needs fixing').click()
 await page.waitForTimeout(300)

@@ -20,7 +20,7 @@ function onRowClick(e: MouseEvent, id: string) {
 </script>
 
 <template>
-  <div class="overflow-x-auto rounded-2xl border">
+  <TableScroll>
     <table class="w-full min-w-[920px] border-collapse text-left text-[14px]">
       <thead class="bg-subtle text-[12px] text-muted-foreground">
         <tr class="h-9 border-b">
@@ -91,7 +91,7 @@ function onRowClick(e: MouseEvent, id: string) {
         </tr>
       </tbody>
     </table>
-  </div>
+  </TableScroll>
 </template>
 
 <style scoped>

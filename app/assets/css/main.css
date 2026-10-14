@@ -211,8 +211,9 @@
   }
 }
 
-/* Tables (the sheet, the admin lists) scroll without a scrollbar (owner, 2026-10-13):
-   wheel, trackpad, touch and the keyboard still move them. */
+/* Tables (the home's Highreels, the admin lists) scroll sideways without a
+   scrollbar (owner, 2026-10-13): TableScroll adds arrows for a mouse. The
+   sheet keeps its scrollbar. */
 @utility scrollbar-none {
   scrollbar-width: none;
   &::-webkit-scrollbar {

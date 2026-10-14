@@ -81,7 +81,7 @@ function open(e: MouseEvent, row: T) {
 </script>
 
 <template>
-  <div class="scrollbar-none relative overflow-x-auto rounded-2xl border">
+  <TableScroll>
     <table class="w-full border-collapse text-left text-[13px]" :style="{ minWidth: `${minWidth}px` }" :aria-label="label">
       <thead class="bg-subtle text-[12px] text-muted-foreground">
         <tr class="h-9 border-b">
@@ -124,7 +124,7 @@ function open(e: MouseEvent, row: T) {
         </tr>
       </tbody>
     </table>
-  </div>
+  </TableScroll>
 </template>
 
 <style scoped>

@@ -105,6 +105,20 @@ await page.waitForURL(u => !new URL(u).searchParams.has('kind'))
 await page.getByLabel('Search users').fill(email)
 await page.waitForFunction(() => document.querySelectorAll('tbody [data-row]').length === 1)
 await page.screenshot({ path: `${OUT}admin-users.png` })
+// Wider than the page, the table scrolls sideways without a scrollbar (owner,
+// 2026-10-13); a mouse wheel can't, so an arrow on the edge with hidden columns does.
+const sideways = () => page.locator('[data-table-scroll] > div').first().evaluate(el => ({ bar: getComputedStyle(el).scrollbarWidth, left: el.scrollLeft, max: el.scrollWidth - el.clientWidth, arrows: [...el.parentElement.querySelectorAll('[data-scroll]')].map(b => b.dataset.scroll).join() }))
+const narrow = await sideways()
+expect(narrow.bar === 'none' && narrow.max > 0 && narrow.left === 0 && narrow.arrows === 'right', 'Users is wider than the page: no scrollbar, an arrow on the right', narrow)
+await page.locator('[data-scroll="right"]').click()
+await page.waitForFunction(() => document.querySelector('[data-scroll="left"]') && !document.querySelector('[data-scroll="right"]'))
+const scrolled = await sideways()
+const spent = await page.locator('th', { hasText: 'Spent' }).evaluate(th => ({ right: th.getBoundingClientRect().right, pinned: th.closest('tr').querySelector('.pinned').getBoundingClientRect().left }))
+// Within a pixel: scrollLeft can stop a fraction short of the end.
+expect(scrolled.left >= scrolled.max - 1 && scrolled.arrows === 'left' && spent.right <= spent.pinned + 1, 'the arrow brings in the last columns, and one appears on the left to go back', { ...scrolled, spent })
+await page.locator('[data-scroll="left"]').click()
+await page.waitForFunction(() => !document.querySelector('[data-scroll="left"]'))
+expect((await sideways()).left <= 1, 'and back', await sideways())
 
 // Sorting by a header.
 await page.getByLabel('Search users').fill('')
