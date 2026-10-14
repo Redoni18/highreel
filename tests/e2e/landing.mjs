@@ -38,6 +38,7 @@ expect(attr(/<link rel="canonical" href="([^"]+)"/) === `${SITE}/` && attr(/<met
 const desc = attr(/<meta name="description" content="([^"]+)"/) ?? ''
 expect(desc.length >= 70 && desc.length <= 160, 'the description fits a search result (70–160 characters)', desc.length)
 expect(!/<meta name="robots"[^>]*noindex/.test(html) && (html.match(/<h1\b/g) ?? []).length === 1, 'the landing is indexable and has one h1')
+expect(attr(/<meta name="robots" content="([^"]+)"/) === 'max-image-preview:none', 'no picture beside the landing in search results (max-image-preview:none)')
 const ld = JSON.parse(attr(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/) ?? '{}')
 const graph = Object.fromEntries((ld['@graph'] ?? []).map(n => [n['@type'], n]))
 const questions = [...html.matchAll(/<summary[^>]*>([\s\S]*?)<\/summary>/g)].map(m => m[1].replace(/<[^>]+>/g, '').trim())
@@ -55,10 +56,10 @@ const llms = await llmsRes.text()
 const ledeHtml = html.match(/<p class="lede"[^>]*>([\s\S]*?)<\/p>/)?.[1]?.trim()
 expect(llmsRes.status === 200 && llmsRes.headers.get('content-type')?.startsWith('text/plain') && llms.startsWith('# Highreel\n') && llms.includes(`> ${desc}`) && !!ledeHtml && llms.includes(ledeHtml), 'llms.txt: Markdown that opens with the page\'s description and lede', llmsRes.status)
 expect(questions.every(q => llms.includes(`### ${q}`)) && ['$99', '$399', '$799'].every(p => llms.includes(p)) && listed.every(u => llms.includes(`(${SITE}${u})`)), 'llms.txt: the page\'s questions and prices, and every page in the sitemap', listed.filter(u => !llms.includes(`(${SITE}${u})`)))
-const icons = await Promise.all([['/favicon.ico', 'image/vnd.microsoft.icon'], ['/icon.svg', 'image/svg+xml'], ['/apple-touch-icon.png', 'image/png'], ['/icon-512.png', 'image/png']]
+const icons = await Promise.all([['/favicon.ico', 'image/vnd.microsoft.icon'], ['/icon.svg', 'image/svg+xml'], ['/apple-touch-icon.png', 'image/png'], ['/icon-192.png', 'image/png'], ['/icon-512.png', 'image/png']]
   .map(async ([u, type]) => { const r = await fetch(`${BASE}${u}`); return r.status === 200 && r.headers.get('content-type') === type }))
 const manifest = await (await fetch(`${BASE}/site.webmanifest`)).json()
-expect(icons.every(Boolean) && html.includes('rel="icon" href="/icon.svg"') && html.includes('rel="apple-touch-icon"') && manifest.name === 'Highreel' && manifest.icons.length === 3, 'favicon, SVG icon, touch icon and web manifest', icons)
+expect(icons.every(Boolean) && html.includes('rel="icon" href="/icon.svg"') && html.includes('rel="icon" href="/icon-192.png"') && html.includes('rel="apple-touch-icon"') && manifest.name === 'Highreel' && manifest.icons.length === 3, 'favicon, a 192 px PNG for search results, SVG icon, touch icon and web manifest', icons)
 const noindex = await Promise.all(['/login', '/app', '/r/nope'].map(async u => (await fetch(`${BASE}${u}`, { redirect: 'manual' })).headers.get('x-robots-tag')))
 expect(noindex.every(h => h === 'noindex'), 'sign-in, the workspace and recaps tell search engines not to index them', noindex)
 const exampleHtml = await (await fetch(`${BASE}/example/camp`)).text()

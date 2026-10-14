@@ -138,10 +138,16 @@ export default defineNuxtConfig({
       title: 'Highreel',
       meta: [
         { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+        // No picture beside our results in Google (owner, 2026-10-14). Link
+        // previews in chat apps still use og:image. Recaps and unsubscribe
+        // replace it with their own noindex.
+        { name: 'robots', content: 'max-image-preview:none' },
       ],
-      // Drawn by scripts/icons.mjs.
+      // Drawn by scripts/icons.mjs. Google's results show a favicon that's a
+      // multiple of 48 px square: the 48 px one in favicon.ico and icon-192.png.
       link: [
         { rel: 'icon', href: '/favicon.ico', sizes: '48x48' },
+        { rel: 'icon', href: '/icon-192.png', type: 'image/png', sizes: '192x192' },
         { rel: 'icon', href: '/icon.svg', type: 'image/svg+xml' },
         { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
         { rel: 'manifest', href: '/site.webmanifest' },
