@@ -54,11 +54,11 @@
     // "Continue with Google" on /login (2026-10-14). Its client ID and secret
     // are Worker secrets (NUXT_GOOGLE_CLIENT_ID, NUXT_GOOGLE_CLIENT_SECRET).
     "NUXT_PUBLIC_AUTH_GOOGLE": "true",
-    // Payments (SPEC §10): "" publishes free (until Whop approves the business);
-    // "production" makes accounts pay per campaign through the live Whop account,
-    // with the Worker secrets NUXT_WHOP_API_KEY and NUXT_WHOP_WEBHOOK_SECRET.
+    // Payments (SPEC §10): "production" (since 2026-10-15) makes accounts pay per
+    // campaign through the live Whop account, with the Worker secrets
+    // NUXT_WHOP_API_KEY and NUXT_WHOP_WEBHOOK_SECRET; "" would publish free.
     // Never "sandbox" here (scripts/check-release.mjs stops it): that's .env's.
-    "NUXT_PUBLIC_CHECKOUT": ""
+    "NUXT_PUBLIC_CHECKOUT": "production"
   },
   // The scheduled jobs (P4): the same expressions as server/schedule.ts, which
   // says which tasks each one runs. `wrangler dev --test-scheduled` adds
