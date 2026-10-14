@@ -77,7 +77,7 @@ export default defineNuxtConfig({
       // the sitemap (SPEC M2.11). Not the request's origin: the landing is
       // built once, and local or preview hosts mustn't compete with it in search.
       siteOrigin: 'https://highreel.app',
-      // Show "Continue with Google" on /login (needs a Google OAuth client, SPEC M2a.2).
+      // Show "Sign in with Google" on /login (needs a Google OAuth client, SPEC M2a.2).
       authGoogle: false,
       // Turnstile's site key (NUXT_PUBLIC_TURNSTILE_SITE_KEY), for /login and "Keep my work".
       turnstileSiteKey: '',
