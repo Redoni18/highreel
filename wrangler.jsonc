@@ -49,7 +49,10 @@
   // Locally .env overrides these (Turnstile's test keys there always pass).
   "vars": {
     // The highreel.app Turnstile widget (Managed), made 2026-10-13.
-    "NUXT_PUBLIC_TURNSTILE_SITE_KEY": "0x4AAAAAAFVD_ceO81JBqZSn"
+    "NUXT_PUBLIC_TURNSTILE_SITE_KEY": "0x4AAAAAAFVD_ceO81JBqZSn",
+    // "Continue with Google" on /login (2026-10-14). Its client ID and secret
+    // are Worker secrets (NUXT_GOOGLE_CLIENT_ID, NUXT_GOOGLE_CLIENT_SECRET).
+    "NUXT_PUBLIC_AUTH_GOOGLE": "true"
   },
   // The scheduled jobs (P4): the same expressions as server/schedule.ts, which
   // says which tasks each one runs. `wrangler dev --test-scheduled` adds

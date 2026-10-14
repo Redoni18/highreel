@@ -60,7 +60,7 @@ const mail = `mailto:${CONTACT_EMAIL}`
     <h2 id="account">3. Your account</h2>
     <ul>
       <li>Highreel is for businesses and organisations. By signing up you confirm you're at least 18 and allowed to agree to these terms for your business.</li>
-      <li>You sign in with a link sent to your email address. Keep that inbox secure: whoever can read it can sign in. Tell us straight away if you think someone else has used your account.</li>
+      <li>You sign in with a link sent to your email address, or with your Google account. Keep them secure: whoever can read that inbox or use that Google account can sign in. Tell us straight away if you think someone else has used your account.</li>
       <li>You're responsible for what happens in your account, including anything people you give access to do in it.</li>
     </ul>
 

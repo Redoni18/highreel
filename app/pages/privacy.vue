@@ -70,7 +70,7 @@ const mail = `mailto:${CONTACT_EMAIL}`
     <h2 id="businesses">3. If you use Highreel for your business</h2>
     <h3>What we collect</h3>
     <ul>
-      <li><strong>Your account:</strong> your email address (you sign in with a link we email you), and if you sign in with Google where that's offered, the name and email address Google shares with us.</li>
+      <li><strong>Your account:</strong> your email address (you sign in with a link we email you, or with Google), and if you sign in with Google, the name and email address Google shares with us. We ask Google for nothing else: not your contacts, files or email.</li>
       <li><strong>Sign-in records:</strong> for each session, when it started and was last used, and the IP address and browser it came from, to keep accounts secure. They're deleted when the session ends. Sign-in attempts are also counted per IP address to stop abuse, and those counts are deleted within a day.</li>
       <li><strong>Your business:</strong> its name, logo, brand colour and website, and the Highreels you make: sheets, wording, photos, settings.</li>
       <li><strong>The email account you connect to send Highreels:</strong> its server, login, sending address and name. The password is stored encrypted and only used to send your Highreels and the tests you ask for. It's never shown back, not even to you.</li>
@@ -126,6 +126,7 @@ const mail = `mailto:${CONTACT_EMAIL}`
       <li><strong>Cloudflare</strong>: hosting and delivering the site, our database (accounts and sign-in included) and the logos and photos businesses upload, stored in the EU; the bot check on signing in (Turnstile); sending our sign-in emails; and counting visits to our public pages (Web Analytics). Like any host, it handles visitors' IP addresses to deliver pages and block attacks.</li>
       <li><strong>Whop</strong>: payments, for businesses that buy a campaign.</li>
     </ul>
+    <p>If you sign in with Google, Google tells us your name and email address under its own privacy policy; we use them only to sign you in.</p>
     <p>Emails with Highreels go through the business's own email provider, which the business chooses and has its own agreement with. WhatsApp messages are sent by the business from its own device.</p>
     <p>Some of these providers may process data outside Kosovo and the European Economic Area. Where they do, we rely on safeguards such as the EU's Standard Contractual Clauses. We'll also share data if the law requires it, and if {{ LEGAL_NAME }} or Highreel is ever sold or merged, the new owner takes on these commitments and we'll tell you first.</p>
 
