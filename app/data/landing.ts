@@ -2,9 +2,9 @@
 // structured data and /llms.txt (server/routes/llms.txt.ts), so they never say
 // different things. The page adds its own pictures and colours.
 
-export const LANDING_TITLE = 'Highreel · Give every customer their year\'s highlight reel'
-export const LANDING_DESCRIPTION = 'Spotify Wrapped for your business: each customer on your sheet gets a Highreel, an animated highlight reel of their year to share. From $99 per campaign.'
-export const LANDING_LEDE = 'Spotify Wrapped, for your business. Upload a sheet with one row per customer, and each one gets their own Highreel: an animated highlight reel of their year to tap through and share.'
+export const LANDING_TITLE = 'Highreel · Give your customers their highlight reel'
+export const LANDING_DESCRIPTION = 'Spotify Wrapped for your business: every customer gets their own Highreel, an animated highlight reel of their year, made to share. From $99 per campaign.'
+export const LANDING_LEDE = 'Spotify Wrapped, for your business: every customer gets a Highreel of their year, made to share.'
 export const LANDING_AUDIENCE = 'Apps, newsletters, online shops, gyms, studios, camps and daycares. If you know what each customer did this year, they can have a Highreel of it.'
 
 export const STEPS = [
@@ -13,7 +13,7 @@ export const STEPS = [
     body: 'One row per customer: a first name and their numbers for the year. CSV or Excel, with our columns or your own. Anything that needs fixing turns red, and you fix it right in the grid.',
   },
   {
-    title: 'Make it look like you.',
+    title: 'Customise to fit your brand.',
     body: 'Add your logo and colour, choose a theme and rewrite any line. Click any customer to see their Highreel change as you type.',
   },
   {

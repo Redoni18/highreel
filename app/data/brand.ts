@@ -14,4 +14,4 @@ export const LOGO: Logo = 'highlighter'
  * scripts/og-landing.mjs). Chat apps and social sites keep a preview by its
  * address, so bump `v` whenever the picture is redrawn.
  */
-export const OG_IMAGE = '/og.png?v=2'
+export const OG_IMAGE = '/og.png?v=3'

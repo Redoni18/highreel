@@ -72,7 +72,8 @@ const swatches = ['#4F46E5', '#C8341B', '#1F6F4A', '#F5C518']
   position: absolute;
   left: 100%;
   top: 40%;
-  width: 260%;
+  /* wide enough to reach the far corner (bottom left, 1.64 screen widths away) */
+  width: 360%;
   aspect-ratio: 1;
   border-radius: 50%;
   transform: translate(-50%, -50%) scale(0);

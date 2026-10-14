@@ -1,14 +1,18 @@
 <script setup lang="ts">
-// Landing, step 3: members get their recap. On three phones a notification
-// from "Your business" lands on the lock screen, gets tapped, and that
-// person's recap cover floods open in their business's colour. CSS loop,
-// staggered per phone; the base style is the end state (every recap open),
-// so reduced motion shows three open recaps.
+// Landing, step 3: members get their recap. On three phones the business's
+// message lands on the lock screen (an email on two, a WhatsApp message on
+// one, the two ways a Highreel is sent; owner, 2026-10-14: it mustn't look
+// like an app of ours, so no logo there), gets tapped, and that person's
+// recap cover floods open in their business's colour. CSS loop, staggered per
+// phone; the base style is the end state (every recap open), so reduced
+// motion shows three open recaps.
+import { Mail, MessageCircle } from '@lucide/vue'
+
 const members = [
-  { name: 'Ana', bg: '#4F46E5', fg: '#FFFFFF' },
-  { name: 'Leon', bg: '#E2457A', fg: '#FFFFFF' },
-  { name: 'Dea', bg: '#F5C518', fg: '#1A1A1A' },
-]
+  { name: 'Ana', bg: '#4F46E5', fg: '#FFFFFF', via: 'mail' },
+  { name: 'Leon', bg: '#E2457A', fg: '#FFFFFF', via: 'chat' },
+  { name: 'Dea', bg: '#F5C518', fg: '#1A1A1A', via: 'mail' },
+] as const
 </script>
 
 <template>
@@ -20,10 +24,14 @@ const members = [
             <p class="date">Monday 7 December</p>
             <p class="clock">9:41</p>
             <div class="note">
-              <span class="app"><LandingShape kind="scallop" class="app-shape" /></span>
+              <span class="app" :class="`via-${m.via}`"><component :is="m.via === 'mail' ? Mail : MessageCircle" class="app-icon" /></span>
               <span class="note-body">
                 <span class="note-top"><b>Your business</b><span>now</span></span>
-                <span class="note-text">{{ m.name }}, your 2026 Highreel is here</span>
+                <template v-if="m.via === 'mail'">
+                  <span class="note-text">{{ m.name }}, your 2026 Highreel is here</span>
+                  <span class="note-text note-more">Hi {{ m.name }}, we made something just for you</span>
+                </template>
+                <span v-else class="note-text">Hi {{ m.name }}! We made your 2026 into a little Highreel</span>
               </span>
             </div>
           </div>
@@ -96,7 +104,7 @@ const members = [
   top: 108cqw;
   display: flex;
   gap: 3.4cqw;
-  align-items: center;
+  align-items: flex-start;
   padding: 4cqw;
   border-radius: 7cqw;
   background: rgb(255 255 255 / 0.82);
@@ -112,10 +120,12 @@ const members = [
   width: 12cqw;
   height: 12cqw;
   border-radius: 3cqw;
-  background: #4560FF;
   color: #FFFFFF;
 }
-.app-shape { width: 7.5cqw; height: 7.5cqw; }
+/* the phone's own mail and messages apps, so it reads as an email or a message */
+.app.via-mail { background: linear-gradient(#5AB0FF, #1F7CF2); }
+.app.via-chat { background: linear-gradient(#62DB73, #22B13C); }
+.app-icon { width: 7.5cqw; height: 7.5cqw; stroke-width: 2.4; }
 .note-body { min-width: 0; flex: 1; line-height: 1.2; }
 .note-top {
   display: flex;
@@ -127,11 +137,18 @@ const members = [
   display: block;
   font-size: 5cqw;
 }
+.note-more {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0.6;
+}
 .flood {
   position: absolute;
   left: 50%;
   top: 60%;
-  width: 260%;
+  /* wide enough to reach the top corners (1.4 screen widths away) */
+  width: 320%;
   aspect-ratio: 1;
   border-radius: 50%;
   translate: -50% -50%;

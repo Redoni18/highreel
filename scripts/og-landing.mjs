@@ -14,7 +14,6 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { initWasm, Resvg } from '@resvg/resvg-wasm'
 import { blobFrames } from '../app/lib/blobs.ts'
-import { SHAPE_PATHS } from '../app/lib/shapes.ts'
 import { siteLogo } from './brand.mjs'
 
 const root = new URL('../', import.meta.url)
@@ -67,16 +66,22 @@ function sticker(x, y, rot, big, small, bg, w, scale = 1.2) {
 }
 
 /** An inbox notification (.mail): the business's mark, who it's from, when, and the subject. */
-function mail(x, y, rot, when, text, scale = 1.25) {
+// The hero's email and WhatsApp message (Lucide's mail and message-circle, as on the page).
+const VIA = {
+  mail: { bg: CTA, icon: '<path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7"/><rect x="2" y="4" width="20" height="16" rx="2"/>' },
+  chat: { bg: '#1FA855', icon: '<path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"/>' },
+}
+function mail(x, y, rot, via, when, text, more, scale = 1.25) {
   const w = 284
-  const h = 54
+  const h = more ? 70 : 54
   return `<g transform="translate(${x} ${y}) rotate(${rot}) scale(${scale}) translate(${-w / 2} ${-h / 2})">
     <rect width="${w}" height="${h}" rx="22" fill="#E8E8ED" fill-opacity="0.85"/>
-    <circle cx="27" cy="27" r="18" fill="${CTA}"/>
-    <g transform="translate(27 27) scale(0.045)"><path d="${SHAPE_PATHS.scallop}" fill="#FFFFFF"/></g>
+    <circle cx="27" cy="${h / 2}" r="18" fill="${VIA[via].bg}"/>
+    <g transform="translate(18 ${h / 2 - 9}) scale(0.75)" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${VIA[via].icon}</g>
     <text x="55" y="23" font-size="13" font-weight="600" fill="${INK}">Your business</text>
     <text x="${w - 16}" y="23" font-size="12" font-weight="500" fill="#8A8A8A" text-anchor="end">${esc(when)}</text>
     <text x="55" y="41" font-size="13" font-weight="500" fill="#3A3A3A">${esc(text)}</text>
+    ${more ? `<text x="55" y="58" font-size="13" font-weight="500" fill="#8A8A8A">${esc(more)}</text>` : ''}
   </g>`
 }
 
@@ -111,13 +116,13 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" 
   ${sticker(150, 452, -8, '212', 'days in the app', '#4F46E5', 128)}
   ${sticker(1062, 412, 7, 'Top 6%', 'of all readers', '#C8341B', 132)}
   ${sticker(330, 568, 5, '14', 'orders this year', '#1F6F4A', 132)}
-  ${mail(745, 92, -2, 'now', 'Ana, your 2026 Highreel is here')}
-  ${mail(800, 574, 2, '2m ago', 'Leon, here\'s your year with us')}
+  ${mail(745, 92, -2, 'mail', 'now', 'Ana, your 2026 Highreel is here', 'Hi Ana, we made something just for…')}
+  ${mail(800, 574, 2, 'chat', '2m ago', 'Hi Leon! Here\'s your year with us')}
 
   ${siteLogo.place(110, 70, 34)}
   <g text-anchor="middle" font-size="80" font-weight="600" fill="${INK}" letter-spacing="-2.4">
-    <text x="${W / 2}" y="250">Give every customer</text>
-    <text x="${W / 2}" y="333">their year's highlight reel.</text>
+    <text x="${W / 2}" y="250">Give your customers</text>
+    <text x="${W / 2}" y="333">their highlight reel.</text>
   </g>
   <text x="${W / 2}" y="392" text-anchor="middle" font-size="28" font-weight="500" fill="${MUTED}">Spotify Wrapped, for your business.</text>
   <rect x="${W / 2 - 160}" y="426" width="320" height="60" rx="30" fill="${CTA}"/>

@@ -6,7 +6,7 @@
 // section sits its picture on a big coloured shape: the playing example on
 // its business's colour, the three steps on the page's own palette.
 // Server-rendered, CSS motion only, no third-party scripts.
-import { ArrowRight, ChevronDown } from '@lucide/vue'
+import { ArrowRight, ChevronDown, Mail, MessageCircle } from '@lucide/vue'
 import { usePreferredReducedMotion } from '@vueuse/core'
 import type LandingPlayer from '~/components/landing/LandingPlayer.vue'
 import { blobFrames, type ShapeKind } from '~/lib/shapes'
@@ -38,11 +38,11 @@ const description = LANDING_DESCRIPTION
 // URL names the public site, not the host that built it.
 const canonical = useCanonical('/')
 const ogImage = siteHref(OG_IMAGE)
-const ogImageAlt = 'Highreel: give every customer their year\'s highlight reel. From $99 per campaign.'
+const ogImageAlt = 'Highreel: give your customers their highlight reel. From $99 per campaign.'
 useSeoMeta({
   title,
   description,
-  ogTitle: 'Give every customer their year\'s highlight reel.',
+  ogTitle: 'Give your customers their highlight reel.',
   ogDescription: description,
   ogSiteName: 'Highreel',
   ogLocale: 'en_US',
@@ -139,7 +139,7 @@ const heroBlobs = [
 ].map(b => ({ ...b, frames: blobFrames(b.seed) }))
 // Hand-drawn strokes, each in its own 200 × 120 box.
 const heroLines = [
-  { d: 'M8 70C38 18 62 112 96 62S150 12 192 58', color: C.blue, x: 15, y: 35, s: 140, r: -14, delay: 0 },
+  { d: 'M8 70C38 18 62 112 96 62S150 12 192 58', color: C.blue, x: 15, y: 27, s: 140, r: -14, delay: 0 },
   { d: 'M10 80C60 90 90 60 82 36S40 18 46 50 100 96 130 70 168 24 190 40', color: C.poppy, x: 80, y: 63, s: 140, r: 6, delay: 2.3 },
   { d: 'M12 96Q100 -4 188 96', color: C.violet, x: 72, y: 18, s: 120, r: -4, delay: 4.1, dashed: true },
   { d: 'M14 60C50 20 80 100 110 60S170 30 186 62', color: C.green, x: 37, y: 91, s: 110, r: 8, delay: 1.2, m: [24, 74] as [number, number] },
@@ -163,10 +163,12 @@ const heroStickers = [
   { big: 'Top 6%', small: 'of all readers', bg: '#C8341B', fg: '#FFFFFF', x: 84, y: 58, r: 7 },
   { big: '14', small: 'orders this year', bg: '#1F6F4A', fg: '#FFFFFF', x: 27, y: 87, r: 5, m: [54, 91] as [number, number] },
 ]
-// What lands in each customer's inbox when the business sends the links.
-const heroMail = [
-  { from: 'Your business', when: 'now', text: 'Ana, your 2026 Highreel is here', x: 51, y: 12, r: -2, m: [50, 18] as [number, number] },
-  { from: 'Your business', when: '2m ago', text: 'Leon, here\'s your year with us', x: 61, y: 85, r: 2 },
+// What reaches each customer when the business sends the links: an email
+// from its own address, or a WhatsApp message (owner, 2026-10-14: say which,
+// so it doesn't pass for a notification from an app of ours).
+const heroMail: (Spot & { via: 'mail' | 'chat', from: string, when: string, text: string, more?: string })[] = [
+  { via: 'mail', from: 'Your business', when: 'now', text: 'Ana, your 2026 Highreel is here', more: 'Hi Ana, we made something just for you', x: 51, y: 12, r: -2, m: [50, 18] as [number, number] },
+  { via: 'chat', from: 'Your business', when: '2m ago', text: 'Hi Leon! Here\'s your year with us', x: 61, y: 85, r: 2 },
 ]
 
 const closingShapes: ShapeSpot[] = [
@@ -419,10 +421,11 @@ onMounted(() => {
           :class="{ desk: !n.m }"
           :style="{ ...spot(n, i, 520), ...burst(n, 40 + i) }"
         >
-          <span class="mail-mark"><LandingShape kind="scallop" class="mail-shape" /></span>
+          <span class="mail-mark" :class="`via-${n.via}`"><component :is="n.via === 'mail' ? Mail : MessageCircle" class="mail-shape" /></span>
           <span class="mail-body">
             <span class="mail-from">{{ n.from }}<span class="mail-when">{{ n.when }}</span></span>
             <span class="mail-text">{{ n.text }}</span>
+            <span v-if="n.more" class="mail-text mail-more">{{ n.more }}</span>
           </span>
         </div>
       </div>
@@ -439,7 +442,7 @@ onMounted(() => {
         <!-- The headline and the lede are there in the first frame (no fade):
              they're the page's largest paint, and the scripts wait for it (SPEC M2.11). -->
         <h1 class="headline">
-          <span class="line">Give every customer</span> <span class="line">their year's highlight reel.</span>
+          <span class="line">Give your customers</span> <span class="line">their highlight reel.</span>
         </h1>
         <p class="lede">
           {{ LANDING_LEDE }}
@@ -567,7 +570,9 @@ onMounted(() => {
         </div>
       </div>
       <div class="closing-copy">
-        <h2 class="closing-title rise">Get your Highreels ready for December.</h2>
+        <h2 class="closing-title rise">
+          <span class="line">Your customers had a great year.</span> <span class="line">Show them.</span>
+        </h2>
         <div ref="closingCta" class="rise" style="--d: 100ms">
           <NuxtLink to="/login?demo=1" class="btn">Try the demo <ArrowRight class="size-[18px]" /></NuxtLink>
         </div>
@@ -679,8 +684,9 @@ body.landing-page {
   letter-spacing: -0.025em;
   text-wrap: balance;
 }
+/* two lines on a computer, clear of the stickers beside it */
 .lede {
-  max-width: 32rem;
+  max-width: 30em;
   margin-top: 22px;
   color: var(--muted);
   font-size: clamp(1.08rem, 1.5vw, 1.25rem);
@@ -931,9 +937,11 @@ body.landing-page {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: var(--cta);
   color: #FFFFFF;
 }
+/* an envelope for the email, a speech bubble for the WhatsApp message */
+.mail-mark.via-mail { background: var(--cta); }
+.mail-mark.via-chat { background: #1FA855; }
 .mail-shape { width: 18px; height: 18px; }
 .mail-body { min-width: 0; flex: 1; font-size: 13px; line-height: 1.3; }
 .mail-from {
@@ -950,6 +958,7 @@ body.landing-page {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.mail-more { color: #8A8A8A; }
 
 /* --- Hero ------------------------------------------------------------------------ */
 .hero {
@@ -1291,14 +1300,18 @@ body.landing-page {
   padding: 120px 16px;
   text-align: center;
 }
+/* "Your customers had a great year." (13.9em) on one line from 720 px, then "Show them." */
 .closing-title {
-  max-width: 12em;
+  max-width: 14.2em;
   margin-bottom: 32px;
-  font-size: clamp(2.6rem, 6.4vw, 4.75rem);
+  font-size: clamp(2.6rem, 5.6vw, 4.5rem);
   font-weight: 600;
   line-height: 1.04;
   letter-spacing: -0.03em;
   text-wrap: balance;
+}
+@media (min-width: 720px) {
+  .closing-title .line { display: block; }
 }
 .foot {
   position: relative;

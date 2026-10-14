@@ -73,7 +73,7 @@ const files = {
   'public/site.webmanifest': `${JSON.stringify({
     name: 'Highreel',
     short_name: 'Highreel',
-    description: 'Give every customer their year\'s highlight reel.',
+    description: 'Give your customers their highlight reel.',
     start_url: '/',
     display: 'browser',
     background_color: '#FFFFFF',

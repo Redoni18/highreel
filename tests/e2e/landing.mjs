@@ -19,7 +19,7 @@ const EXAMPLES = [
 
 const html = await (await fetch(BASE)).text()
 const plain = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ')
-expect(/Give every customer their year(?:'|&#39;)s highlight reel\./.test(plain), 'headline is in the server-rendered HTML')
+expect(plain.includes('Give your customers their highlight reel.'), 'headline is in the server-rendered HTML')
 expect(plain.includes('$99') && plain.includes('per campaign'), 'the $99 price is in the server-rendered HTML')
 expect(!html.includes('aria-roledescription="story"') && !html.includes('v-sheet'), 'the phone\'s recap and the step pictures render near the screen, not in the server HTML')
 // Named Highreel on 2026-10-12: the title and both wordmarks say so.
@@ -90,12 +90,14 @@ const cutMail = p => p.evaluate(async () => {
 // Desktop
 const page = await newPage({ viewport: { width: 1280, height: 800 } })
 await page.goto(BASE, { waitUntil: 'networkidle' })
-expect((await page.locator('h1.headline').innerText()).replace(/\s+/g, ' ') === 'Give every customer their year\'s highlight reel.', 'the headline reads right')
+expect((await page.locator('h1.headline').innerText()).replace(/\s+/g, ' ') === 'Give your customers their highlight reel.', 'the headline reads right')
 // Owner's ask (2026-10-12): the hero says what a Highreel is (a highlight reel);
 // after it the page calls them Highreels, so the brand becomes the word for them.
+// Since 2026-10-14 the headline says it, and the lede only names one, once.
 const lede = (await page.locator('.hero .lede').innerText()).replace(/\s+/g, ' ')
 const rest = await page.evaluate(() => [...document.querySelectorAll('.landing > :not(.hero)')].map(e => e.textContent).join(' ').replace(/\s+/g, ' '))
-expect(/their own Highreel: an animated highlight reel/.test(lede) && !rest.includes('highlight reel') && (rest.match(/\bHighreels?\b/g) ?? []).length >= 8, 'the lede defines a Highreel, then the page says Highreel', { lede, highreels: rest.match(/\bHighreels?\b/g)?.length })
+expect(lede.startsWith('Spotify Wrapped, for your business') && /\ba Highreel of their year\b/.test(lede) && !lede.includes('highlight reel') && !rest.includes('highlight reel') && (rest.match(/\bHighreels?\b/g) ?? []).length >= 8, 'the headline explains a Highreel, then the page says Highreel', { lede, highreels: rest.match(/\bHighreels?\b/g)?.length })
+expect((await page.locator('.closing-title').innerText()).replace(/\s+/g, ' ') === 'Your customers had a great year. Show them.', 'the closing heading')
 const fonts = await page.evaluate(async () => {
   await document.fonts.ready
   return document.fonts.check('600 40px Outfit') && document.fonts.check('400 24px "Recap Notes"')
@@ -174,12 +176,29 @@ const cardTops = await page.locator('.tier').evaluateAll(els => els.map(el => Ma
 expect(new Set(cardTops).size === 1, 'the price cards are the same height side by side', cardTops)
 // The step pictures use the same phone as the example.
 expect(await page.locator('.v-brand .iphone').count() === 1 && await page.locator('.v-share .iphone').count() === 3, 'the step pictures use the iPhone frame')
+// Owner (2026-10-14): a colour flooding a phone covers its whole screen; the
+// circle once fell short of the corners and left the last colour showing.
+const floods = await page.evaluate(() => [...document.querySelectorAll('.v-brand .flood, .v-share .flood')].map((el) => {
+  const s = getComputedStyle(el)
+  const [x, y, r] = [Number.parseFloat(s.left), Number.parseFloat(s.top), el.offsetWidth / 2]
+  const [w, h] = [el.offsetParent.clientWidth, el.offsetParent.clientHeight]
+  return Math.round(Math.max(...[[0, 0], [w, 0], [0, h], [w, h]].map(([cx, cy]) => Math.hypot(cx - x, cy - y))) / r * 100) / 100
+}))
+expect(floods.length === 5 && floods.every(f => f < 1), 'every colour flood reaches the phone\'s far corner (distance / radius)', floods)
+// ...and what customers receive is an email or a WhatsApp message from the
+// business, not a notification from an app with its logo.
+const channels = await page.evaluate(() => ({
+  hero: [...document.querySelectorAll('.hero .mail-mark')].map(m => m.className.match(/via-\w+/)?.[0]),
+  preview: !!document.querySelector('.hero .mail .mail-more'),
+  steps: [...document.querySelectorAll('.v-share .note .app')].map(m => m.className.match(/via-\w+/)?.[0]),
+}))
+expect(channels.hero.join() === 'via-mail,via-chat' && channels.preview && channels.steps.join() === 'via-mail,via-chat,via-mail', 'the hero and step 3 show an email and a WhatsApp message', channels)
 await page.locator('.closing .btn').scrollIntoViewIfNeeded()
 await page.waitForTimeout(500)
 expect(!(await page.locator('.sticky-cta').isVisible()), 'the sticky button hides at the closing one')
 const og = await page.locator('meta[property="og:image"]').getAttribute('content')
 const ogRes = await fetch(`${BASE}/og.png`)
-expect(og === `${SITE}/og.png?v=2` && ogRes.status === 200 && ogRes.headers.get('content-type') === 'image/png', 'the landing has a link-preview image', og)
+expect(og === `${SITE}/og.png?v=3` && ogRes.status === 200 && ogRes.headers.get('content-type') === 'image/png', 'the landing has a link-preview image', og)
 
 // See an example
 await page.evaluate(() => window.scrollTo(0, 0))
