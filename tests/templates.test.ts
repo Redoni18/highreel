@@ -123,7 +123,7 @@ function payload(t: Template, data: Record<string, string | number | null>, sett
   return {
     template_key: t.key,
     year: 2026,
-    business: { name: 'Green Valley Farm', accent_color: '#2E7D32', logo_url: null, website_url: null },
+    business: { name: 'Green Valley Farm', logo_url: null, website_url: null },
     settings: normalizeSettings({ ...t.defaultSettings, ...settings }),
     recipient: toRecapRecipient(t, data, null),
   }

@@ -3,11 +3,14 @@
 // up from scratch: fictional businesses, fictional people, illustrated photos
 // (public/examples), never real customers. Each starts from one of the
 // dashboard's business-type templates (shared/templates/starters.ts): its
-// colour, theme and wording, plus a signed note or photos here and there.
+// wording and the look it suggests (a design and colourway, SPEC M2.17), plus a
+// signed note or photos here and there.
 
 import type { CampaignSettings, RecapPayload } from '#shared/types/recap'
 import type { ParsedRow } from '#shared/templates/types'
 import { getTemplate } from '#shared/templates'
+import { resolveLook } from '#shared/templates/designs'
+import type { RecapTheme } from '#shared/utils/color'
 import { getStarter, withStarter } from '#shared/templates/starters'
 import { toRecapRecipient } from '#shared/utils/recap'
 
@@ -18,11 +21,16 @@ export interface Example {
   /** One line under the phone: whose recap this is */
   about: string
   payload: RecapPayload
+  /** its look's colour and renderer, for the landing's dots, shapes and phone */
+  accent: string
+  theme: RecapTheme
 }
 
 function example(key: string, label: string, about: string, starterKey: string, business: string, s: Partial<CampaignSettings>, row: ParsedRow): Example {
   const starter = getStarter(starterKey)!
   const template = getTemplate(starter.template)
+  const settings = { ...withStarter(template.defaultSettings, starter), ...s }
+  const look = resolveLook(settings.look)
   return {
     key,
     label,
@@ -30,10 +38,12 @@ function example(key: string, label: string, about: string, starterKey: string, 
     payload: {
       template_key: template.key,
       year: 2026,
-      business: { name: business, accent_color: starter.accent, logo_url: null, website_url: null },
-      settings: { ...withStarter(template.defaultSettings, starter), ...s },
+      business: { name: business, logo_url: null, website_url: null },
+      settings,
       recipient: toRecapRecipient(template, row, null),
     },
+    accent: look.accent,
+    theme: look.theme,
   }
 }
 

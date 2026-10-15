@@ -4,7 +4,7 @@
 // options, reorders, adds a "top X%" and a new column, removes a slide;
 // published recaps play the added slides (hearts, a calendar page) and carry
 // no id or email. A template recap can hide one of its own slides.
-import { BASE, campaignId, demoSession, designItem, expect, finish, launch, publish, sheetCounts, tab, watchErrors, rowsOf } from './lib.mjs'
+import { BASE, campaignId, demoSession, designItem, expect, finish, launch, publish, sheetCounts, tab, watchErrors, rowsOf, newHighreel } from './lib.mjs'
 
 const browser = await launch()
 const page = await (await browser.newContext({ viewport: { width: 1440, height: 900 } })).newPage()
@@ -39,8 +39,7 @@ expect(streak?.hidden === true && days?.scene === 'count' && days?.tokens === 's
 await page.getByRole('link', { name: 'All Highreels' }).click()
 await page.waitForURL(u => new URL(u).pathname === '/app')
 await page.getByRole('button', { name: 'New Highreel' }).click()
-await page.getByRole('dialog').getByRole('radio', { name: /Your own sheet/ }).click()
-await page.getByRole('dialog').getByRole('button', { name: 'Create' }).click()
+await newHighreel(page, { type: /Your own sheet/ })
 await page.waitForURL('**/app/c/*')
 await page.waitForSelector('text=Your own sheet template')
 await page.getByRole('button', { name: 'Use sample data' }).click()
@@ -182,8 +181,7 @@ expect(JSON.stringify(scenes) === JSON.stringify(['cover', 'count', 'date', 'cou
 // --- Decimals: amounts from another tool, currency signs and decimal commas ---------------
 await page.goto(`${BASE}/app`)
 await page.getByRole('button', { name: 'New Highreel' }).click()
-await page.getByRole('dialog').getByRole('radio', { name: /Your own sheet/ }).click()
-await page.getByRole('dialog').getByRole('button', { name: 'Create' }).click()
+await newHighreel(page, { type: /Your own sheet/ })
 await page.waitForSelector('text=Your own sheet template')
 await page.locator('[data-testid="file-input"]').setInputFiles({ name: 'orders.csv', mimeType: 'text/csv', buffer: Buffer.from('customer_id,first_name,spent,orders\na1,Ana,€24.99,3\na2,Ben,"1.204,50 €",5\na3,Cleo,12,1\n') })
 await page.waitForSelector('text=Match your columns')

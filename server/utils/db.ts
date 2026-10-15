@@ -17,6 +17,7 @@ import type { Business, Campaign, CampaignKind, CampaignSettings, CampaignStatus
 import type { ParsedRow, RawRow, RowErrors } from '#shared/templates/types'
 import type { EmailConnection } from '#shared/utils/smtp'
 import { getTemplate } from '#shared/templates'
+import type { Look } from '#shared/templates/designs'
 import { type Starter, withStarter } from '#shared/templates/starters'
 import { normalizeSettings } from '#shared/utils/recap'
 
@@ -25,9 +26,6 @@ export interface Db {
   d1: D1Database
   businessId: string
 }
-
-/** A new business's colour until it picks its own (a business-type template may replace it). */
-export const DEFAULT_ACCENT = '#4F46E5'
 
 /** Rows per page (grid, import parts, publish), SPEC M2.14 P1: about 15 MB of heap each at most. */
 export const PAGE_ROWS = 5000
@@ -95,7 +93,6 @@ function toBusiness(row: Record<string, any>): Business {
   return {
     id: row.id,
     name: row.name,
-    accent_color: row.accent_color,
     logo_shape: row.logo_shape === 'square' ? 'square' : 'circle',
     logo_url: null,
     logo_path: row.logo_path ?? null,
@@ -136,8 +133,8 @@ export async function businessOf(d1: D1Database, userId: string): Promise<Busine
   if (found)
     return toBusiness(found)
   // A parallel first request may create it first: then this does nothing.
-  await d1.prepare('insert into businesses (id, owner_id, name, accent_color) values (?, ?, ?, ?) on conflict (owner_id) do nothing')
-    .bind(crypto.randomUUID(), userId, 'My business', DEFAULT_ACCENT)
+  await d1.prepare('insert into businesses (id, owner_id, name) values (?, ?, ?) on conflict (owner_id) do nothing')
+    .bind(crypto.randomUUID(), userId, 'My business')
     .run()
   const created = await find.first()
   if (!created)
@@ -145,7 +142,8 @@ export async function businessOf(d1: D1Database, userId: string): Promise<Busine
   return toBusiness(created)
 }
 
-const BUSINESS_FIELDS = ['name', 'accent_color', 'website_url', 'logo_path', 'logo_shape'] as const
+// Colour isn't one: it belongs to a Highreel's design since M2.17 (the old accent_color column is no longer read or written).
+const BUSINESS_FIELDS = ['name', 'website_url', 'logo_path', 'logo_shape'] as const
 export type BusinessUpdate = Partial<Record<typeof BUSINESS_FIELDS[number], string | null>>
 
 export async function updateBusiness(db: Db, update: BusinessUpdate): Promise<Business> {
@@ -166,9 +164,11 @@ async function getBusiness(db: Db): Promise<Business> {
 
 // --- Campaigns -----------------------------------------------------------------
 
-export async function createCampaign(db: Db, input: { name: string, year: number, template_key: string, kind?: CampaignKind, settings?: unknown, starter?: Starter }): Promise<Campaign> {
+export async function createCampaign(db: Db, input: { name: string, year: number, template_key: string, kind?: CampaignKind, settings?: unknown, starter?: Starter, look?: Look }): Promise<Campaign> {
   const template = getTemplate(input.template_key)
-  const settings = input.settings ?? (input.starter ? withStarter(normalizeSettings(template.defaultSettings), input.starter) : template.defaultSettings)
+  const base = input.settings ?? (input.starter ? withStarter(normalizeSettings(template.defaultSettings), input.starter) : template.defaultSettings)
+  // The design picked in New Highreel, over the business type's suggestion (SPEC M2.17).
+  const settings = input.look ? { ...normalizeSettings(base), look: input.look } : base
   const row = await db.d1.prepare('insert into campaigns (id, business_id, name, year, template_key, kind, settings) values (?, ?, ?, ?, ?, ?, ?) returning *')
     .bind(crypto.randomUUID(), db.businessId, input.name, input.year, template.key, input.kind ?? template.kind ?? 'customers', JSON.stringify(settings))
     .first()

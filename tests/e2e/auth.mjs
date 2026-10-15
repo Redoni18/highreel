@@ -4,7 +4,7 @@
 // goes; on another device too; refused for an address with its own
 // Highreels), the Turnstile check, sign out, email-link sign-in. Emails via
 // Mailpit.
-import { BASE, campaignId, demoSession, expect, finish, inApp, latestLink, launch, publish, sheetCounts, sql, tokenFor, watchErrors } from './lib.mjs'
+import { BASE, campaignId, demoSession, expect, finish, inApp, latestLink, launch, publish, sheetCounts, sql, tokenFor, watchErrors, newHighreel } from './lib.mjs'
 
 const browser = await launch()
 const errors = []
@@ -59,8 +59,7 @@ expect(JSON.stringify(probe) === JSON.stringify({ campaign: 404, rows: 404, publ
 
 await a.getByRole('button', { name: 'Switch campaign' }).click()
 await a.getByRole('menuitem', { name: 'New Highreel' }).click()
-await a.getByLabel('Name').fill('Summer camp 2026')
-await a.getByRole('button', { name: 'Create' }).click()
+await newHighreel(a, { name: 'Summer camp 2026' })
 await a.waitForSelector('text=Use sample data')
 expect((await top(a)).includes('Summer camp 2026'), 'new campaign opens')
 await a.getByRole('button', { name: 'Switch campaign' }).click()

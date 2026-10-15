@@ -3,6 +3,7 @@
 
 import type { ParsedRow, Template } from '../templates/types'
 import type { CampaignPhoto, CampaignSettings, RecapRecipient } from '../types/recap'
+import { cleanLook } from '../templates/designs'
 import { cleanColumns, cleanSlides, storedRankKey } from '../templates/own'
 
 const str = (v: unknown) => (typeof v === 'string' ? v : '')
@@ -23,7 +24,7 @@ export function normalizeSettings(input: unknown): CampaignSettings {
     photos: Array.isArray(s.photos) ? s.photos.filter(isPhoto).slice(0, MAX_PHOTOS) : [],
     photo_in_share_image: s.photo_in_share_image === true,
     photos_consent_at: typeof s.photos_consent_at === 'string' ? s.photos_consent_at : null,
-    theme: s.theme === 'paper' ? 'paper' : 'stories',
+    look: cleanLook(s.look, s.theme),
     guess_first: s.guess_first === true,
     columns: cleanColumns(s.columns),
     slides: cleanSlides(s.slides),

@@ -9,7 +9,7 @@ definePageMeta({ layout: false })
 
 const route = useRoute()
 const token = computed(() => String(route.params.token ?? ''))
-const { data, error } = await useFetch<{ business: { name: string, accent_color: string }, hasEmail: boolean, done: boolean }>(() => `/api/r/${token.value}/unsubscribe`, {
+const { data, error } = await useFetch<{ business: { name: string }, accent: string, hasEmail: boolean, done: boolean }>(() => `/api/r/${token.value}/unsubscribe`, {
   key: () => `unsubscribe-${token.value}`,
 })
 if (import.meta.server && error.value) {
@@ -18,7 +18,8 @@ if (import.meta.server && error.value) {
     setResponseStatus(event, error.value.statusCode ?? 404)
 }
 
-const accent = computed(() => data.value?.business.accent_color ?? '#4560FF')
+// The colour of the Highreel the email was about (its design's, SPEC M2.17).
+const accent = computed(() => data.value?.accent ?? '#4560FF')
 useHead({
   title: () => data.value ? `Unsubscribe from ${data.value.business.name}` : 'Unsubscribe',
   meta: [{ name: 'robots', content: 'noindex, nofollow' }, { name: 'referrer', content: 'no-referrer' }],

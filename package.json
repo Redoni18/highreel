@@ -7,7 +7,8 @@
     "node": ">=22.13"
   },
   "scripts": {
-    "dev": "nuxt dev --port 3040",
+    "dev": "node scripts/seed-local.mjs && nuxt dev --port 3040",
+    "db:seed": "node scripts/seed-local.mjs",
     "build": "nuxt build",
     "preview": "nuxt preview",
     "typecheck": "nuxt typecheck",

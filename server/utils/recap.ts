@@ -17,7 +17,7 @@ export async function loadRecapPayload(event: H3Event, token: string): Promise<{
     throw createError({ statusCode: 404, message: 'Highreel not found' })
 
   const row = await tokenDb(event).prepare(`select r.data, r.errors, c.id as campaign_id, c.year, c.status, c.settings, c.template_key,
-      b.id as business_id, b.name, b.accent_color, b.logo_path, b.logo_shape, b.website_url,
+      b.id as business_id, b.name, b.logo_path, b.logo_shape, b.website_url,
       exists (select 1 from "user" u join blocked_emails x on x.email = lower(u.email) where u.id = b.owner_id) as blocked
     from recipients r join campaigns c on c.id = r.campaign_id join businesses b on b.id = c.business_id
     where r.token = ?`).bind(token).first<Record<string, any>>()
@@ -26,7 +26,7 @@ export async function loadRecapPayload(event: H3Event, token: string): Promise<{
 
   // Photos and logo get 24 h links; storage paths stay on the server.
   const logoShape = row.logo_shape === 'square' ? 'square' : 'circle'
-  const business = { id: row.business_id, name: row.name, accent_color: row.accent_color, logo_path: row.logo_path ?? null, logo_shape: logoShape, logo_url: null, website_url: row.website_url ?? null } as const
+  const business = { id: row.business_id, name: row.name, logo_path: row.logo_path ?? null, logo_shape: logoShape, logo_url: null, website_url: row.website_url ?? null } as const
   const signed = await signMedia(event, business, normalizeSettings(JSON.parse(row.settings)), 60 * 60 * 24)
   return {
     logoPath: business.logo_path,
@@ -35,7 +35,7 @@ export async function loadRecapPayload(event: H3Event, token: string): Promise<{
     recap: {
       template_key: row.template_key,
       year: row.year,
-      business: { name: business.name, accent_color: business.accent_color, logo_url: signed.business.logo_url, logo_shape: logoShape, website_url: business.website_url },
+      business: { name: business.name, logo_url: signed.business.logo_url, logo_shape: logoShape, website_url: business.website_url },
       // The business's own bookkeeping stays out of the public payload.
       settings: { ...signed.settings, photos: signed.settings.photos.map(p => ({ ...p, path: '' })), photos_consent_at: null, email: undefined, email_consent_at: null, whatsapp: undefined },
       recipient: toRecapRecipient(templateFor(row.template_key, signed.settings), JSON.parse(row.data), undefined, { copy: signed.settings.copy }),

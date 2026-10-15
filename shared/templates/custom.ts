@@ -4,6 +4,7 @@
 // slides, ranking or share stats of its own: templateFor() adds them.
 // scripts/generate-sample.mjs writes its template and the Keepsake sample.
 
+import { DEFAULT_LOOK } from './designs'
 import type { Template } from './types'
 
 export const customTemplate: Template = {
@@ -32,7 +33,7 @@ export const customTemplate: Template = {
     photos: [],
     photo_in_share_image: false,
     photos_consent_at: null,
-    theme: 'stories',
+    look: { ...DEFAULT_LOOK },
     guess_first: false,
   },
 }

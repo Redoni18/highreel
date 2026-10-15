@@ -1,7 +1,7 @@
 // The email each person gets (SPEC M2.8; since M2.9 sent from the business's
 // own account): the business's subject and message with {first_name},
-// {business} and {year} filled in, a button to the recap in the business's
-// colour, and a footer with the unsubscribe link. It comes from the business:
+// {business} and {year} filled in, a button to the recap in its design's
+// colour (SPEC M2.17), and a footer with the unsubscribe link. It comes from the business:
 // no Highreel sender, logo or footer; only the button names what they get, their
 // Highreel (owner, 2026-10-12). Built here so the server sends exactly what the Share
 // tab previews.
@@ -17,7 +17,9 @@ export const BODY_MAX = 1000
 export interface EmailCopy { subject: string, body: string }
 
 export interface RecapEmailInput {
-  business: { name: string, accent_color: string, website_url?: string | null }
+  business: { name: string, website_url?: string | null }
+  /** the colour of the Highreel's look (resolveLook) */
+  accent: string
   first_name: string
   year: number
   copy?: Partial<EmailCopy> | null
@@ -45,7 +47,7 @@ export function recapEmail(input: RecapEmailInput): RecapEmail {
   const vars = { first_name: input.first_name.trim() || 'there', business: input.business.name, year: input.year }
   const subject = fillEmail(input.copy?.subject?.trim() || DEFAULT_SUBJECT, vars).replace(/[\r\n]+/g, ' ').slice(0, 200)
   const body = fillEmail(input.copy?.body?.trim() || DEFAULT_BODY, vars)
-  const accent = normalizeHex(input.business.accent_color) ?? '#111111'
+  const accent = normalizeHex(input.accent) ?? '#111111'
   const onAccent = readableOn(accent)
   const page = mix(accent, '#FFFFFF', 0.08)
   const name = escape(input.business.name)

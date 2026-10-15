@@ -35,7 +35,7 @@ export interface AdminUser extends Reach {
   highreels: number
   /** of them, published */
   published: number
-  /** published but not paid for */
+  /** published for customers but not paid for (their own Highreel is free) */
   unpaid: number
   /** Highreel emails sent through the business's account */
   emails: number
@@ -96,6 +96,8 @@ export interface AdminPayment {
   campaign: string | null
   tier: string | null
   amount: number
+  /** what Whop paid out after its fees, same units (SPEC M2.16); null until Whop says */
+  net: number | null
   currency: string
   status: 'paid' | 'refunded'
   paid_at: string
@@ -123,7 +125,16 @@ export interface AdminOverview {
   payers: number
   payments: number
   refunded: number
+  /** paid, before tax */
   revenue: Money
+  /** of it, the payments Whop has said its fee for */
+  revenue_known: Money
+  /** what Whop paid out for those */
+  net: Money
+  /** refunded payments' amounts */
+  refunds: Money
+  /** paid payments without Whop's figure yet */
+  unknown_net: number
   newest: AdminUser[]
   latest_published: AdminHighreel[]
   latest_payments: AdminPayment[]
@@ -138,7 +149,7 @@ export interface AdminUserHighreel extends AdminHighreel {
 export interface AdminUserDetail {
   user: AdminUser
   /** `email_provider`: the connected email account's provider (gmail, outlook, …), or null */
-  business: { id: string, name: string, accent_color: string, website_url: string | null, created_at: string, email_provider: string | null } | null
+  business: { id: string, name: string, website_url: string | null, created_at: string, email_provider: string | null } | null
   /** sessions that haven't ended */
   sessions: number
   highreels: AdminUserHighreel[]

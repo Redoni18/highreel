@@ -36,7 +36,7 @@ function payload(t: Template, settings: Record<string, unknown> = {}): RecapPayl
   return {
     template_key: t.key,
     year: 2026,
-    business: { name: 'Green Valley Farm', accent_color: '#2E7D32', logo_url: null, website_url: null },
+    business: { name: 'Green Valley Farm', logo_url: null, website_url: null },
     settings: normalizeSettings({ ...t.defaultSettings, items_label: t.defaultSettings.items_label || 'things', ...(t.key === 'custom' ? OWN : {}), ...settings }),
     recipient: toRecapRecipient(t, FULL[t.key]!, null),
   }
@@ -87,7 +87,7 @@ describe('scenes per slide', () => {
   test('entrances vary; Paper only wipes', () => {
     const t = templates.app!
     expect(new Set(buildSlides(t, payload(t)).map(s => s.transition)).size).toBeGreaterThanOrEqual(4)
-    const paper = buildSlides(t, payload(t, { theme: 'paper' }))
+    const paper = buildSlides(t, payload(t, { look: { design: 'paper', colorway: 'teal' } }))
     expect(new Set(paper.filter(s => !['cover', 'share'].includes(s.scene)).map(s => s.transition))).toEqual(new Set(['wipe']))
   })
 

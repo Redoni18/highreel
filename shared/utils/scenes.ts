@@ -137,9 +137,12 @@ export function yearCalendar(year: number): { months: CalendarMonth[], total: nu
   return { months, total: first }
 }
 
+/** The most days a short visit draws as its own days; a bigger number shows the year (Design says so). */
+export const VISIT_DAYS = 70
+
 /** How a visit's days are drawn: big tear-off pages, a small grid, or the year. */
 export function daysLayout(value: number, span: 'year' | 'visit'): 'year' | 'pages' | 'grid' {
-  if (span === 'year' || value > 70)
+  if (span === 'year' || value > VISIT_DAYS)
     return 'year'
   return value <= 7 ? 'pages' : 'grid'
 }

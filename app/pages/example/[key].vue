@@ -32,7 +32,7 @@ useSeoMeta({
   twitterCard: 'summary_large_image',
 })
 useHead({
-  meta: [{ name: 'theme-color', content: () => payload.value.business.accent_color }],
+  meta: [{ name: 'theme-color', content: () => example.value!.accent }],
   // Its own class: in dev, styles of pages visited earlier stay on others, and
   // this rule came after /r's wide-screen background and overrode it.
   bodyAttrs: { class: 'example-page' },
@@ -48,7 +48,7 @@ useHead({
       <p class="side-about">{{ example!.about }}. Tap or use the arrow keys.</p>
       <nav class="others" aria-label="Other examples">
         <NuxtLink v-for="e in EXAMPLES" :key="e.key" :to="`/example/${e.key}`" :aria-current="e.key === example!.key ? 'page' : undefined">
-          <span class="dot" :style="{ background: e.payload.business.accent_color }" />{{ e.label }}
+          <span class="dot" :style="{ background: e.accent }" />{{ e.label }}
         </NuxtLink>
       </nav>
       <NuxtLink to="/login?demo=1" class="demo">Try the demo →</NuxtLink>

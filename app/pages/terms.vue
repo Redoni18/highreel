@@ -59,7 +59,7 @@ const mail = `mailto:${CONTACT_EMAIL}`
 
     <h2 id="account">3. Your account</h2>
     <ul>
-      <li>Highreel is for businesses and organisations. By signing up you confirm you're at least 18 and allowed to agree to these terms for your business.</li>
+      <li>Highreel is for businesses and organizations. By signing up you confirm you're at least 18 and allowed to agree to these terms for your business.</li>
       <li>You sign in with a link sent to your email address, or with your Google account. Keep them secure: whoever can read that inbox or use that Google account can sign in. Tell us straight away if you think someone else has used your account.</li>
       <li>You're responsible for what happens in your account, including anything people you give access to do in it.</li>
     </ul>
@@ -69,7 +69,7 @@ const mail = `mailto:${CONTACT_EMAIL}`
     <p>Because the data is about your customers, it's on you to have the right to use it this way. In particular:</p>
     <ul>
       <li>Only upload people who are your customers, members or clients, with data you collected lawfully and may use to make them a Highreel.</li>
-      <li>Don't upload special categories of data (health, religion, political views, sexual orientation, biometrics and the like), government ID numbers, payment card details or passwords. Highreels are meant for numbers like visits, orders, streaks and favourites.</li>
+      <li>Don't upload special categories of data (health, religion, political views, sexual orientation, biometrics and the like), government ID numbers, payment card details or passwords. Highreels are meant for numbers like visits, orders, streaks and favorites.</li>
       <li>Only add photos you're allowed to share with the people receiving them (many camps, clubs and schools already collect a photo release for this).</li>
       <li>Keep the data accurate, and act on your customers' requests to see, correct or delete their data. Deleting a row or a campaign in Highreel deletes it from our service.</li>
     </ul>

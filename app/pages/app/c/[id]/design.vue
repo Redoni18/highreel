@@ -7,7 +7,8 @@
 // (with options and a show rule), and "Add a slide" shows any column, a
 // "top X%" by a number, a list, or a new column. Edits are a draft
 // (ws.draft, also played by the Sheet's preview) until Save; photos save on
-// their own. Colour and logo belong to Your brand. The template is picked
+// their own. The look (a design and colourway, SPEC M2.17) is picked at the
+// top of the rail; the logo and name belong to Your brand. The template is picked
 // once, in New recap. Since M2.9 the slides that move go by their place
 // ("Slide 3") with their line underneath, not by a name the wording would
 // have to match.
@@ -30,9 +31,10 @@ import type { CampaignSettings } from '#shared/types/recap'
 import type { CustomColumn, SceneKind, SlideDef, SlideSetting, TemplateColumn, TokenShape } from '#shared/templates/types'
 import { addedKey, columnsWithOwn, DEFAULT_TOP, isNumeric, MAX_LIST, MAX_OWN_COLUMNS, nextListKey, ownKeyOk, RESERVED_KEYS, SCENES, scenesFor, slideable, slideEntries, type SlideEntry, TOKEN_SHAPES } from '#shared/templates/own'
 import { ownKeyFor } from '#shared/utils/mapping'
-import { sceneOf } from '#shared/utils/scenes'
+import { daysLayout, sceneOf, VISIT_DAYS } from '#shared/utils/scenes'
 import { buildSlides, formatNumber } from '#shared/utils/slides'
 import { readableOn } from '#shared/utils/color'
+import { resolveLook } from '#shared/templates/designs'
 
 const ws = useWorkspace()
 const template = computed(() => ws.template.value)
@@ -56,11 +58,6 @@ watch(() => ws.draft.value, (v) => {
 }, { immediate: true, flush: 'sync' })
 const d = computed(() => ws.draft.value!)
 
-const themes = [
-  { value: 'stories' as const, label: 'Stories' },
-  { value: 'paper' as const, label: 'Paper' },
-]
-const themeBody = (t: string) => (t === 'paper' ? '#F4F1EA' : business.value.accent_color)
 
 // --- The recap's slide list (M2.7) ------------------------------------------------
 const entries = computed(() => slideEntries(base.value, d.value))
@@ -316,7 +313,33 @@ function lineOf(it: Item): string {
   const known: Record<string, string> = { first_name: person.value, business: business.value.name, year: String(ws.campaign.value?.year ?? ''), items_label: d.value.items_label }
   return raw.replace(/\{([\w:]+)\}/g, (_, k: string) => known[k] || '…')
 }
-const ink = computed(() => d.value.theme === 'paper' ? '#1A1A1A' : readableOn(business.value.accent_color))
+// The look being edited: the phone's stage, its status bar and the brand chips wear its colour.
+const look = computed(() => resolveLook(d.value.look))
+const lookAccent = computed(() => look.value.accent)
+const ink = computed(() => look.value.theme === 'paper' ? '#1A1A1A' : readableOn(lookAccent.value))
+
+// Calendar (days): what the previewed person sees with the span picked. A
+// short visit only changes numbers up to VISIT_DAYS, which isn't obvious
+// while switching it on someone with 212 (owner, 2026-10-15).
+const calendarNow = computed(() => {
+  const it = current.value
+  if (it.kind !== 'slide' || !it.entry || sceneOf(it.entry.def) !== 'days')
+    return ''
+  const v = built.value.get(it.key)?.value
+  if (v == null)
+    return ''
+  const n = Math.max(0, Math.round(v))
+  const days = `${n.toLocaleString('en-US')} ${n === 1 ? 'day' : 'days'}`
+  const span = it.entry.def.span ?? 'year'
+  const layout = daysLayout(n, span)
+  if (layout === 'pages')
+    return `${person.value} has ${days}: a calendar page for each.`
+  if (layout === 'grid')
+    return `${person.value} has ${days}: a grid of ${n} days.`
+  return span === 'visit'
+    ? `${person.value} has ${days}, more than ${VISIT_DAYS}, so they see the year either way.`
+    : `${person.value} has ${days}: the year, with ${days} lit.`
+})
 
 function statusOf(it: Item): string {
   if (it.kind === 'add')
@@ -369,25 +392,20 @@ function discard() {
         <!-- The rail -->
         <nav ref="rail" class="rail relative flex shrink-0 flex-col gap-5 border-b px-3 pt-4 pb-4 md:w-[272px] md:overflow-y-auto md:border-r md:border-b-0" :class="{ sorting: sort.dragging.value }" aria-label="Slides">
           <div class="flex flex-col gap-2 px-1">
-            <p class="rail-label">Look</p>
-            <Segmented v-slot="{ option }" v-model="d.theme" :options="themes" label="Theme" block data-testid="theme">
-              <span class="flex h-4 w-3 shrink-0 flex-col overflow-hidden rounded-[3px] ring-1 ring-black/10" aria-hidden="true">
-                <span class="h-1" :style="{ background: business.accent_color }" />
-                <span class="flex-1" :style="{ background: themeBody(option.value) }" />
-              </span>
-              {{ option.label }}
-            </Segmented>
+            <div class="label-row -mt-1 justify-between"><p class="rail-label">Look</p><InfoTip topic="look" /></div>
+            <LookPicker v-model="d.look" compact data-testid="look" />
             <div class="flex items-start gap-2.5 pt-1.5">
               <Switch id="d-guess" v-model="d.guess_first" size="sm" class="mt-0.5" data-testid="guess-first" />
-              <Label for="d-guess" class="flex-col items-start gap-0 text-[13px] leading-snug">
+              <Label for="d-guess" class="flex-1 flex-col items-start gap-0 text-[13px] leading-snug">
                 <span class="font-medium">Guess first</span>
                 <span class="text-[12px] font-normal text-muted-foreground">People guess their number before it's revealed.</span>
               </Label>
+              <InfoTip topic="guess" />
             </div>
           </div>
 
           <div class="flex flex-col gap-1">
-            <p class="rail-label px-1">Slides</p>
+            <div class="label-row px-1"><p class="rail-label">Slides</p><InfoTip topic="slides" /></div>
             <div class="row-wrap" :class="{ on: active === 'cover' }" data-slide="cover">
               <span class="grip-space" aria-hidden="true" />
               <button type="button" class="row" :aria-current="active === 'cover' ? 'true' : undefined" @click="select('cover')">
@@ -437,7 +455,7 @@ function discard() {
           </div>
 
           <div class="flex flex-col gap-1">
-            <p class="rail-label px-1">Always at the end</p>
+            <div class="label-row px-1"><p class="rail-label">Always at the end</p><InfoTip topic="end" /></div>
             <div v-for="it in tail" :key="it.key" class="row-wrap" :class="{ on: active === it.key }" :data-slide="it.key">
               <span class="grip-space" aria-hidden="true" />
               <button type="button" class="row" :aria-current="active === it.key ? 'true' : undefined" @click="select(it.key)">
@@ -448,8 +466,8 @@ function discard() {
           </div>
 
           <NuxtLink to="/app/brand" class="brand-chip group mt-auto">
-            <span class="size-5 shrink-0 rounded-full" :style="{ background: business.accent_color }" aria-hidden="true" />
-            <span class="min-w-0 flex-1 leading-tight"><span class="block truncate font-medium">{{ business.name }}</span><span class="text-[11.5px] text-muted-foreground">Colour and logo: Your brand</span></span>
+            <RecapMonogram :name="business.name" :logo-url="business.logo_url" :shape="business.logo_shape" :bg="lookAccent" :fg="readableOn(lookAccent)" size="20px" />
+            <span class="min-w-0 flex-1 leading-tight"><span class="block truncate font-medium">{{ business.name }}</span><span class="text-[11.5px] text-muted-foreground">Name and logo: Your brand</span></span>
             <ArrowRight class="size-3.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
           </NuxtLink>
           <p class="sr-only" aria-live="polite">{{ live }}</p>
@@ -462,6 +480,7 @@ function discard() {
               <div class="flex items-center gap-3">
                 <span class="ins-icon" :class="{ off: current.entry?.hidden }"><component :is="current.icon" class="size-4" /></span>
                 <h2 class="min-w-0 truncate text-[22px] leading-tight font-semibold tracking-[-0.015em]">{{ current.title }}</h2>
+                <InfoTip v-if="current.kind === 'photos'" topic="photos" />
                 <span v-if="columnOf(current)" class="col-badge" :title="`This slide shows the ${columnOf(current)} column`">{{ columnOf(current) }}</span>
                 <span class="flex-1" />
                 <div v-if="current.entry" class="flex shrink-0 items-center gap-0.5">
@@ -494,12 +513,12 @@ function discard() {
             <!-- Cover -->
             <template v-if="current.kind === 'cover'">
               <div class="field">
-                <Label for="d-copy-cover">Line</Label>
+                <div class="label-row"><Label for="d-copy-cover">Line</Label><InfoTip topic="coverLine" /></div>
                 <PlaceholderField id="d-copy-cover" v-model="d.copy.cover" :placeholder="template.cover" :tokens="tokensFor(current)" />
               </div>
               <NuxtLink to="/app/brand" class="group inline-flex w-fit items-center gap-2.5 rounded-full bg-muted py-1.5 pr-3.5 pl-1.5 text-[13px] hover:bg-accent">
-                <span class="size-6 shrink-0 rounded-full" :style="{ background: business.accent_color }" aria-hidden="true" />
-                <span><span class="font-medium">Logo and colour</span><span class="text-muted-foreground"> come from Your brand</span></span>
+                <RecapMonogram :name="business.name" :logo-url="business.logo_url" :shape="business.logo_shape" :bg="lookAccent" :fg="readableOn(lookAccent)" size="24px" />
+                <span><span class="font-medium">Name and logo</span><span class="text-muted-foreground"> come from Your brand</span></span>
                 <ArrowRight class="size-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
               </NuxtLink>
             </template>
@@ -507,18 +526,18 @@ function discard() {
             <!-- A slide -->
             <template v-else-if="current.kind === 'slide' && current.entry && !current.entry.hidden">
               <div class="field">
-                <Label :for="`d-copy-${current.key}`">Line</Label>
+                <div class="label-row"><Label :for="`d-copy-${current.key}`">Line</Label><InfoTip topic="line" /></div>
                 <PlaceholderField :id="`d-copy-${current.key}`" :key="current.key" v-model="d.copy[current.key]" :placeholder="current.entry.def.copy" :tokens="tokensFor(current)" :more="moreFor(current)" />
               </div>
 
               <div v-if="isItemsSlide(current.entry.def) && template.itemsLabel" class="field">
-                <Label for="d-items">{{ template.itemsLabel.title }}</Label>
+                <div class="label-row"><Label for="d-items">{{ template.itemsLabel.title }}</Label><InfoTip topic="itemsLabel" :title="template.itemsLabel.title" /></div>
                 <Input id="d-items" v-model="d.items_label" maxlength="40" :placeholder="template.itemsLabel.placeholder" class="max-w-xs" />
                 <p class="hint">Goes with <span class="font-mono">{{ template.itemsLabel.column }}</span>. Blank hides this slide.</p>
               </div>
 
               <div v-if="current.entry.def.list && current.entry.def.added" class="field">
-                <span class="label">Columns</span>
+                <div class="label-row"><span class="label">Columns</span><InfoTip topic="listColumns" /></div>
                 <div class="flex flex-wrap items-center gap-1.5" :data-list-columns="current.key">
                   <Badge v-for="c in listColumns(current.entry)" :key="c" variant="secondary" class="h-7 gap-0.5 pr-0.5 pl-3 text-[12px] font-normal" :data-list-column="c">
                     {{ colLabel(c) }}
@@ -536,7 +555,7 @@ function discard() {
               </div>
 
               <div v-if="scenesFor(current.entry.def).length > 1" class="field">
-                <span :id="`d-scene-${current.key}`" class="label">Animation</span>
+                <div class="label-row"><span :id="`d-scene-${current.key}`" class="label">Animation</span><InfoTip topic="animation" /></div>
                 <RadioGroup :model-value="sceneOf(current.entry.def)" class="grid grid-cols-2 gap-2 xl:grid-cols-3" :aria-labelledby="`d-scene-${current.key}`" @update:model-value="pickScene(current.key, $event)">
                   <Label
                     v-for="sc in scenesFor(current.entry.def)"
@@ -557,7 +576,7 @@ function discard() {
               </div>
 
               <div v-if="sceneOf(current.entry.def) === 'count'" class="field">
-                <span :id="`d-tokens-${current.key}`" class="label">Tokens</span>
+                <div class="label-row"><span :id="`d-tokens-${current.key}`" class="label">Tokens</span><InfoTip topic="tokens" /></div>
                 <Segmented
                   :model-value="current.entry.def.tokens ?? 'shapes'"
                   :options="tokenOptions"
@@ -569,19 +588,24 @@ function discard() {
               </div>
 
               <div v-if="sceneOf(current.entry.def) === 'days'" class="field">
-                <span :id="`d-span-${current.key}`" class="label">Calendar</span>
+                <div class="label-row">
+                  <span :id="`d-span-${current.key}`" class="label">Calendar</span>
+                  <InfoTip topic="calendar"><template v-if="calendarNow">{{ calendarNow }}</template></InfoTip>
+                </div>
                 <Segmented
                   :model-value="current.entry.def.span ?? 'year'"
                   :options="spanOptions"
                   label="Calendar"
                   class="w-fit"
+                  data-testid="calendar-span"
                   @update:model-value="sp => { setOption(current.key, { span: sp }); jump(current.key) }"
                 />
+                <p v-if="calendarNow" class="hint" data-testid="calendar-now">{{ calendarNow }}</p>
               </div>
 
               <div v-if="!ws.isBusiness.value && (showsFrom(current.entry.def) || isTop(current.entry.def) || (current.entry.def.added && current.entry.setting.show !== 'top' && !current.entry.def.list))" class="flex flex-wrap items-end gap-x-6 gap-y-4">
                 <NumberField v-if="showsFrom(current.entry.def)" :id="`d-min-${current.key}`" :key="`min-${current.key}`" class="field w-32" :min="0" :model-value="current.entry.def.min ?? 0" @update:model-value="v => setOption(current.key, { min: Math.max(0, Math.round(Number(v) || 0)) })">
-                  <Label :for="`d-min-${current.key}`">Shows from</Label>
+                  <div class="label-row"><Label :for="`d-min-${current.key}`">Shows from</Label><InfoTip topic="showsFrom" /></div>
                   <NumberFieldContent>
                     <NumberFieldDecrement />
                     <NumberFieldInput class="font-mono" />
@@ -589,7 +613,7 @@ function discard() {
                   </NumberFieldContent>
                 </NumberField>
                 <NumberField v-else-if="isTop(current.entry.def)" :id="`d-max-${current.key}`" :key="`max-${current.key}`" class="field w-32" :min="1" :max="100" :model-value="current.entry.def.max ?? DEFAULT_TOP" @update:model-value="v => setOption(current.key, { max: Math.min(100, Math.max(1, Math.round(Number(v) || DEFAULT_TOP))) })">
-                  <Label :for="`d-max-${current.key}`">Shows to the top (%)</Label>
+                  <div class="label-row"><Label :for="`d-max-${current.key}`">Shows to the top (%)</Label><InfoTip topic="showsTop" /></div>
                   <NumberFieldContent>
                     <NumberFieldDecrement />
                     <NumberFieldInput class="font-mono" />
@@ -597,7 +621,7 @@ function discard() {
                   </NumberFieldContent>
                 </NumberField>
                 <div v-if="current.entry.def.added && current.entry.setting.show !== 'top' && !current.entry.def.list" class="field">
-                  <Label :for="`d-label-${current.key}`">Name on the share card</Label>
+                  <div class="label-row"><Label :for="`d-label-${current.key}`">Name on the share card</Label><InfoTip topic="shareName" /></div>
                   <Input :id="`d-label-${current.key}`" :model-value="current.entry.setting.label ?? ''" maxlength="40" :placeholder="current.entry.def.label.toLowerCase()" class="w-52" @update:model-value="setOption(current.key, { label: String($event).trim() || undefined })" />
                 </div>
               </div>
@@ -607,7 +631,7 @@ function discard() {
             <template v-else-if="current.kind === 'add'">
               <div class="add-grid">
                 <div class="add-card">
-                  <p class="flex items-center gap-2 font-semibold"><Hash class="size-4" /> A column's value</p>
+                  <p class="flex items-center gap-2 font-semibold"><Hash class="size-4" /> A column's value <InfoTip topic="addValue" /></p>
                   <p class="hint">Their number, word or date from the sheet, with its own animation.</p>
                   <div class="flex gap-2">
                     <Select v-model="addValue" :disabled="!addable.length">
@@ -622,7 +646,7 @@ function discard() {
                   </div>
                 </div>
                 <div class="add-card">
-                  <p class="flex items-center gap-2 font-semibold"><Percent class="size-4" /> Top % by a number</p>
+                  <p class="flex items-center gap-2 font-semibold"><Percent class="size-4" /> Top % by a number <InfoTip topic="addTop" /></p>
                   <p class="hint">"You're in the top 8%", for people near the top. Ranked when you publish.</p>
                   <div class="flex gap-2">
                     <Select v-model="addTop" :disabled="!rankable.length">
@@ -637,12 +661,12 @@ function discard() {
                   </div>
                 </div>
                 <div v-if="listable.length >= 2" class="add-card">
-                  <p class="flex items-center gap-2 font-semibold"><ListOrdered class="size-4" /> A list</p>
+                  <p class="flex items-center gap-2 font-semibold"><ListOrdered class="size-4" /> A list <InfoTip topic="addList" /></p>
                   <p class="hint">Up to {{ MAX_LIST }} columns on one slide, one line each with its name.</p>
                   <Button type="button" size="sm" variant="outline" class="w-fit" data-testid="add-list" @click="addList">Add a list</Button>
                 </div>
                 <div class="add-card">
-                  <p class="flex items-center gap-2 font-semibold"><Columns3 class="size-4" /> A new column</p>
+                  <p class="flex items-center gap-2 font-semibold"><Columns3 class="size-4" /> A new column <InfoTip topic="addColumn" /></p>
                   <p class="hint">It shows up in the Sheet and the sheet you download, empty until you fill it in.</p>
                   <div class="flex flex-wrap gap-2">
                     <Input v-model="newName" maxlength="40" placeholder="Like “gifts made”" class="h-8 min-w-0 flex-1" aria-label="New column name" @keydown.enter.prevent="addColumn" />
@@ -667,7 +691,7 @@ function discard() {
             <template v-else-if="current.kind === 'note'">
               <p v-if="ws.isBusiness.value" class="hint">Written with your numbers, in <NuxtLink :to="`/app/c/${ws.campaign.value?.id}`" class="underline underline-offset-2">Content</NuxtLink>.</p>
               <div v-else class="field">
-                <Label for="d-note">{{ noteLabel }}</Label>
+                <div class="label-row"><Label for="d-note">{{ noteLabel }}</Label><InfoTip topic="note" :title="noteLabel" /></div>
                 <Textarea id="d-note" v-model="d.founder_note" maxlength="280" rows="4" class="min-h-0" />
                 <p v-if="template.noteColumn" class="hint">Used when a row has no <span class="font-mono">{{ template.noteColumn }}</span> of its own.</p>
               </div>
@@ -678,7 +702,7 @@ function discard() {
               <p class="hint">The share card, Save image and Share are always there. Add a button after them, or leave it blank for none.</p>
               <div class="grid grid-cols-[1fr_1.4fr] gap-3">
                 <div class="field">
-                  <Label for="d-cta">Button label</Label>
+                  <div class="label-row"><Label for="d-cta">Button label</Label><InfoTip topic="button" title="Your button" /></div>
                   <Input id="d-cta" v-model="d.cta_label" maxlength="32" placeholder="Invite a friend" />
                 </div>
                 <div class="field">
@@ -698,7 +722,7 @@ function discard() {
       </div>
     </form>
 
-    <PhoneStage ref="stage" :payload="payload" :accent="business.accent_color" :ink="ink">
+    <PhoneStage ref="stage" :payload="payload" :accent="lookAccent" :ink="ink">
       <template v-if="ws.previewIsExample.value">An example person until your sheet is in.</template>
       <template v-else-if="!ws.isBusiness.value">Previewing {{ person }}. Pick someone else in the Sheet.</template>
     </PhoneStage>
@@ -828,6 +852,13 @@ function discard() {
   display: flex;
   flex-direction: column;
   gap: 7px;
+}
+/* A field's name with its (i) beside it (SPEC M2.16). */
+.label-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 20px;
 }
 .field :deep(label),
 .label {

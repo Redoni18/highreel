@@ -54,7 +54,7 @@ function downloadTemplate() {
       <NuxtLink to="/app" class="wordmark" aria-label="All Highreels" title="All Highreels"><Wordmark /></NuxtLink>
       <span class="mr-1 ml-1.5 h-5 w-px shrink-0 bg-border" aria-hidden="true" />
       <template v-if="ws.business.value && ws.campaign.value">
-        <NuxtLink to="/app/brand" class="h-8 truncate rounded-full px-2.5 text-[15px] leading-8 font-medium hover:bg-muted" title="Your brand: name, logo, colour">{{ ws.business.value.name }}</NuxtLink>
+        <NuxtLink to="/app/brand" class="h-8 truncate rounded-full px-2.5 text-[15px] leading-8 font-medium hover:bg-muted" title="Your brand: name and logo">{{ ws.business.value.name }}</NuxtLink>
         <span class="text-muted-foreground/50">/</span>
         <InlineEdit :value="ws.campaign.value.name" label="Campaign name" :max-length="80" @save="v => ws.updateCampaign({ name: v }).then(() => ws.refreshIndex())" />
         <CampaignMenu />

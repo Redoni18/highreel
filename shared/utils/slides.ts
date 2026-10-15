@@ -2,6 +2,7 @@
 // the template's slide list. Pure, so the workspace preview and the public
 // recap page build identical slides.
 
+import { resolveLook } from '../templates/designs'
 import type { SlideDef, Template, TokenShape } from '../templates/types'
 import type { RecapPayload } from '../types/recap'
 import type { SlideScene, SlideTransition } from './scenes'
@@ -256,7 +257,7 @@ export function buildSlides(t: Template, p: RecapPayload, today = new Date()): S
         })
   }
 
-  const paper = p.settings.theme === 'paper'
+  const paper = resolveLook(p.settings.look).theme === 'paper'
   const cycle: SlideTone[] = ['dark', 'light', 'accent']
   const toned = [...middle, ...tail].map((s, i) => timed(s, cycle[i % cycle.length]!, paper))
   return [

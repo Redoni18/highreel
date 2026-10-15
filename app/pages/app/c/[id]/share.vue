@@ -18,6 +18,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { idColumnOf } from '#shared/templates'
 import type { Recipient } from '#shared/types/recap'
 import { hasErrors } from '#shared/utils/validate'
+import { resolveLook } from '#shared/templates/designs'
 import { BODY_MAX, DEFAULT_BODY, DEFAULT_SUBJECT, recapEmail, SUBJECT_MAX } from '#shared/utils/email'
 import { type EmailConnection, presetFor } from '#shared/utils/smtp'
 import { DEFAULT_WHATSAPP, WHATSAPP_MAX, waLink, waNumber, whatsappText } from '#shared/utils/whatsapp'
@@ -178,8 +179,11 @@ const previewRow = computed(() => {
 const firstName = (r?: Recipient | null) => String(r?.data.first_name ?? '').trim() || 'Ana'
 const origin = import.meta.client ? window.location.origin : ''
 const linkFor = (r?: Recipient | null) => (r?.token ? ws.recapUrl(r.token) : `${origin}/r/…`)
+// The Highreel's colour, from its look (SPEC M2.17).
+const lookAccent = computed(() => resolveLook(campaign.value.settings.look).accent)
 const preview = computed(() => recapEmail({
   business: business.value,
+  accent: lookAccent.value,
   first_name: firstName(previewRow.value),
   year: campaign.value.year,
   copy: { subject: subject.value, body: body.value },
@@ -619,10 +623,10 @@ async function saveImage(format: ShareFormat) {
     </div>
 
     <!-- What the previewed person gets, on a phone -->
-    <aside v-if="!ws.isBusiness.value" class="mail-stage hidden w-[min(36vw,440px)] shrink-0 flex-col items-center justify-center gap-4 border-l px-6 lg:flex" :style="{ '--accent': business.accent_color }" aria-label="Message preview">
+    <aside v-if="!ws.isBusiness.value" class="mail-stage hidden w-[min(36vw,440px)] shrink-0 flex-col items-center justify-center gap-4 border-l px-6 lg:flex" :style="{ '--accent': lookAccent }" aria-label="Message preview">
       <PhoneFrame class="phone" ink="#111111">
-        <MessagePreview v-if="channel === 'email'" channel="email" :business="business" :person="firstName(previewRow)" :email="preview" />
-        <MessagePreview v-else channel="chat" :business="business" :person="firstName(chatRow)" :message="chatText" :card="card" />
+        <MessagePreview v-if="channel === 'email'" channel="email" :business="business" :accent="lookAccent" :person="firstName(previewRow)" :email="preview" />
+        <MessagePreview v-else channel="chat" :business="business" :accent="lookAccent" :person="firstName(chatRow)" :message="chatText" :card="card" />
       </PhoneFrame>
       <p class="max-w-[300px] text-center text-[12px] text-muted-foreground">
         {{ channel === 'email' ? `${firstName(previewRow)}'s email` : channel === 'whatsapp' ? `${firstName(chatRow)}'s WhatsApp message` : 'The copied message, filled in' }}. Pick someone else in the Sheet.

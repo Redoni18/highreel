@@ -13,8 +13,8 @@ export const STEPS = [
     body: 'One row per customer: a first name and their numbers for the year. CSV or Excel, with our columns or your own. Anything that needs fixing turns red, and you fix it right in the grid.',
   },
   {
-    title: 'Customise to fit your brand.',
-    body: 'Add your logo and colour, choose a theme and rewrite any line. Click any customer to see their Highreel change as you type.',
+    title: 'Customize to fit your brand.',
+    body: 'Add your logo, pick a design and its colors, and rewrite any line. Click any customer to see their Highreel change as you type.',
   },
   {
     title: 'Share it with your members.',
@@ -40,7 +40,7 @@ export const TIERS: Tier[] = [
 
 export const INCLUDES = [
   { title: 'A template for your business', body: 'Apps, newsletters, shops, cafés, gyms, schools, camps and daycares.' },
-  { title: 'Your brand on every slide', body: 'Your logo, your colours and your words.' },
+  { title: 'Your brand on every slide', body: 'Your logo and your words, in the design and colors you pick.' },
   { title: 'Edit after publishing', body: 'Fix a line or a number; the links stay the same.' },
   { title: 'Made to be shared', body: 'A share image and a link preview for every customer.' },
 ] as const

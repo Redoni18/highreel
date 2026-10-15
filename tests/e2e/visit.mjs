@@ -1,6 +1,6 @@
 // The "visit" template end to end (SPEC M2e): a farm campaign with a group
 // photo, activities label, publish, export keyed on participant_id, 8 slides.
-import { BASE, campaignId, demoSession, designItem, expect, finish, FIX, launch, needFixtures, OUT, publish, sheetCounts, tab, watchErrors, rowsOf } from './lib.mjs'
+import { BASE, campaignId, demoSession, designItem, expect, finish, FIX, launch, needFixtures, OUT, publish, sheetCounts, tab, watchErrors, rowsOf, newHighreel } from './lib.mjs'
 
 needFixtures()
 const browser = await launch()
@@ -13,9 +13,7 @@ await page.getByRole('button', { name: 'Save', exact: true }).click()
 await page.waitForTimeout(400)
 await page.getByRole('button', { name: 'Switch campaign' }).click()
 await page.getByRole('menuitem', { name: 'New Highreel' }).click()
-await page.getByLabel('Name').fill('Summer farm days')
-await page.getByRole('radio', { name: /Summer camp/ }).click()
-await page.getByRole('button', { name: 'Create' }).click()
+await newHighreel(page, { name: 'Summer farm days', type: /Summer camp/ })
 await page.waitForSelector('text=Visits and camps template')
 await page.getByRole('button', { name: 'Use sample data' }).click()
 await page.waitForSelector('[data-row-id]')

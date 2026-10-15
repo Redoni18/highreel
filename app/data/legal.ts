@@ -4,6 +4,6 @@
 export const LEGAL_NAME = 'Redon Emini Tech'
 export const CONTACT_EMAIL = 'hello@highreel.app'
 /** When the terms and the privacy policy last changed (shown on both). */
-export const LEGAL_UPDATED = '14 October 2026'
+export const LEGAL_UPDATED = '15 October 2026'
 
 export interface LegalSection { id: string, title: string }

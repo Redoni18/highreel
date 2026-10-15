@@ -1,12 +1,13 @@
 // Template "shop" (SPEC §4.4, M2e). Keep scripts/generate-sample.mjs in sync.
 // amount_saved is in whole currency units; the € sits in the slide copy.
 
+import { DEFAULT_LOOK } from './designs'
 import type { Template } from './types'
 
 export const shopTemplate: Template = {
   key: 'shop',
   label: 'Online shops',
-  description: 'Orders, items, favourite product and category, money saved.',
+  description: 'Orders, items, favorite product and category, money saved.',
   files: { template: '/templates/highreel-template-shop.csv', sample: '/templates/sample-shop-200.csv' },
   columns: [
     { key: 'customer_id', type: 'text', required: true, maxLength: 64, unique: true, rule: 'unique, ≤ 64 chars', usedFor: 'joining links back to your email tool', width: 132 },
@@ -16,7 +17,7 @@ export const shopTemplate: Template = {
     { key: 'first_order_date', type: 'date', required: false, notFuture: true, rule: 'YYYY-MM-DD, not in the future', usedFor: '"Customer since June 2023"', width: 150 },
     { key: 'orders', type: 'int', required: true, min: 0, max: 10000, rule: '0–10,000', usedFor: 'orders slide, ranking', width: 100 },
     { key: 'items_bought', type: 'int', required: false, min: 0, rule: '≥ 0', usedFor: 'small line on the orders slide', width: 128 },
-    { key: 'favorite_product', type: 'text', required: false, maxLength: 60, rule: '≤ 60 chars', usedFor: '"Your favourite: …"', width: 190 },
+    { key: 'favorite_product', type: 'text', required: false, maxLength: 60, rule: '≤ 60 chars', usedFor: '"Your favorite: …"', width: 190 },
     { key: 'favorite_category', type: 'text', required: false, maxLength: 40, rule: '≤ 40 chars', usedFor: 'category slide', width: 160 },
     { key: 'amount_saved', type: 'int', required: false, min: 0, rule: 'whole amount, ≥ 0', usedFor: '"You saved €42"', width: 128 },
     { key: 'loyalty_points', type: 'int', required: false, min: 0, rule: '≥ 0', usedFor: 'points slide', width: 128 },
@@ -30,8 +31,8 @@ export const shopTemplate: Template = {
       copy: 'Orders this year: {orders}',
       small: { column: 'items_bought', copy: '{items_bought} items in total' },
     },
-    { key: 'product', label: 'Favourite product', column: 'favorite_product', kind: 'text', scene: 'word', copy: 'Your favourite: {favorite_product}' },
-    { key: 'category', label: 'Favourite category', column: 'favorite_category', kind: 'text', scene: 'badge', copy: 'Most loved category: {favorite_category}' },
+    { key: 'product', label: 'Favorite product', column: 'favorite_product', kind: 'text', scene: 'word', copy: 'Your favorite: {favorite_product}' },
+    { key: 'category', label: 'Favorite category', column: 'favorite_category', kind: 'text', scene: 'badge', copy: 'Most loved category: {favorite_category}' },
     { key: 'saved', label: 'Money saved', column: 'amount_saved', kind: 'number', min: 1, scene: 'count', copy: 'You saved €{amount_saved} with us.' },
     { key: 'points', label: 'Loyalty points', column: 'loyalty_points', kind: 'number', min: 1, scene: 'count', copy: 'Points collected: {loyalty_points}' },
     { key: 'top_percent', label: 'Top percent', column: 'top_percent', kind: 'number', max: 25, scene: 'rank', top: true, copy: 'You\'re one of our top {top_percent}% customers.' },
@@ -44,7 +45,7 @@ export const shopTemplate: Template = {
     { column: 'items_bought', label: 'items', kind: 'number', min: 1 },
     { column: 'loyalty_points', label: 'points', kind: 'number', min: 1 },
     { column: 'top_percent', label: 'of {business} customers', kind: 'top', max: 25 },
-    { column: 'favorite_product', label: 'favourite', kind: 'text' },
+    { column: 'favorite_product', label: 'favorite', kind: 'text' },
   ],
   audience: 'customers',
   totals: [
@@ -61,7 +62,7 @@ export const shopTemplate: Template = {
     photos: [],
     photo_in_share_image: false,
     photos_consent_at: null,
-    theme: 'stories',
+    look: { ...DEFAULT_LOOK },
     guess_first: false,
   },
 }

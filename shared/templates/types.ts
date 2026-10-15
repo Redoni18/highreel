@@ -3,6 +3,8 @@
 // recap slides the values feed. Businesses defining their own templates later
 // will produce this same shape.
 
+import type { Look } from './designs'
+
 /** int: whole numbers; decimal (M2.7, the business's own columns): up to 2 decimals */
 export type ColumnType = 'text' | 'email' | 'phone' | 'date' | 'int' | 'decimal'
 
@@ -150,7 +152,7 @@ export interface Template {
     photos: []
     photo_in_share_image: boolean
     photos_consent_at: null
-    theme: 'stories' | 'paper'
+    look: Look
     guess_first: boolean
   }
   /** Files businesses download, in public/templates */

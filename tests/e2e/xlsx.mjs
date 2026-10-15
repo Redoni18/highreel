@@ -1,5 +1,5 @@
 // .xlsx upload with the farm's own headers and the mapping dialog (SPEC M2f).
-import { demoSession, expect, finish, FIX, launch, needFixtures, watchErrors } from './lib.mjs'
+import { demoSession, expect, finish, FIX, launch, needFixtures, watchErrors, newHighreel } from './lib.mjs'
 
 needFixtures()
 const browser = await launch()
@@ -9,9 +9,7 @@ watchErrors(page, errors)
 await demoSession(page)
 await page.getByRole('button', { name: 'Switch campaign' }).click()
 await page.getByRole('menuitem', { name: 'New Highreel' }).click()
-await page.getByLabel('Name').fill('Korrik 2026')
-await page.getByRole('radio', { name: /Summer camp/ }).click()
-await page.getByRole('button', { name: 'Create' }).click()
+await newHighreel(page, { name: 'Korrik 2026', type: /Summer camp/ })
 await page.waitForSelector('text=Visits and camps template')
 await page.locator('[data-testid="file-input"]').setInputFiles(`${FIX}/ferma-korrik.xlsx`)
 await page.waitForSelector('text=Match your columns')

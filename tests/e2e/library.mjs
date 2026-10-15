@@ -2,7 +2,7 @@
 // Design's phone, and its still end state (reduced motion) shows that
 // person's value: numbers, words, top %, dates and lists. A published recap
 // plays the new scenes it was given. No page errors on the way.
-import { BASE, campaignId, demoSession, designItem, expect, finish, launch, publish, tab, tokenFor, watchErrors } from './lib.mjs'
+import { BASE, campaignId, demoSession, designItem, expect, finish, launch, publish, tab, tokenFor, watchErrors, newHighreel } from './lib.mjs'
 
 const browser = await launch()
 const errors = []
@@ -50,8 +50,7 @@ await page.getByRole('button', { name: 'Discard' }).click()
 await page.getByRole('link', { name: 'All Highreels' }).click()
 await page.waitForURL(u => new URL(u).pathname === '/app')
 await page.getByRole('button', { name: 'New Highreel' }).click()
-await page.getByRole('dialog').getByRole('radio', { name: /Your own sheet/ }).click()
-await page.getByRole('dialog').getByRole('button', { name: 'Create' }).click()
+await newHighreel(page, { type: /Your own sheet/ })
 await page.waitForSelector('text=Use sample data')
 await page.getByRole('button', { name: 'Use sample data' }).click()
 await page.getByRole('button', { name: /Import 150 rows/ }).click()

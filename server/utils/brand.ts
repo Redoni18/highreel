@@ -3,7 +3,6 @@
 
 import type { H3Event } from 'h3'
 import type { Business } from '#shared/types/recap'
-import { normalizeHex } from '#shared/utils/color'
 import { isHttpUrl, normalizeSettings } from '#shared/utils/recap'
 import { signMedia } from './media'
 
@@ -25,19 +24,14 @@ export function checkUrl(value: unknown, field: string): string {
   return s
 }
 
-export interface BrandInput { name?: unknown, accent_color?: unknown, website_url?: unknown, logo_path?: unknown, logo_shape?: unknown }
+// No colour: it belongs to a Highreel's design since M2.17.
+export interface BrandInput { name?: unknown, website_url?: unknown, logo_path?: unknown, logo_shape?: unknown }
 
 /** The columns to update on `businesses`; throws 400 on anything invalid. Logos must be in the business's own folder. */
 export function brandUpdate(b: BrandInput, businessId: string): BusinessUpdate {
   const out: BusinessUpdate = {}
   if (b.name !== undefined)
     out.name = checkText(b.name, 'Business name', 60, true)
-  if (b.accent_color !== undefined) {
-    const hex = typeof b.accent_color === 'string' ? normalizeHex(b.accent_color) : null
-    if (!hex)
-      throw createError({ statusCode: 400, message: 'Accent colour must be a hex value like #4F46E5' })
-    out.accent_color = hex
-  }
   if (b.website_url !== undefined)
     out.website_url = checkUrl(b.website_url, 'Website') || null
   if (b.logo_shape !== undefined) {

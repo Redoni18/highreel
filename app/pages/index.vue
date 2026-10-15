@@ -200,7 +200,7 @@ const stageVisible = ref(false)
 const atEnd = computed(() => !!player.value && player.value.index >= player.value.count - 1)
 // The phone's status bar follows the slide: light on dark colours, dark on light ones.
 const statusInk = computed(() => player.value?.tone?.fg
-  ?? (current.value.payload.settings.theme === 'paper' ? '#1A1A1A' : readableOn(current.value.payload.business.accent_color)))
+  ?? (current.value.theme === 'paper' ? '#1A1A1A' : readableOn(current.value.accent)))
 
 function select(i: number, manual = true) {
   if (manual)
@@ -470,12 +470,12 @@ onMounted(() => {
             :kind="exampleShapes[i]!.kind"
             class="stage-shape"
             :class="{ on: i === active }"
-            :style="{ color: e.payload.business.accent_color, '--r': `${exampleShapes[i]!.r}deg` }"
+            :style="{ color: e.accent, '--r': `${exampleShapes[i]!.r}deg` }"
           />
         </div>
         <PhoneFrame class="phone rise" style="--d: 200ms" :ink="statusInk">
           <LazyLandingPlayer v-if="near.phone" :key="current.key" ref="phone" :payload="current.payload" />
-          <span v-else class="poster" :style="{ background: current.payload.business.accent_color }" />
+          <span v-else class="poster" :style="{ background: current.accent }" />
         </PhoneFrame>
       </div>
       <div class="switcher rise" role="group" aria-label="Example Highreels">
@@ -487,7 +487,7 @@ onMounted(() => {
           :aria-pressed="i === active"
           @click="select(i)"
         >
-          <span class="tab-dot" :style="{ background: e.payload.business.accent_color }" />{{ e.label }}
+          <span class="tab-dot" :style="{ background: e.accent }" />{{ e.label }}
         </button>
       </div>
       <NuxtLink :to="`/example/${current.key}`" class="text-link">Open it full screen</NuxtLink>

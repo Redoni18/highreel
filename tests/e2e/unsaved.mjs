@@ -10,8 +10,8 @@ const page = await (await browser.newContext({ viewport: { width: 1440, height: 
 watchErrors(page, errors)
 const ask = page.getByRole('dialog', { name: 'Save your design changes?' })
 let id = null
-const theme = async () => (await page.evaluate(async c => (await (await fetch(`/api/campaigns/${c}`)).json()).campaign.settings.theme, id))
-const paper = () => page.locator('[data-testid="theme"] [data-value="paper"]').click()
+const theme = async () => (await page.evaluate(async c => (await (await fetch(`/api/campaigns/${c}`)).json()).campaign.settings.look.design, id))
+const paper = () => page.locator('[data-testid="look"] [data-design="paper"]').click()
 
 await demoSession(page)
 await page.getByRole('button', { name: 'Use sample data' }).click()
@@ -31,7 +31,7 @@ await tab(page, 'Design')
 await paper()
 await tab(page, 'Share')
 await tab(page, 'Design')
-expect(await page.locator('[data-testid="theme"] [data-value="paper"]').getAttribute('data-state') === 'on', 'the edit survives switching tabs')
+expect(await page.locator('[data-testid="look"] [data-design="paper"]').getAttribute('data-checked') === 'true', 'the edit survives switching tabs')
 
 // Leaving asks; Keep editing stays.
 await page.getByRole('link', { name: 'All Highreels' }).click()
@@ -49,7 +49,7 @@ expect(await theme() === 'stories', 'Discard changes leaves for Your brand and s
 
 // Save and leave saves them.
 await page.goto(recap.replace(/\/?$/, '/design'))
-await page.waitForSelector('[data-testid="theme"]')
+await page.waitForSelector('[data-testid="look"]')
 await paper()
 await page.getByRole('link', { name: 'All Highreels' }).click()
 await ask.waitFor()
@@ -61,7 +61,7 @@ expect(await theme() === 'paper', 'Save and leave saves the edit, then leaves')
 
 // Closing the page with edits gets the browser's prompt (and stays when it's dismissed).
 await tab(page, 'Design')
-await page.locator('[data-testid="theme"] [data-value="stories"]').click()
+await page.locator('[data-testid="look"] [data-design="stories"]').click()
 const prompt = new Promise(resolve => page.once('dialog', async (d) => { resolve(d.type()); await d.dismiss() }))
 await page.close({ runBeforeUnload: true })
 expect(await Promise.race([prompt, new Promise(r => setTimeout(() => r('none'), 3000))]) === 'beforeunload', 'closing the page with edits asks first')

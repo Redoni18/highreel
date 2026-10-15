@@ -4,11 +4,16 @@
 // (`slides`). withOwn() merges the two into the effective Template that the
 // grid, validation, publish, the recap, the share image and the link preview
 // all read, so they never need to know which parts the business added.
+// Since M2.17 the campaign's design can prefer animations too: a slide nobody
+// picked one for takes its design's, when it fits.
 
 import type { CampaignSettings } from '../types/recap'
+import { getDesign, type SceneGroup } from './designs'
 import type { ColumnType, CustomColumn, SceneKind, ShareStatDef, SlideDef, SlideSetting, Template, TemplateColumn, TokenShape } from './types'
 
-export type OwnSettings = Pick<CampaignSettings, 'columns' | 'slides'>
+export type OwnSettings = Pick<CampaignSettings, 'columns' | 'slides'> & Partial<Pick<CampaignSettings, 'look'>>
+/** What a sheet's columns change: its own columns and slides (never the look). */
+export type OwnColumns = Required<Pick<CampaignSettings, 'columns' | 'slides'>>
 
 export const MAX_OWN_COLUMNS = 30
 const MAX_SLIDES = 40
@@ -183,6 +188,23 @@ function listSlide(s: SlideSetting, cols: TemplateColumn[]): SlideDef {
   }
 }
 
+/** Which of a design's preferred animations a slide could take. */
+export function sceneGroup(def: Pick<SlideDef, 'kind' | 'scene' | 'list' | 'rankBy' | 'top'>): SceneGroup {
+  if (def.list)
+    return 'list'
+  if (def.top || def.rankBy || def.scene === 'rank')
+    return 'top'
+  return def.kind === 'number' ? 'number' : def.kind === 'date' ? 'date' : 'text'
+}
+
+/** The design's animation for a slide nobody picked one for, if the design has one that fits. */
+function designed(def: SlideDef, scenes: Partial<Record<SceneGroup, SceneKind>> | undefined): SlideDef {
+  const pick = scenes?.[sceneGroup(def)]
+  if (!pick || pick === def.scene || !scenesFor(def).includes(pick))
+    return def
+  return { ...def, scene: pick, ...(pick === 'days' && !def.span ? { span: 'year' as const } : {}) }
+}
+
 /** A template slide with the campaign's options: scene, tokens, calendar span, show rule. */
 function withOptions(def: SlideDef, s: SlideSetting): SlideDef {
   const out: SlideDef = { ...def }
@@ -227,9 +249,12 @@ export function columnsWithOwn(base: Template, settings?: OwnSettings | null): T
  * skipped; template slides the list doesn't mention come at the end.
  */
 export function slideEntries(base: Template, settings?: OwnSettings | null, columns = columnsWithOwn(base, settings)): SlideEntry[] {
+  const scenes = settings?.look ? getDesign(settings.look.design).scenes : undefined
+  // A slide's own pick wins; otherwise the design's, when it fits.
+  const styled = (e: SlideEntry): SlideEntry => (e.setting.scene ? e : { ...e, def: designed(e.def, scenes) })
   const list = settings?.slides
   if (!list)
-    return base.slides.map(def => ({ def, setting: { key: def.key }, hidden: false }))
+    return base.slides.map(def => styled({ def, setting: { key: def.key }, hidden: false }))
   const byKey = new Map(columns.map(c => [c.key, c]))
   const out: SlideEntry[] = []
   const seen = new Set<string>()
@@ -239,7 +264,7 @@ export function slideEntries(base: Template, settings?: OwnSettings | null, colu
     const def = base.slides.find(d => d.key === s.key)
     if (def) {
       seen.add(s.key)
-      out.push({ def: withOptions(def, s), setting: s, hidden: !!s.hidden })
+      out.push(styled({ def: withOptions(def, s), setting: s, hidden: !!s.hidden }))
       continue
     }
     if (s.show === 'list') {
@@ -247,7 +272,7 @@ export function slideEntries(base: Template, settings?: OwnSettings | null, colu
       if (!LIST_KEY_RE.test(s.key) || !cols.length)
         continue
       seen.add(s.key)
-      out.push({ def: listSlide(s, cols), setting: s, hidden: !!s.hidden })
+      out.push(styled({ def: listSlide(s, cols), setting: s, hidden: !!s.hidden }))
       continue
     }
     const col = s.column ? byKey.get(s.column) : undefined
@@ -255,18 +280,18 @@ export function slideEntries(base: Template, settings?: OwnSettings | null, colu
       continue
     seen.add(s.key)
     const { def: added, stat } = addedSlide(s, col)
-    out.push({ def: added, setting: s, hidden: !!s.hidden, stat })
+    out.push(styled({ def: added, setting: s, hidden: !!s.hidden, stat }))
   }
   for (const def of base.slides) {
     if (!seen.has(def.key))
-      out.push({ def, setting: { key: def.key }, hidden: false })
+      out.push(styled({ def, setting: { key: def.key }, hidden: false }))
   }
   return out
 }
 
 /** The effective template: the base with the campaign's own columns and slides. */
 export function withOwn(base: Template, settings?: OwnSettings | null): Template {
-  if (!settings?.columns?.length && !settings?.slides)
+  if (!settings?.columns?.length && !settings?.slides && !(settings?.look && getDesign(settings.look.design).scenes))
     return base
   const columns = columnsWithOwn(base, settings)
   const entries = slideEntries(base, settings, columns)
@@ -307,7 +332,7 @@ export const storedRankKey = (column: string) => `computed_top:${column}`
  * options go when the new type can't use them; a removed column leaves its
  * slides and lists (a list that empties goes too).
  */
-export function changeColumn(settings: OwnSettings, key: string, change: { type: CustomColumn['type'] } | { remove: true }): Required<OwnSettings> {
+export function changeColumn(settings: OwnSettings, key: string, change: { type: CustomColumn['type'] } | { remove: true }): OwnColumns {
   const columns = settings.columns ?? []
   const slides = settings.slides ?? null
   if ('remove' in change) {

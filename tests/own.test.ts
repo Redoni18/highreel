@@ -43,7 +43,7 @@ function payload(t: Template, data: Record<string, string | number | null>, sett
   return {
     template_key: t.key,
     year: 2026,
-    business: { name: 'Keepsake', accent_color: '#C2185B', logo_url: null, website_url: null },
+    business: { name: 'Keepsake', logo_url: null, website_url: null },
     settings: s,
     recipient: toRecapRecipient(t, data, null, { ranks, copy: s.copy }),
   }
@@ -109,7 +109,7 @@ describe('Keepsake sample ("Your own sheet")', () => {
   test('the downloadable template\'s rows are clean too', () => {
     const r = upload(custom, '/templates/highreel-template-custom.csv')
     expect(r.results.every(x => !Object.keys(x.errors).length)).toBe(true)
-    expect(r.extras.map(e => [e.key, e.type])).toEqual([['visits', 'int'], ['favourite', 'text'], ['first_visit', 'date']])
+    expect(r.extras.map(e => [e.key, e.type])).toEqual([['visits', 'int'], ['favorite', 'text'], ['first_visit', 'date']])
   })
 })
 

@@ -1,6 +1,7 @@
 <script setup lang="ts">
-// Landing, step 2 (SPEC M2.5 P2): picking a swatch floods the recap's cover
-// with that colour. CSS loop through three accents; at rest it shows the first.
+// Landing, step 2 (SPEC M2.5 P2): picking one of a design's colours floods the
+// recap's cover with it (SPEC M2.17: a design, then its colours). CSS loop
+// through three; at rest it shows the first.
 const swatches = ['#4F46E5', '#C8341B', '#1F6F4A', '#F5C518']
 </script>
 
@@ -22,15 +23,15 @@ const swatches = ['#4F46E5', '#C8341B', '#1F6F4A', '#F5C518']
     </PhoneFrame>
 
     <div class="controls">
-      <p class="label">Accent colour</p>
-      <div class="swatches">
-        <span v-for="c in swatches" :key="c" class="sw" :style="{ background: c }" />
-        <span class="ring" />
-      </div>
-      <p class="label">Theme</p>
+      <p class="label">Design</p>
       <div class="themes">
         <span class="theme on">Stories</span>
         <span class="theme">Paper</span>
+      </div>
+      <p class="label">Colors</p>
+      <div class="swatches">
+        <span v-for="c in swatches" :key="c" class="sw" :style="{ background: c }" />
+        <span class="ring" />
       </div>
       <p class="label">Cover</p>
       <p class="field">{first_name}, your {year} with {business}</p>

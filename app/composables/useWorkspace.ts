@@ -10,7 +10,8 @@ import type { InjectionKey } from 'vue'
 import type { Business, Campaign, CampaignPhoto, CampaignSettings, CampaignSummary, CheckoutConfirmation, CreatedCampaign, PatchRecipientResponse, PublishResponse, Recipient, RecipientPage, RecapPayload, Workspace, WorkspaceIndex } from '#shared/types/recap'
 import type { CustomColumn, ParsedRow, RawRow } from '#shared/templates/types'
 import { getTemplate, templateFor } from '#shared/templates'
-import { changeColumn as changeOwnColumn, slideEntries, type OwnSettings } from '#shared/templates/own'
+import type { Look } from '#shared/templates/designs'
+import { changeColumn as changeOwnColumn, slideEntries, type OwnColumns, type OwnSettings } from '#shared/templates/own'
 import { computeTopPercents, hasErrors, validateRow } from '#shared/utils/validate'
 import { isOldExcel, isSheetFile, parseCsv, parseSheetFile, type ParsedSheet } from '~/utils/csv'
 import { applyMapping, autoMap, needsMapping, preselect, settingsForSheet, sheetExtras, type ColumnMapping, type SheetExtra } from '#shared/utils/mapping'
@@ -29,7 +30,7 @@ export interface CellRef { rowId: string, colId: string }
 export interface CampaignPatch {
   name?: string
   settings?: Partial<Omit<CampaignSettings, 'photos_consent_at' | 'email_consent_at'>> & { photos_consent?: boolean, email_consent?: boolean }
-  business?: Partial<Pick<Business, 'name' | 'accent_color' | 'website_url' | 'logo_path'>>
+  business?: Partial<Pick<Business, 'name' | 'website_url' | 'logo_path'>>
 }
 
 function createWorkspace() {
@@ -54,7 +55,7 @@ function createWorkspace() {
   const search = ref('')
 
   /** A parsed sheet waiting for "Replace N rows?" confirmation, with the own columns it brings (M2.7). */
-  const pendingImport = shallowRef<(ParsedSheet & { own?: Required<OwnSettings> }) | null>(null)
+  const pendingImport = shallowRef<(ParsedSheet & { own?: OwnColumns }) | null>(null)
   /** A sheet whose headers need matching to the template, or that brings new columns (SPEC M2f, M2.7). */
   const pendingMapping = shallowRef<{ sheet: ParsedSheet, mapping: ColumnMapping, extras: SheetExtra[] } | null>(null)
   /** Set by the page: opens the hidden file input. */
@@ -71,7 +72,7 @@ function createWorkspace() {
     cta_label: s.cta_label,
     cta_url: s.cta_url,
     copy: Object.fromEntries(Object.entries(s.copy).filter(([, v]) => v?.trim()).sort()),
-    theme: s.theme,
+    look: s.look,
     guess_first: s.guess_first,
     columns: s.columns ?? [],
     // The slide list as it plays, so a list that equals the template's isn't a change.
@@ -272,7 +273,7 @@ function createWorkspace() {
     }
   }
 
-  async function createCampaign(input: { name: string, year: number, template_key: string, starter?: string }): Promise<boolean> {
+  async function createCampaign(input: { name: string, year: number, template_key: string, starter?: string, look?: Look }): Promise<boolean> {
     try {
       const { business: b, ...created } = await api<CreatedCampaign>('/api/campaigns', { method: 'POST', body: input })
       await Promise.all([refreshIndex(), openCampaign(created.id, { campaign: created, business: b })])
@@ -343,7 +344,7 @@ function createWorkspace() {
     })
   }
 
-  async function importRows(data: Record<string, string>[], source: string, own?: Required<OwnSettings>) {
+  async function importRows(data: Record<string, string>[], source: string, own?: OwnColumns) {
     if (!campaign.value)
       return
     busy.value = 'import'
@@ -687,7 +688,7 @@ function createWorkspace() {
         cta_label: s.cta_label,
         cta_url: s.cta_url,
         copy: s.copy,
-        theme: s.theme,
+        look: s.look,
         guess_first: s.guess_first,
         columns: s.columns ?? [],
         slides: s.slides ?? null,

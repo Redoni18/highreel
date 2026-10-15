@@ -11,6 +11,7 @@ import { initWasm, Resvg } from '@resvg/resvg-wasm'
 import resvgWasm from '@resvg/resvg-wasm/index_bg.wasm?module'
 import type { RecapPayload } from '#shared/types/recap'
 import { templateFor } from '#shared/templates'
+import { resolveLook } from '#shared/templates/designs'
 import { mix, recapPalette } from '#shared/utils/color'
 import { shareStats, shareTexts } from '#shared/utils/slides'
 
@@ -66,8 +67,9 @@ function wrap(text: string, size: number, maxWidth: number, maxLines: number): s
 export async function renderOgImage(p: RecapPayload, logo: { data: Uint8Array, type: string } | null): Promise<Uint8Array> {
   const fonts = await setup()
   const t = templateFor(p.template_key, p.settings)
-  const paper = p.settings.theme === 'paper'
-  const tone = recapPalette(p.business.accent_color, p.settings.theme).accent
+  const look = resolveLook(p.settings.look)
+  const paper = look.theme === 'paper'
+  const tone = recapPalette(look.accent, look.theme).accent
   const title = shareTexts(t, p).title
   const stats = shareStats(t, p).slice(0, 2)
 

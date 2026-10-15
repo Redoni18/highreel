@@ -101,15 +101,16 @@ await page.waitForSelector('text=Design saved')
 const saved = await page.evaluate(async c => (await (await fetch(`/api/campaigns/${c}`)).json()).campaign.settings, campaignId(page))
 expect(JSON.stringify(saved.slides.map(s => s.key)) === JSON.stringify(['streak', 'items', 'top_feature', 'active_days', 'top_percent']) && saved.copy.streak === 'Your streak: {longest_streak_days}', 'Save keeps the new order and the line', saved.slides)
 
-// --- Your brand: the phone goes to the cover while the colour changes ---------------
+// --- Your brand: the phone goes to the cover while the name changes -----------------
 await page.goto(`${BASE}/app/brand`)
 await page.waitForSelector('#br-name')
 await page.getByRole('button', { name: 'Next slide' }).click()
 await page.getByRole('button', { name: 'Next slide' }).click()
-await page.getByRole('button', { name: 'Use #0F766E' }).click()
+await page.getByLabel('Business name').focus()
 await page.waitForTimeout(300)
 const brandCount = await page.getByTestId('stage-count').innerText()
-expect(brandCount.startsWith('slide 1/'), 'picking a colour shows the cover', brandCount)
+expect(brandCount.startsWith('slide 1/'), 'editing the name shows the cover', brandCount)
+expect(await page.locator('.set-row', { hasText: /Colou?r/ }).count() === 0, 'Your brand has no color (it belongs to each Highreel\'s design)')
 expect(await page.getByTestId('logo-drop').count() === 1, 'the logo has a drop zone')
 
 // --- The recap page ----------------------------------------------------------------

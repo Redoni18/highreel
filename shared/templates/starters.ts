@@ -1,13 +1,16 @@
 // Business-type templates (2026-10-11): ready-made starting points on top of
 // the four sheet templates. Each one picks a sheet template and fills in what
 // a business of that kind would write (the count label, slide wording, the
-// closing note and button) plus a suggested colour and theme. Picked when
+// closing note and button), and suggests a look: a design and one of its
+// colourways (shared/templates/designs.ts, SPEC M2.17; the business can pick
+// another in New Highreel or Design). Picked when
 // creating a recap (New recap) and any time in the Brand panel. The landing's
 // example recaps are built from this same list (app/data/examples.ts), so
 // what visitors tap through is what they can start from.
 // Copy keys must be the sheet template's slide keys or "cover" (tests check).
 
 import type { CampaignSettings } from '../types/recap'
+import type { Look } from './designs'
 
 export interface Starter {
   key: string
@@ -17,8 +20,8 @@ export interface Starter {
   description: string
   /** The sheet template it fills in */
   template: string
-  accent: string
-  theme: CampaignSettings['theme']
+  /** The design and colourway it starts in */
+  look: Look
   settings: Pick<CampaignSettings, 'items_label' | 'founder_note' | 'cta_label' | 'copy'>
 }
 
@@ -26,10 +29,9 @@ export const starters: Starter[] = [
   {
     key: 'habit-app',
     label: 'Habit or fitness app',
-    description: 'Active days, longest streak, habits checked off, favourite routine.',
+    description: 'Active days, longest streak, habits checked off, favorite routine.',
     template: 'app',
-    accent: '#4F46E5',
-    theme: 'stories',
+    look: { design: 'stories', colorway: 'indigo' },
     settings: {
       items_label: 'habits checked off',
       founder_note: 'Thank you for showing up for yourself this year. See you next year!',
@@ -42,8 +44,7 @@ export const starters: Starter[] = [
     label: 'Software tool',
     description: 'Days at work, streaks, things made, most-used feature.',
     template: 'app',
-    accent: '#0F766E',
-    theme: 'paper',
+    look: { design: 'paper', colorway: 'teal' },
     settings: {
       items_label: 'invoices sent',
       founder_note: 'Thanks for running your business with us this year.',
@@ -57,27 +58,25 @@ export const starters: Starter[] = [
   {
     key: 'learning-app',
     label: 'Learning app or course',
-    description: 'Days learning, streak, lessons finished, favourite course.',
+    description: 'Days learning, streak, lessons finished, favorite course.',
     template: 'app',
-    accent: '#7C3AED',
-    theme: 'stories',
+    look: { design: 'stories', colorway: 'violet' },
     settings: {
       items_label: 'lessons finished',
       founder_note: 'Every lesson counts. We\'re proud of you.',
       cta_label: 'Keep learning',
       copy: {
         active_days: 'You learned something on {active_days} days.',
-        top_feature: 'Your favourite course: {top_feature}',
+        top_feature: 'Your favorite course: {top_feature}',
       },
     },
   },
   {
     key: 'newsletter',
     label: 'Newsletter',
-    description: 'Issues opened, reading streak, favourite issue, friends referred.',
+    description: 'Issues opened, reading streak, favorite issue, friends referred.',
     template: 'newsletter',
-    accent: '#C8341B',
-    theme: 'stories',
+    look: { design: 'stories', colorway: 'poppy' },
     settings: {
       items_label: '',
       founder_note: 'Thanks for reading every week. More good things next year.',
@@ -88,10 +87,9 @@ export const starters: Starter[] = [
   {
     key: 'online-shop',
     label: 'Online shop',
-    description: 'Orders, favourite product and category, money saved, points.',
+    description: 'Orders, favorite product and category, money saved, points.',
     template: 'shop',
-    accent: '#1F6F4A',
-    theme: 'paper',
+    look: { design: 'paper', colorway: 'forest' },
     settings: {
       items_label: '',
       founder_note: 'Thank you for shopping with us this year.',
@@ -102,10 +100,9 @@ export const starters: Starter[] = [
   {
     key: 'cafe',
     label: 'Café, bakery or restaurant',
-    description: 'Visits, your usual, favourite category, money saved with the card.',
+    description: 'Visits, your usual, favorite category, money saved with the card.',
     template: 'shop',
-    accent: '#9A3412',
-    theme: 'stories',
+    look: { design: 'stories', colorway: 'rust' },
     settings: {
       items_label: '',
       founder_note: 'Thanks for making us part of your mornings.',
@@ -123,8 +120,7 @@ export const starters: Starter[] = [
     label: 'Gym or fitness studio',
     description: 'Days in, classes taken, best moment, a badge.',
     template: 'visit',
-    accent: '#E2457A',
-    theme: 'stories',
+    look: { design: 'stories', colorway: 'pink' },
     settings: {
       items_label: 'classes taken',
       founder_note: 'Thanks for every early class. See you in January!',
@@ -137,8 +133,7 @@ export const starters: Starter[] = [
     label: 'Summer camp',
     description: 'Days at camp, activities tried, best moment, a badge, group photos.',
     template: 'visit',
-    accent: '#F5C518',
-    theme: 'stories',
+    look: { design: 'stories', colorway: 'sunflower' },
     settings: {
       items_label: 'activities tried',
       founder_note: 'You were a star this summer. Come back next year!',
@@ -149,10 +144,9 @@ export const starters: Starter[] = [
   {
     key: 'daycare',
     label: 'Daycare or kindergarten',
-    description: 'Days with us, drawings made, favourite moment, a superpower, group photos.',
+    description: 'Days with us, drawings made, favorite moment, a superpower, group photos.',
     template: 'visit',
-    accent: '#0EA5E9',
-    theme: 'stories',
+    look: { design: 'stories', colorway: 'sky' },
     settings: {
       items_label: 'drawings made',
       founder_note: 'It was a joy to watch you grow this year.',
@@ -160,7 +154,7 @@ export const starters: Starter[] = [
       copy: {
         cover: '{first_name}, your year at {business}',
         days: 'Days with us: {days}',
-        highlight: 'Favourite moment: {highlight}',
+        highlight: 'Favorite moment: {highlight}',
         badge: 'Your superpower: {badge}',
       },
     },
@@ -170,8 +164,7 @@ export const starters: Starter[] = [
     label: 'Dance, music or art school',
     description: 'Days in class, lessons, best moment, a badge.',
     template: 'visit',
-    accent: '#8F66F6',
-    theme: 'stories',
+    look: { design: 'stories', colorway: 'lilac' },
     settings: {
       items_label: 'lessons',
       founder_note: 'Thank you for a wonderful year of lessons.',
@@ -188,8 +181,7 @@ export const starters: Starter[] = [
     label: 'Your own sheet',
     description: 'Bring any columns. Pick which become slides and how each one moves.',
     template: 'custom',
-    accent: '#4F46E5',
-    theme: 'stories',
+    look: { design: 'stories', colorway: 'indigo' },
     settings: {
       items_label: '',
       founder_note: 'Thank you for being part of our year.',
@@ -208,7 +200,7 @@ export function startersFor(templateKey: string): Starter[] {
   return starters.filter(s => s.template === templateKey)
 }
 
-/** A campaign's settings with a starter's wording and theme (photos and the rest kept). */
+/** A campaign's settings with a starter's wording and look (photos and the rest kept). */
 export function withStarter(base: CampaignSettings, s: Starter): CampaignSettings {
   return {
     ...base,
@@ -216,6 +208,6 @@ export function withStarter(base: CampaignSettings, s: Starter): CampaignSetting
     founder_note: s.settings.founder_note,
     cta_label: s.settings.cta_label,
     copy: { ...s.settings.copy },
-    theme: s.theme,
+    look: { ...s.look },
   }
 }

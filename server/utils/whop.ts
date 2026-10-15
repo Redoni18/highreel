@@ -40,23 +40,33 @@ export interface Whop extends WhopAccount {
   webhookSecret: string
 }
 
+type Config = ReturnType<typeof useRuntimeConfig>
+
+const environmentOf = (config: Config): CheckoutEnvironment | null => {
+  const env = config.public.checkout
+  return env === 'sandbox' || env === 'production' ? env : null
+}
+
 /** The checkout's environment, or null while publishing is free (NUXT_PUBLIC_CHECKOUT unset). */
 export function checkoutEnvironment(event: H3Event): CheckoutEnvironment | null {
-  const env = useRuntimeConfig(event).public.checkout
-  return env === 'sandbox' || env === 'production' ? env : null
+  return environmentOf(useRuntimeConfig(event))
+}
+
+/** Whop and its keys from the server's config; null while checkout is off or has no key. */
+export function whopFrom(config: Config): Whop | null {
+  const environment = environmentOf(config)
+  const apiKey = String(config.whopApiKey || '')
+  return environment && apiKey ? { environment, ...ACCOUNTS[environment], apiKey, webhookSecret: String(config.whopWebhookSecret || '') } : null
 }
 
 /** Whop and its keys, for the checkout routes and the webhook; a 404 while checkout is off. */
 export function useWhop(event: H3Event): Whop {
-  const environment = checkoutEnvironment(event)
-  if (!environment)
+  if (!checkoutEnvironment(event))
     throw createError({ statusCode: 404, message: 'Not found' })
-  const config = useRuntimeConfig(event)
-  const apiKey = String(config.whopApiKey || '')
-  const webhookSecret = String(config.whopWebhookSecret || '')
-  if (!apiKey)
+  const w = whopFrom(useRuntimeConfig(event))
+  if (!w)
     throw createError({ statusCode: 500, message: 'Checkout isn\'t set up: NUXT_WHOP_API_KEY is missing' })
-  return { environment, ...ACCOUNTS[environment], apiKey, webhookSecret }
+  return w
 }
 
 /**
@@ -83,6 +93,8 @@ export interface WhopPayment {
   subtotal: WhopMoney
   tax_amount: WhopMoney
   refunded_amount: WhopMoney
+  /** what Whop pays out after its fees (none of the tax); may come later than the payment */
+  amount_after_fees?: WhopMoney
   paid_at: string | null
   metadata: Record<string, unknown> | null
   product?: { id: string } | null

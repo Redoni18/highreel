@@ -3,6 +3,7 @@
 
 import type { CampaignPhoto, CampaignSettings, Workspace } from '#shared/types/recap'
 import { getTemplate } from '#shared/templates'
+import { cleanLook } from '#shared/templates/designs'
 import { cleanColumns, cleanSlides, ownCopyKeys, ownKeyOk } from '#shared/templates/own'
 import { BODY_MAX, SUBJECT_MAX } from '#shared/utils/email'
 import { WHATSAPP_MAX } from '#shared/utils/whatsapp'
@@ -13,7 +14,7 @@ import type { CampaignUpdate } from '../../utils/db'
 interface Body {
   name?: string
   settings?: Partial<Omit<CampaignSettings, 'photos_consent_at' | 'email_consent_at'>> & { photos_consent?: boolean, email_consent?: boolean }
-  business?: { name?: string, accent_color?: string, website_url?: string | null, logo_path?: string | null }
+  business?: { name?: string, website_url?: string | null, logo_path?: string | null }
 }
 
 /** Photos must live in this campaign's folder: {business_id}/{campaign_id}/… */
@@ -86,8 +87,9 @@ export default defineEventHandler(async (event): Promise<Workspace> => {
       next.photos_consent_at = new Date().toISOString()
     if (s.photo_in_share_image !== undefined)
       next.photo_in_share_image = s.photo_in_share_image === true
-    if (s.theme !== undefined)
-      next.theme = s.theme === 'paper' ? 'paper' : 'stories'
+    // A design and one of its colourways (SPEC M2.17); anything else falls back to the default.
+    if (s.look !== undefined)
+      next.look = cleanLook(s.look)
     if (s.guess_first !== undefined)
       next.guess_first = s.guess_first === true
     // The recap email (M2.8): its subject and message, and the business's word that these are its customers.

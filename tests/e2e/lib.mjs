@@ -116,6 +116,33 @@ export async function keepWork(page, email, url) {
   await page.goto(url)
 }
 
+/**
+ * Make a Highreel in the New Highreel wizard (already open; SPEC M2.17): what
+ * it's for and its name, then its business type (for customers), then its
+ * look, then Create. `type` matches a business type's radio (/Summer camp/).
+ */
+export async function newHighreel(page, { kind = 'customers', name, type, design, colorway } = {}) {
+  const d = page.getByRole('dialog')
+  await d.locator('[data-step="what"]').waitFor()
+  if (kind === 'business')
+    await d.getByRole('radio', { name: /Your business year/ }).click()
+  if (name)
+    await d.getByLabel('Name').fill(name)
+  await d.getByRole('button', { name: 'Continue' }).click()
+  if (kind === 'customers') {
+    await d.locator('[data-step="type"]').waitFor()
+    if (type)
+      await d.getByRole('radio', { name: type }).click()
+    await d.getByRole('button', { name: 'Continue' }).click()
+  }
+  await d.locator('[data-step="look"]').waitFor()
+  if (design)
+    await d.locator(`[data-design="${design}"]`).click()
+  if (colorway)
+    await d.locator(`[data-colorway="${colorway}"]`).click()
+  await d.getByRole('button', { name: 'Create' }).click()
+}
+
 /** Publish the current campaign through the UI. */
 export async function publish(page) {
   await page.getByRole('button', { name: 'Publish', exact: true }).click()

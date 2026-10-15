@@ -55,6 +55,8 @@ const PAID_BY_BUSINESS = `money as (
   )`
 
 const isDemo = 'coalesce(u."isAnonymous", 0) = 1'
+// Published for customers without a payment (a business's own Highreel is free, SPEC §10).
+const UNPAID = 'c.status = \'published\' and c.kind = \'customers\' and paid.campaign_id is null'
 // Its address is on the block list (addresses are stored lowercased, like Better Auth's).
 const isBlocked = 'exists (select 1 from blocked_emails x where x.email = lower(u.email))'
 
@@ -133,6 +135,7 @@ function toPayment(r: Record<string, any>): AdminPayment {
     campaign: r.campaign ?? null,
     tier: r.tier ?? null,
     amount: r.amount,
+    net: typeof r.net === 'number' ? r.net : null,
     currency: r.currency,
     status: r.status === 'refunded' ? 'refunded' : 'paid',
     paid_at: r.paid_at,
@@ -151,7 +154,7 @@ function usersStatement(admin: AdminDb, filter: string, order: string, binds: un
       select c.business_id,
         count(*) as highreels,
         count(*) filter (where c.status = 'published') as published,
-        count(*) filter (where c.status = 'published' and paid.campaign_id is null) as unpaid,
+        count(*) filter (where ${UNPAID}) as unpaid,
         coalesce(sum(reach.live), 0) as live, coalesce(sum(reach.opened), 0) as opened, coalesce(sum(reach.saved), 0) as saved,
         coalesce(sum(reach.shared), 0) as shared, coalesce(sum(reach.clicked), 0) as clicked
       from campaigns c left join reach on reach.campaign_id = c.id left join paid on paid.campaign_id = c.id
@@ -233,7 +236,7 @@ export async function adminHighreels(admin: AdminDb, demos: boolean) {
 
 function paymentsStatement(admin: AdminDb, filter: string, binds: unknown[]) {
   return admin.d1.prepare(`select p.id, p.business_id, b.name as business, u.id as owner_id, u.email as owner_email, ${isDemo} as demo,
-      p.campaign_id, c.name as campaign, p.tier, p.amount, p.currency, p.status, p.paid_at, p.refunded_at
+      p.campaign_id, c.name as campaign, p.tier, p.amount, p.net, p.currency, p.status, p.paid_at, p.refunded_at
     from payments p
       join businesses b on b.id = p.business_id
       join "user" u on u.id = b.owner_id
@@ -264,7 +267,7 @@ export async function adminOverview(admin: AdminDb, now = new Date()): Promise<A
       select count(distinct c.business_id) as makers, count(*) as highreels,
         count(distinct c.business_id) filter (where c.status = 'published') as publishers,
         count(*) filter (where c.status = 'published') as published,
-        count(*) filter (where c.status = 'published' and paid.campaign_id is null) as unpaid,
+        count(*) filter (where ${UNPAID}) as unpaid,
         coalesce(sum(reach.live), 0) as live, coalesce(sum(reach.opened), 0) as opened, coalesce(sum(reach.saved), 0) as saved,
         coalesce(sum(reach.shared), 0) as shared, coalesce(sum(reach.clicked), 0) as clicked
       from campaigns c
@@ -275,7 +278,11 @@ export async function adminOverview(admin: AdminDb, now = new Date()): Promise<A
       where not ${isDemo}`).bind(),
     admin.d1.prepare(`select count(distinct business_id) filter (where status = 'paid') as payers,
         count(*) filter (where status = 'paid') as payments, count(*) filter (where status = 'refunded') as refunded,
-        (select json_group_object(currency, total) from (select currency, sum(amount) as total from payments where status = 'paid' group by currency)) as revenue
+        count(*) filter (where status = 'paid' and net is null) as unknown_net,
+        (select json_group_object(currency, total) from (select currency, sum(amount) as total from payments where status = 'paid' group by currency)) as revenue,
+        (select json_group_object(currency, total) from (select currency, sum(amount) as total from payments where status = 'paid' and net is not null group by currency)) as revenue_known,
+        (select json_group_object(currency, total) from (select currency, sum(net) as total from payments where status = 'paid' and net is not null group by currency)) as net,
+        (select json_group_object(currency, total) from (select currency, sum(amount) as total from payments where status = 'refunded' group by currency)) as refunds
       from payments`).bind(),
     usersStatement(admin, KIND_FILTER.accounts, 'order by u."createdAt" desc limit ?', [8]),
     highreelsStatement(admin, `where c.published_at is not null and not ${isDemo}`, 'order by c.published_at desc limit ?', [8]),
@@ -301,6 +308,10 @@ export async function adminOverview(admin: AdminDb, now = new Date()): Promise<A
     payments: pay.payments ?? 0,
     refunded: pay.refunded ?? 0,
     revenue: money(pay.revenue),
+    revenue_known: money(pay.revenue_known),
+    net: money(pay.net),
+    refunds: money(pay.refunds),
+    unknown_net: pay.unknown_net ?? 0,
     newest: newest!.results.map(toUser),
     latest_published: published!.results.map(toHighreel),
     latest_payments: payments!.results.map(toPayment),
@@ -313,7 +324,7 @@ export async function adminOverview(admin: AdminDb, now = new Date()): Promise<A
 export async function adminUser(admin: AdminDb, userId: string): Promise<AdminUserDetail | null> {
   const [users, businesses, sessions] = await admin.d1.batch<Record<string, any>>([
     usersStatement(admin, 'where u.id = ?', 'limit 1', [userId]),
-    admin.d1.prepare(`select b.id, b.name, b.accent_color, b.website_url, b.created_at, e.provider as email_provider
+    admin.d1.prepare(`select b.id, b.name, b.website_url, b.created_at, e.provider as email_provider
       from businesses b left join email_connections e on e.business_id = b.id where b.owner_id = ?`).bind(userId),
     admin.d1.prepare('select count(*) as n from session where "userId" = ? and "expiresAt" > ?').bind(userId, new Date().toISOString()),
   ])

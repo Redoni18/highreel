@@ -12,7 +12,8 @@ import { validateRow } from '../shared/utils/validate'
 import { toRecapRecipient } from '../shared/utils/recap'
 
 const base = {
-  business: { name: 'Habitly', accent_color: '#4F46E5', website_url: 'https://habitly.app' },
+  business: { name: 'Habitly', website_url: 'https://habitly.app' },
+  accent: '#4F46E5',
   first_name: 'Ana',
   year: 2026,
   url: 'https://recap.local/r/abcdefghijkl',
@@ -44,8 +45,8 @@ describe('recap email', () => {
     expect(m.text).toContain('Your {plan} with Tom & <Jerry>')
   })
 
-  test('the button is the business\'s colour with readable text', () => {
-    const m = recapEmail({ ...base, business: { ...base.business, accent_color: '#F5C518' } })
+  test('the button is the Highreel\'s colour (its look\'s) with readable text', () => {
+    const m = recapEmail({ ...base, accent: '#F5C518' })
     expect(m.html).toContain(`background:#F5C518;color:${readableOn('#F5C518')}`)
   })
 

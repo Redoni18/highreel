@@ -14,6 +14,7 @@
 
 import type { Recipient } from '#shared/types/recap'
 import type { Outcome } from '../../../utils/bounces'
+import { resolveLook } from '#shared/templates/designs'
 import { recapEmail } from '#shared/utils/email'
 
 const BATCH = 25
@@ -43,6 +44,7 @@ export default defineEventHandler(async (event) => {
     const unsubscribe = `${origin}/unsubscribe/${row.token}`
     const m = recapEmail({
       business,
+      accent: resolveLook(campaign.settings.look).accent,
       first_name: String(row.data.first_name ?? ''),
       year: campaign.year,
       copy: campaign.settings.email,

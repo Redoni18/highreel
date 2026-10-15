@@ -5,6 +5,7 @@
 // campaign note and the photos are the campaign photos. Copy speaks to
 // followers. A campaign of this kind has exactly one row.
 
+import { DEFAULT_LOOK } from './designs'
 import type { RowErrors, Template } from './types'
 
 const STATS = [1, 2, 3, 4]
@@ -62,7 +63,7 @@ export const businessTemplate: Template = {
     photos: [],
     photo_in_share_image: false,
     photos_consent_at: null,
-    theme: 'stories',
+    look: { ...DEFAULT_LOOK },
     guess_first: false,
   },
   check(data) {

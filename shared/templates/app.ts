@@ -3,12 +3,13 @@
 // scripts/generate-sample.mjs writes CSVs with exactly these columns; keep
 // the two in sync.
 
+import { DEFAULT_LOOK } from './designs'
 import type { RowErrors, Template } from './types'
 
 export const appTemplate: Template = {
   key: 'app',
   label: 'SaaS and apps',
-  description: 'Active days, streaks, things created, favourite feature.',
+  description: 'Active days, streaks, things created, favorite feature.',
   files: { template: '/templates/highreel-template-app.csv', sample: '/templates/sample-habitly-200.csv' },
   columns: [
     {
@@ -107,7 +108,7 @@ export const appTemplate: Template = {
     photos: [],
     photo_in_share_image: false,
     photos_consent_at: null,
-    theme: 'stories',
+    look: { ...DEFAULT_LOOK },
     guess_first: false,
   },
   warnings(data) {

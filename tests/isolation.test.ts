@@ -268,11 +268,12 @@ describe('payments (payments.ts)', () => {
   // Written on Whop's word only (SPEC §10): the signed webhook, or the confirm
   // route after it reads the payment from Whop. A payment goes to the
   // business its metadata names, and to the campaign only if it's that
-  // business's; a refund changes the one payment Whop names.
+  // business's; a refund, or what Whop keeps arriving later, changes the one
+  // payment Whop names (the hourly fee job reads the ones still waiting).
   const all = statements('server/utils/payments.ts')
 
   test('has statements to check', () => {
-    expect(all.length).toBe(3)
+    expect(all.length).toBe(6)
   })
 
   test('inserts a payment for a campaign of the business it names, or for that business alone', () => {
@@ -284,14 +285,22 @@ describe('payments (payments.ts)', () => {
     expect(inserts[1]!.bind).toMatch(/ref\.businessId\)?$/)
   })
 
-  test('marks refunded only the payment Whop names', () => {
+  test('marks refunded, or fills in what Whop keeps, only on the payment Whop names', () => {
     const updates = all.filter(s => /^update\b/.test(s.sql))
-    expect(updates.map(s => s.sql)).toEqual([`update payments set status = 'refunded', refunded_at = ? where provider = 'whop' and provider_id = ? and status = 'paid'`])
+    const net = `update payments set net = ? where provider = 'whop' and provider_id = ? and net is null`
+    expect(updates.map(s => s.sql)).toEqual([
+      net,
+      net,
+      `update payments set status = 'refunded', refunded_at = ? where provider = 'whop' and provider_id = ? and status = 'paid'`,
+    ])
+    // With the id Whop's API was just asked about (the fee job), or the one the payment came with.
+    expect(updates[0]!.bind).toMatch(/^\(net, r\.provider_id\)?$/)
+    expect(updates[1]!.bind).toMatch(/^\(net, p\.id\)?$/)
   })
 
-  test('writes nothing but payments', () => {
+  test('writes nothing but payments, and reads only payments', () => {
     for (const s of all)
-      expect(s.sql).toMatch(/^(?:insert into payments|update payments)\b/)
+      expect(s.sql).toMatch(/^(?:insert into payments|update payments|select [\w, ]+ from payments where)\b/)
   })
 
   test('the routes that reach it check Whop first', () => {

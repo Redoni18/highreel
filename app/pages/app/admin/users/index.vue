@@ -1,13 +1,15 @@
 <script setup lang="ts">
-// The admin's users (SPEC M2.15): accounts, demo sessions or admins, one row
-// each with what their business made, sent and paid, and a "⋯" menu to block
-// or remove it; or the blocked addresses, to unblock. A row opens the user's
-// page. The kind is in the URL (?kind=), the search stays on the page.
+// The admin's users (SPEC M2.15, fewer columns since M2.16): accounts, demo
+// sessions or admins, one row each: the address with the business under it,
+// how far it got (Stage), what it made, published and spent, when it signed
+// up and was last seen, and a "⋯" menu to block or remove it; or the blocked
+// addresses, to unblock. Reach and emails are on the user's page, which a
+// row opens. The kind is in the URL (?kind=), the search stays on the page.
 import { Search } from '@lucide/vue'
 import { Input } from '@/components/ui/input'
 import type { AdminColumn } from '~/components/admin/AdminTable.vue'
 import type { AdminUser, AdminUsers, BlockedAddress, UserKind } from '#shared/types/admin'
-import { formatMoney, moneySize, percent } from '#shared/utils/admin'
+import { formatMoney, moneySize, type Stage, userStage } from '#shared/utils/admin'
 import { timeAgo } from '#shared/utils/home'
 import { toast } from 'vue-sonner'
 import { Button } from '@/components/ui/button'
@@ -44,21 +46,16 @@ const kinds = computed(() => {
 })
 
 const when = (iso: string | null) => (iso ? timeAgo(iso) : null)
+// Sorted by Stage, the furthest along come first.
+const STAGE_ORDER: Record<Stage, number> = { new: 0, draft: 1, published: 2, paying: 3 }
 const columns: AdminColumn<AdminUser>[] = [
-  { key: 'email', label: 'Account', value: u => u.email ?? `Demo ${u.id.slice(0, 6)}` },
-  { key: 'business', label: 'Business', value: u => u.business },
-  { key: 'role', label: 'Role', value: u => u.role },
-  { key: 'created', label: 'Signed up', value: u => when(u.created_at), sort: u => u.created_at },
-  { key: 'seen', label: 'Last seen', value: u => when(u.last_seen), sort: u => u.last_seen, title: 'The latest session\'s last use, to the day' },
+  { key: 'email', label: 'Account', value: u => u.email ?? `Demo ${u.id.slice(0, 6)}`, title: 'The address, with the business under it' },
+  { key: 'stage', label: 'Stage', value: u => userStage(u), sort: u => STAGE_ORDER[userStage(u)] },
   { key: 'highreels', label: 'Highreels', value: u => u.highreels, num: true },
   { key: 'published', label: 'Published', value: u => u.published, num: true },
-  { key: 'unpaid', label: 'Not paid', value: u => u.unpaid, num: true, title: 'Published Highreels without a payment' },
-  { key: 'live', label: 'Customers', value: u => u.live, num: true, title: 'Customers\' Highreels with a link' },
-  { key: 'opened', label: 'Opened', value: u => (u.live ? `${u.opened.toLocaleString('en-US')} · ${percent(u.opened, u.live)}` : null), sort: u => u.opened, num: true },
-  { key: 'shared', label: 'Shared', value: u => u.shared, num: true },
-  { key: 'emails', label: 'Emails', value: u => u.emails, num: true, title: 'Highreel emails sent from their own account' },
-  { key: 'payments', label: 'Payments', value: u => u.payments, num: true },
   { key: 'spent', label: 'Spent', value: u => (u.payments ? formatMoney(u.spent) : null), sort: u => moneySize(u.spent), num: true },
+  { key: 'created', label: 'Signed up', value: u => when(u.created_at), sort: u => u.created_at },
+  { key: 'seen', label: 'Last seen', value: u => when(u.last_seen), sort: u => u.last_seen, title: 'The latest session\'s last use, to the day' },
   { key: 'actions', label: 'Actions', value: () => null, fixed: true },
 ]
 const blockedColumns: AdminColumn<BlockedAddress>[] = [
@@ -126,17 +123,27 @@ async function unblock(email: string) {
         :row-key="u => u.id"
         :to="u => `/app/admin/users/${u.id}`"
         label="Users"
-        :min-width="1240"
+        :min-width="960"
+        tall
         :empty="search ? 'No user matches that.' : 'No users here yet.'"
       >
         <template #cell-email="{ row, value }">
-          <span class="flex min-w-0 items-center gap-2">
-            <NuxtLink :to="`/app/admin/users/${row.id}`" class="block max-w-[260px] truncate font-medium hover:underline" :class="{ 'text-muted-foreground': row.demo }" :title="row.email ?? row.id">{{ value }}</NuxtLink>
-            <BlockedBadge v-if="row.blocked" />
+          <span class="flex min-w-0 flex-col gap-0.5 leading-tight">
+            <span class="flex min-w-0 items-center gap-2">
+              <NuxtLink :to="`/app/admin/users/${row.id}`" class="block max-w-[300px] truncate font-medium hover:underline" :class="{ 'text-muted-foreground': row.demo }" :title="row.email ?? row.id" data-email>{{ value }}</NuxtLink>
+              <RoleBadge v-if="row.role === 'admin'" :role="row.role" />
+              <BlockedBadge v-if="row.blocked" />
+            </span>
+            <span class="max-w-[300px] truncate text-[12px] text-muted-foreground" data-business>{{ row.business ?? 'no business' }}</span>
           </span>
         </template>
-        <template #cell-role="{ row }">
-          <RoleBadge :role="row.role" />
+        <template #cell-stage="{ row }">
+          <StagePill :stage="userStage(row)" />
+        </template>
+        <template #cell-published="{ row, value }">
+          <span class="inline-flex items-center gap-1.5" :title="row.unpaid ? `${row.unpaid} published without a payment` : undefined">
+            <span v-if="row.unpaid" class="size-1.5 rounded-full bg-[var(--shape-marigold)]" aria-hidden="true" data-unpaid />{{ value }}
+          </span>
         </template>
         <template #cell-actions="{ row }">
           <div class="flex justify-end">

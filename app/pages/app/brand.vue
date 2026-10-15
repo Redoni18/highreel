@@ -1,11 +1,12 @@
 <script setup lang="ts">
 // Your brand (SPEC M2.6, in the editor's shell since M2.8): the business-wide
-// basics every recap uses (name, logo, colour, website), set once here
-// instead of inside each recap. A phone beside the settings plays an example
-// recap in these colours as they change, and goes to the cover while the
-// name, logo or colour is being changed. Name, colour and website save with
-// Save; the logo saves when it's chosen or dropped on its box. Since M2.9 the
-// email account recap emails go out from is connected here too.
+// basics every recap uses (name, logo, website), set once here instead of
+// inside each recap. No colour since M2.17: colour belongs to each
+// Highreel's design (owner, 2026-10-15). A phone beside the settings plays an
+// example recap with them as they change, and goes to the cover while the
+// name or logo is being changed. Name, logo shape and website save with Save;
+// the logo saves when it's chosen or dropped on its box. Since M2.9 the email
+// account recap emails go out from is connected here too.
 // Client-only (see routeRules).
 import { ArrowLeft, ImagePlus, Loader2, Mail, Trash2 } from '@lucide/vue'
 import { toast } from 'vue-sonner'
@@ -13,8 +14,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import type PhoneStage from '~/components/workspace/PhoneStage.vue'
 import type { Business, LogoShape, RecapPayload } from '#shared/types/recap'
-import { contrast, normalizeHex, readableOn } from '#shared/utils/color'
-import { starters } from '#shared/templates/starters'
+import { readableOn } from '#shared/utils/color'
+import { resolveLook } from '#shared/templates/designs'
 import { type EmailConnection, presetFor } from '#shared/utils/smtp'
 import { shrinkImage } from '~/utils/media'
 import { EXAMPLES } from '~/data/examples'
@@ -30,15 +31,12 @@ const anonymous = ref(cache.brand?.anonymous ?? false)
 /** Asking the server while showing the last answer (the page is aria-busy). */
 const refreshing = ref(!!business.value)
 const loadError = ref<string | null>(null)
-const form = reactive({ name: '', accent: '#4F46E5', website: '', shape: 'circle' as LogoShape })
-const hexInput = ref('')
+const form = reactive({ name: '', website: '', shape: 'circle' as LogoShape })
 
 function reset(b: Business) {
   form.name = b.name
-  form.accent = b.accent_color
   form.website = b.website_url ?? ''
   form.shape = b.logo_shape
-  hexInput.value = b.accent_color
 }
 if (business.value)
   reset(business.value)
@@ -102,24 +100,13 @@ onMounted(async () => {
   }
 })
 
-watch(hexInput, (v) => {
-  const hex = normalizeHex(v)
-  if (hex)
-    form.accent = hex
-})
-function pick(hex: string) {
-  hexInput.value = hex.toUpperCase()
-  toCover()
-}
-const onAccent = computed(() => readableOn(form.accent))
-const ratio = computed(() => contrast(form.accent, onAccent.value).toFixed(1))
+// The example Highreel on the phone wears its own design's colour; the logo previews take it too.
+const exampleAccent = resolveLook(EXAMPLES[0]!.payload.settings.look).accent
+const onAccent = readableOn(exampleAccent)
 const shapes = [{ value: 'circle' as const, label: 'Circle' }, { value: 'square' as const, label: 'Square' }]
-// Quick picks: the templates' colours.
-const swatches = [...new Set(starters.map(s => s.accent))]
 
 const dirty = computed(() => !!business.value && (
   form.name.trim() !== business.value.name
-  || form.accent !== business.value.accent_color
   || form.website.trim() !== (business.value.website_url ?? '')
   || form.shape !== business.value.logo_shape))
 const saving = ref(false)
@@ -130,7 +117,7 @@ async function save() {
   try {
     business.value = await api<Business>('/api/business', {
       method: 'PATCH',
-      body: { name: form.name.trim(), accent_color: form.accent, website_url: form.website.trim(), logo_shape: form.shape },
+      body: { name: form.name.trim(), website_url: form.website.trim(), logo_shape: form.shape },
     })
     reset(business.value)
     toast.success('Brand saved', { description: 'Every Highreel uses it, published ones included.' })
@@ -216,7 +203,7 @@ const payload = computed<RecapPayload | null>(() => {
   return {
     ...ex,
     year: new Date().getFullYear(),
-    business: { ...b, name: form.name.trim() || b.name, accent_color: form.accent, logo_shape: form.shape, website_url: form.website.trim() || null },
+    business: { ...b, name: form.name.trim() || b.name, logo_shape: form.shape, website_url: form.website.trim() || null },
     settings: { ...ex.settings, cta_label: '', cta_url: '' },
   }
 })
@@ -247,7 +234,7 @@ const payload = computed<RecapPayload | null>(() => {
           <div class="mx-auto flex w-full max-w-[680px] flex-col gap-6 px-8 pt-8 pb-14">
             <header class="flex flex-col gap-1.5">
               <h1 class="text-[28px] leading-[1.1] font-semibold tracking-[-0.025em]">Your brand</h1>
-              <p class="text-[14px] text-muted-foreground">On every Highreel you make, published ones included. Change it here and they all follow.</p>
+              <p class="text-[14px] text-muted-foreground">On every Highreel you make, published ones included. Change it here and they all follow. Colors come with each Highreel's design.</p>
             </header>
 
             <div class="settings">
@@ -276,7 +263,7 @@ const payload = computed<RecapPayload | null>(() => {
                     @dragleave.self="dropping = false"
                     @drop.prevent="dropLogo"
                   >
-                    <RecapMonogram :name="form.name || business.name" :logo-url="business.logo_url" :shape="form.shape" :bg="form.accent" :fg="onAccent" size="52px" />
+                    <RecapMonogram :name="form.name || business.name" :logo-url="business.logo_url" :shape="form.shape" :bg="exampleAccent" :fg="onAccent" size="52px" />
                     <div class="flex min-w-0 flex-1 flex-col gap-0.5">
                       <p class="text-[13px] font-medium">{{ logoBusy ? 'Uploading…' : business.logo_path ? 'Your logo' : 'Drop a logo here' }}</p>
                       <p class="text-[12px] text-muted-foreground">PNG, JPEG or WebP. Saves straight away.</p>
@@ -293,45 +280,9 @@ const payload = computed<RecapPayload | null>(() => {
                     <input ref="logoInput" type="file" accept="image/png,image/jpeg,image/webp" class="hidden" data-testid="logo-input" aria-labelledby="br-logo" @change="chooseLogo">
                   </div>
                   <Segmented v-slot="{ option }" v-model="form.shape" :options="shapes" label="Logo shape" class="w-fit" data-testid="logo-shape" @update:model-value="toCover">
-                    <RecapMonogram :name="form.name || business.name" :logo-url="business.logo_url" :shape="option.value" :bg="form.accent" :fg="onAccent" size="20px" />
+                    <RecapMonogram :name="form.name || business.name" :logo-url="business.logo_url" :shape="option.value" :bg="exampleAccent" :fg="onAccent" size="20px" />
                     {{ option.label }}
                   </Segmented>
-                </div>
-              </div>
-
-              <!-- Colour -->
-              <div class="set-row">
-                <div class="set-label">
-                  <label for="br-accent">Colour</label>
-                  <p>Fills Stories Highreels; Paper ones use it for highlights.</p>
-                </div>
-                <div class="flex flex-col gap-3">
-                  <div class="flex flex-wrap gap-1.5" role="group" aria-label="Suggested colours">
-                    <button
-                      v-for="c in swatches"
-                      :key="c"
-                      type="button"
-                      class="size-7 rounded-full ring-offset-2 ring-offset-background transition-transform hover:scale-110"
-                      :class="form.accent === c ? 'ring-2 ring-foreground' : ''"
-                      :style="{ background: c }"
-                      :aria-label="`Use ${c}`"
-                      @click="pick(c)"
-                    />
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <input
-                      type="color"
-                      :value="form.accent"
-                      class="size-10 shrink-0 cursor-pointer rounded-full border bg-background p-0.5 [&::-webkit-color-swatch]:rounded-full [&::-webkit-color-swatch]:border-0 [&::-webkit-color-swatch-wrapper]:p-0"
-                      aria-label="Pick a colour"
-                      @input="e => pick((e.target as HTMLInputElement).value)"
-                    >
-                    <Input id="br-accent" v-model="hexInput" maxlength="7" class="h-10 max-w-32 rounded-full px-4 font-mono uppercase" :aria-invalid="!normalizeHex(hexInput)" @focus="toCover" />
-                    <span class="inline-flex h-7 items-center rounded-full px-2.5 font-mono text-[12px] font-medium" :style="{ background: form.accent, color: onAccent }" :title="`Contrast ${ratio}:1`">
-                      Aa {{ ratio }}:1
-                    </span>
-                  </div>
-                  <p class="text-[12px] text-muted-foreground">Text on it is {{ onAccent === '#FFFFFF' ? 'white' : 'black' }}, whichever reads better.</p>
                 </div>
               </div>
 
@@ -385,8 +336,8 @@ const payload = computed<RecapPayload | null>(() => {
 
       <EmailConnectDialog v-if="mail" v-model:open="connectOpen" :connection="mail.connection" :business-name="business?.name ?? ''" :dev="mail.dev" @connected="connected" />
 
-      <PhoneStage ref="stage" :payload="payload" :accent="form.accent" :ink="onAccent">
-        An example Highreel in your colours.
+      <PhoneStage ref="stage" :payload="payload" :accent="exampleAccent" :ink="onAccent">
+        An example Highreel with your name and logo.
       </PhoneStage>
     </div>
   </div>

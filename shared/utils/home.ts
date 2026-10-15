@@ -1,7 +1,7 @@
-// The business home's sentences (SPEC M2.5 P3): the year written like a
-// recap instead of stat tiles, the drafts that need attention, and the
-// activity lines. Pure, so they're unit-tested. Numbers come back as
-// { n } parts so the page can set them in mono.
+// The business home's words and numbers (SPEC M2.5 P3, cards since M2.16):
+// the year's headline numbers, the drafts that need attention, and the
+// activity lines. Pure, so they're unit-tested. A draft's numbers come back
+// as { n } parts so the page can set them in mono.
 
 import type { HomeActivity, HomeCampaign } from '../types/recap'
 
@@ -12,50 +12,42 @@ const fmt = (x: number) => x.toLocaleString('en-US')
 const n = (x: number): Part => ({ n: fmt(x) })
 const plural = (x: number, one: string, many: string) => (x === 1 ? one : many)
 
-/** "a, b, and c" with the parts kept as phrases. */
-function list(items: Phrase[]): Phrase {
-  if (items.length <= 1)
-    return items[0] ?? []
-  const out: Phrase = []
-  items.forEach((item, i) => {
-    if (i > 0)
-      out.push(i === items.length - 1 ? (items.length > 2 ? ', and ' : ' and ') : ', ')
-    out.push(...item)
-  })
-  return out
+/** A headline number on the home (SPEC M2.16): a StatCard. */
+export interface HomeCard {
+  key: 'sent' | 'opened' | 'shared' | 'clicked' | 'views'
+  label: string
+  value: string
+  detail?: string
 }
 
-/** The year at a glance, as sentences. */
-export function yearSummary(year: number, campaigns: HomeCampaign[]): Phrase[] {
-  const sentCampaigns = campaigns.filter(c => c.kind === 'customers' && c.published > 0)
-  const sum = (k: 'published' | 'opened' | 'saved' | 'shared' | 'clicked') => sentCampaigns.reduce((s, c) => s + c[k], 0)
-  const sent = sum('published')
-  const lines: Phrase[] = []
+const pct = (part: number, whole: number) => `${Math.round((part / whole) * 100)}%`
 
-  if (sent) {
-    lines.push([`In ${year} you sent `, n(sent), ` ${plural(sent, 'Highreel', 'Highreels')} in `, n(sentCampaigns.length), ` ${plural(sentCampaigns.length, 'campaign', 'campaigns')}.`])
+/**
+ * The year at a glance, as cards (owner, 2026-10-15; until then sentences):
+ * the customer Highreels sent, opened, shared and tapped through, and the
+ * views of the business's own Highreel once one is published.
+ */
+export function yearCards(year: number, campaigns: HomeCampaign[]): HomeCard[] {
+  const cards: HomeCard[] = []
+  if (campaigns.some(c => c.kind === 'customers')) {
+    const out = campaigns.filter(c => c.kind === 'customers' && c.published > 0)
+    const sum = (k: 'published' | 'opened' | 'saved' | 'shared' | 'clicked') => out.reduce((s, c) => s + c[k], 0)
+    const sent = sum('published')
     const opened = sum('opened')
-    if (opened) {
-      const pct = Math.round((opened / sent) * 100)
-      const rest: Phrase[] = [[n(opened), ` ${plural(opened, 'was', 'were')} opened (`, { n: `${pct}%` }, ')']]
-      for (const [k, verb] of [['saved', 'saved'], ['shared', 'shared'], ['clicked', 'tapped your button']] as const) {
-        const v = sum(k)
-        if (v)
-          rest.push([n(v), ` ${verb}`])
-      }
-      lines.push([...list(rest), '.'])
-    }
-    else {
-      lines.push(['None opened yet.'])
-    }
+    const saved = sum('saved')
+    cards.push(
+      { key: 'sent', label: 'Sent', value: fmt(sent), detail: sent ? `in ${fmt(out.length)} ${plural(out.length, 'campaign', 'campaigns')}` : `Nothing sent in ${year} yet` },
+      { key: 'opened', label: 'Opened', value: fmt(opened), detail: sent ? `${pct(opened, sent)} of those sent` : undefined },
+      { key: 'shared', label: 'Shared', value: fmt(sum('shared')), detail: sent ? `${fmt(saved)} saved the image` : undefined },
+      { key: 'clicked', label: 'Tapped your button', value: fmt(sum('clicked')), detail: opened ? `${pct(sum('clicked'), opened)} of those who opened` : undefined },
+    )
   }
-  else if (campaigns.some(c => c.kind === 'customers')) {
-    lines.push([`Nothing sent in ${year} yet.`])
+  const own = campaigns.filter(c => c.kind === 'business' && c.published > 0)
+  if (own.length) {
+    const views = own.reduce((s, c) => s + c.views, 0)
+    cards.push({ key: 'views', label: own.length === 1 ? `Views of “${own[0]!.name}”` : 'Views of your own Highreels', value: fmt(views), detail: own.length === 1 ? 'your business Highreel' : `${own.length} business Highreels` })
   }
-
-  for (const c of campaigns.filter(c => c.kind === 'business' && c.published > 0))
-    lines.push([`Your Highreel “${c.name}” was viewed `, n(c.views), ` ${plural(c.views, 'time', 'times')}.`])
-  return lines
+  return cards
 }
 
 /** One line per draft: what's left before it can go out. */

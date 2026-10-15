@@ -1,5 +1,6 @@
 // Shapes that cross the API boundary (server routes ↔ workspace ↔ recap).
 
+import type { Look } from '../templates/designs'
 import type { CustomColumn, ParsedRow, RawRow, RowErrors, SlideSetting } from '../templates/types'
 
 /** How a logo is drawn on recaps, share images and link previews (Your brand, SPEC M2.6). */
@@ -8,7 +9,6 @@ export type LogoShape = 'circle' | 'square'
 export interface Business {
   id: string
   name: string
-  accent_color: string
   logo_shape: LogoShape
   /** R2 key of the logo: {business_id}/logo/{uuid}.png (M2c, M2.14 P2) */
   logo_path: string | null
@@ -44,8 +44,8 @@ export interface CampaignSettings {
   photo_in_share_image: boolean
   /** When the business confirmed it may share these photos */
   photos_consent_at: string | null
-  /** Visual theme (M2h) */
-  theme: 'stories' | 'paper'
+  /** How it looks (SPEC M2.17): a design and one of its colourways (shared/templates/designs.ts). Before, `theme` (stories or paper) with the business's colour. */
+  look: Look
   /** Recipients pick their number from three before it's revealed (M2.5 P1) */
   guess_first: boolean
   /** The business's own columns on top of the template's (M2.7) */
@@ -179,7 +179,7 @@ export interface RecapRecipient {
 export interface RecapPayload {
   template_key: string
   year: number
-  business: Pick<Business, 'name' | 'accent_color' | 'logo_url' | 'website_url'> & { logo_shape?: LogoShape }
+  business: Pick<Business, 'name' | 'logo_url' | 'website_url'> & { logo_shape?: LogoShape }
   /** Photos carry signed URLs; storage paths never reach recap pages */
   settings: CampaignSettings
   recipient: RecapRecipient

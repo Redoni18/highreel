@@ -7,6 +7,7 @@
 import type RecapPlayer from '~/components/recap/RecapPlayer.vue'
 import type { RecapEventType, RecapPayload } from '#shared/types/recap'
 import { templateFor } from '#shared/templates'
+import { resolveLook } from '#shared/templates/designs'
 import { mix } from '#shared/utils/color'
 import { shareTexts } from '#shared/utils/slides'
 
@@ -26,8 +27,10 @@ if (import.meta.server && error.value) {
 
 const texts = computed(() => data.value ? shareTexts(templateFor(data.value.template_key, data.value.settings), data.value) : null)
 const title = computed(() => texts.value?.title ?? 'Highreel not found')
-const accent = computed(() => data.value?.business.accent_color ?? '#0a0a0a')
-const paper = computed(() => data.value?.settings.theme === 'paper')
+// The page wears the Highreel's look (SPEC M2.17).
+const look = computed(() => (data.value ? resolveLook(data.value.settings.look) : null))
+const accent = computed(() => look.value?.accent ?? '#0a0a0a')
+const paper = computed(() => look.value?.theme === 'paper')
 
 // Link previews in WhatsApp, iMessage, Slack… (SPEC M2g). Absolute URLs.
 const origin = useRequestURL().origin
@@ -46,7 +49,7 @@ useHead({
   meta: [
     { name: 'robots', content: 'noindex, nofollow' },
     { name: 'referrer', content: 'no-referrer' },
-    { name: 'theme-color', content: () => data.value?.business.accent_color ?? '#0a0a0a' },
+    { name: 'theme-color', content: () => accent.value },
   ],
   bodyAttrs: {
     class: 'recap-page',

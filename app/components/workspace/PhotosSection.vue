@@ -72,7 +72,8 @@ function files(e: Event): File[] {
         :model-value="settings.photo_in_share_image"
         @update:model-value="v => ws.updateCampaign({ settings: { photo_in_share_image: v === true } })"
       />
-      <Label for="ph-share" class="block text-[13px] leading-snug font-normal">Put the first photo on the share image <span class="text-muted-foreground">(off by default: people post that image publicly, and group photos can show other people's children)</span></Label>
+      <Label for="ph-share" class="block flex-1 text-[13px] leading-snug font-normal">Put the first photo on the share image <span class="text-muted-foreground">(off by default: people post that image publicly, and group photos can show other people's children)</span></Label>
+      <InfoTip topic="shareImage" />
     </div>
   </div>
 </template>

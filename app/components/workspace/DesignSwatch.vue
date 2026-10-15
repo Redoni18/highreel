@@ -1,13 +1,14 @@
 <script setup lang="ts">
-// A business-type template as a tiny recap cover: its colour (or the
-// business's, in Design) and theme, a mark, two title lines. Used by the
-// template pickers (New recap, Design).
-import type { Starter } from '#shared/templates/starters'
+// A design in one of its colourways as a tiny recap cover (SPEC M2.17): its
+// renderer (Stories fills it with the colour, Paper is a light page with the
+// colour on a mark and a rule), a mark, two title lines. Used by LookPicker.
+import { type Look, resolveLook } from '#shared/templates/designs'
 import { readableOn } from '#shared/utils/color'
 
-const props = defineProps<{ starter: Starter, accent?: string }>()
-const colour = computed(() => props.accent ?? props.starter.accent)
-const paper = computed(() => props.starter.theme === 'paper')
+const props = defineProps<{ look: Look }>()
+const resolved = computed(() => resolveLook(props.look))
+const colour = computed(() => resolved.value.accent)
+const paper = computed(() => resolved.value.theme === 'paper')
 const bg = computed(() => (paper.value ? '#F4F1EA' : colour.value))
 const fg = computed(() => (paper.value ? '#1A1A1A' : readableOn(colour.value)))
 </script>

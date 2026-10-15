@@ -6,7 +6,8 @@
 export const SCHEDULE: Record<string, string[]> = {
   // Expired sessions and sign-in links, idle rate-limit counts: the privacy
   // policy deletes them when a session ends, and the counts within a day.
-  '0 * * * *': ['cleanup:auth'],
+  // And Whop's fee on payments recorded before Whop had worked it out (SPEC M2.16).
+  '0 * * * *': ['cleanup:auth', 'payments:fees'],
   // Demos nobody kept, 30 days after they started; accounts the owner was asked to delete.
   '0 3 * * *': ['cleanup:demo', 'accounts:delete'],
 }

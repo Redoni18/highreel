@@ -1,9 +1,9 @@
-// The home's sentences (SPEC M2.5 P3).
+// The home's cards and lines (SPEC M2.5 P3, cards since M2.16).
 
 import { describe, expect, test } from 'vitest'
 import type { HomeCampaign } from '../shared/types/recap'
-import { activityText, attention, nextName, timeAgo, yearSummary } from '../shared/utils/home'
-import type { Phrase } from '../shared/utils/home'
+import { activityText, attention, nextName, timeAgo, yearCards } from '../shared/utils/home'
+import type { HomeCard, Phrase } from '../shared/utils/home'
 
 const text = (p: Phrase) => p.map(x => (typeof x === 'string' ? x : x.n)).join('')
 
@@ -15,33 +15,38 @@ function campaign(over: Partial<HomeCampaign>): HomeCampaign {
   }
 }
 
-describe('yearSummary', () => {
-  test('writes the year like the spec example', () => {
-    const lines = yearSummary(2026, [
+describe('yearCards', () => {
+  // A card as "label value (detail)", to compare in one go.
+  const line = (c: HomeCard) => `${c.label} ${c.value}${c.detail ? ` (${c.detail})` : ''}`
+
+  test('the year in four cards: sent, opened, shared, tapped', () => {
+    const cards = yearCards(2026, [
       campaign({ id: 'a', published: 120, opened: 80, saved: 30, shared: 10, clicked: 5 }),
       campaign({ id: 'b', published: 75, opened: 52, saved: 11, shared: 8, clicked: 4 }),
     ])
-    expect(lines.map(text)).toEqual([
-      'In 2026 you sent 195 Highreels in 2 campaigns.',
-      '132 were opened (68%), 41 saved, 18 shared, and 9 tapped your button.',
+    expect(cards.map(line)).toEqual([
+      'Sent 195 (in 2 campaigns)',
+      'Opened 132 (68% of those sent)',
+      'Shared 18 (41 saved the image)',
+      'Tapped your button 9 (7% of those who opened)',
     ])
   })
 
-  test('numbers are separate parts (set in mono)', () => {
-    const [first] = yearSummary(2026, [campaign({ published: 1200 })])
-    expect(first).toContainEqual({ n: '1,200' })
+  test('big numbers with commas; singulars; nothing sent yet', () => {
+    expect(yearCards(2026, [campaign({ published: 1200 })])[0]).toMatchObject({ value: '1,200', detail: 'in 1 campaign' })
+    expect(yearCards(2026, [campaign({ status: 'draft', row_count: 20 })]).map(line)).toEqual([
+      'Sent 0 (Nothing sent in 2026 yet)',
+      'Opened 0',
+      'Shared 0',
+      'Tapped your button 0',
+    ])
+    expect(yearCards(2026, [])).toEqual([])
   })
 
-  test('singulars, nothing opened, nothing sent', () => {
-    expect(yearSummary(2026, [campaign({ published: 1 })]).map(text)).toEqual(['In 2026 you sent 1 Highreel in 1 campaign.', 'None opened yet.'])
-    expect(yearSummary(2026, [campaign({ published: 10, opened: 1 })]).map(text)[1]).toBe('1 was opened (10%).')
-    expect(yearSummary(2026, [campaign({ status: 'draft', row_count: 20 })]).map(text)).toEqual(['Nothing sent in 2026 yet.'])
-    expect(yearSummary(2026, [])).toEqual([])
-  })
-
-  test('a business recap gets its own line, outside the customer counts', () => {
-    const lines = yearSummary(2026, [campaign({ kind: 'business', name: 'Our 2026', published: 1, views: 38 })])
-    expect(lines.map(text)).toEqual(['Your Highreel “Our 2026” was viewed 38 times.'])
+  test('a business recap gets its own card, outside the customer counts', () => {
+    expect(yearCards(2026, [campaign({ kind: 'business', name: 'Our 2026', published: 1, views: 38 })]).map(line)).toEqual(['Views of “Our 2026” 38 (your business Highreel)'])
+    // Not published yet: no card.
+    expect(yearCards(2026, [campaign({ kind: 'business', status: 'draft', published: 0 })])).toEqual([])
   })
 })
 

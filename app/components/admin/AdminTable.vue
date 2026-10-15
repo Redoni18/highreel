@@ -27,6 +27,8 @@ const props = withDefaults(defineProps<{
   rowKey: (row: T) => string
   /** the page a row opens */
   to?: (row: T) => string | null
+  /** or what a click on a row does instead (a row with neither does nothing) */
+  pick?: (row: T) => void
   /** names the table for screen readers */
   label: string
   empty?: string
@@ -34,7 +36,9 @@ const props = withDefaults(defineProps<{
   /** the column it starts sorted by, and how */
   sortKey?: string
   sortDir?: 'asc' | 'desc'
-}>(), { to: undefined, empty: 'Nothing here.', minWidth: 900, sortKey: undefined, sortDir: 'desc' })
+  /** taller rows, for cells with a second line under the first (SPEC M2.16) */
+  tall?: boolean
+}>(), { to: undefined, pick: undefined, empty: 'Nothing here.', minWidth: 900, sortKey: undefined, sortDir: 'desc', tall: false })
 
 const key = ref(props.sortKey)
 const dir = ref<'asc' | 'desc'>(props.sortDir)
@@ -72,11 +76,17 @@ const show = (c: AdminColumn<T>, row: T) => {
   return v == null || v === '' ? '–' : typeof v === 'number' ? v.toLocaleString('en-US') : v
 }
 
+const clickable = (row: T) => !!props.to?.(row) || !!props.pick
+
 function open(e: MouseEvent, row: T) {
-  const to = props.to?.(row)
   // Not from a link, a button or a menu or dialog it opened (they're teleported, but their events still bubble here).
-  if (to && !(e.target as HTMLElement).closest('a, button, [role="menu"], [role="dialog"]') && (e.currentTarget as HTMLElement).contains(e.target as Node))
+  if ((e.target as HTMLElement).closest('a, button, [role="menu"], [role="dialog"]') || !(e.currentTarget as HTMLElement).contains(e.target as Node))
+    return
+  const to = props.to?.(row)
+  if (to)
     navigateTo(to)
+  else
+    props.pick?.(row)
 }
 </script>
 
@@ -107,12 +117,12 @@ function open(e: MouseEvent, row: T) {
         <tr
           v-for="row in sorted"
           :key="rowKey(row)"
-          class="group h-10 border-b last:border-0"
-          :class="{ 'cursor-pointer hover:bg-subtle': to?.(row) }"
+          class="group border-b last:border-0"
+          :class="[tall ? 'h-[52px]' : 'h-10', { 'cursor-pointer hover:bg-subtle': clickable(row) }]"
           :data-row="rowKey(row)"
           @click="open($event, row)"
         >
-          <td v-for="(c, i) in columns" :key="c.key" :class="[c.num ? 'num' : 'cell', { pinned: c.fixed, hovers: c.fixed && to?.(row) }]" :data-col="c.key">
+          <td v-for="(c, i) in columns" :key="c.key" :class="[c.num ? 'num' : 'cell', { pinned: c.fixed, hovers: c.fixed && clickable(row) }]" :data-col="c.key">
             <slot :name="`cell-${c.key}`" :row="row" :value="show(c, row)">
               <NuxtLink v-if="i === 0 && to?.(row)" :to="to(row)!" class="block max-w-[280px] truncate font-medium hover:underline" :title="String(show(c, row))">{{ show(c, row) }}</NuxtLink>
               <template v-else>{{ show(c, row) }}</template>
@@ -145,6 +155,8 @@ function open(e: MouseEvent, row: T) {
   white-space: nowrap;
 }
 .num:last-child, .cell:last-child { padding-right: 16px; }
+/* Words after a right-aligned number need room, or "$99" runs into "just now". */
+.num + .cell { padding-left: 28px; }
 /* Its own background, so the columns scrolling under it don't show through. */
 .pinned {
   position: sticky;

@@ -4,7 +4,7 @@
 import { createHmac } from 'node:crypto'
 import { describe, expect, test } from 'vitest'
 import { amountOf, isPaymentId, verifyWebhook, type Whop, type WhopPayment } from '../server/utils/whop'
-import { isPaid, minorUnits, paymentRef } from '../server/utils/payments'
+import { isPaid, minorUnits, netOf, paymentRef } from '../server/utils/payments'
 
 const SECRET = 'ws_0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'
 const sign = (id: string, ts: string, body: string, secret = SECRET) => `v1,${createHmac('sha256', secret).update(`${id}.${ts}.${body}`).digest('base64')}`
@@ -77,6 +77,18 @@ describe('payments', () => {
     expect(amountOf(null)).toBeNull()
     expect(amountOf({ amount: 'x' })).toBeNull()
     expect(minorUnits(Number.NaN, 'usd')).toBe(0)
+  })
+
+  test('what Whop pays out after its fees, from amount_after_fees (SPEC M2.16)', () => {
+    const money = (amount: string, currency = 'usd') => ({ currency, amount, decimals: 2 })
+    // The sandbox's $99 sale left $93.68.
+    expect(netOf(payment({ amount_after_fees: money('93.68') }), 'usd', 9900)).toBe(9368)
+    expect(netOf(payment({ amount_after_fees: money('0.00') }), 'usd', 0)).toBe(0)
+    // Not said yet, said in another currency, or still the whole amount (right after paying, Whop hasn't worked out its fees).
+    expect(netOf(payment(), 'usd', 9900)).toBeNull()
+    expect(netOf(payment({ amount_after_fees: money('86.00', 'eur') }), 'usd', 9900)).toBeNull()
+    expect(netOf(payment({ amount_after_fees: money('99.00') }), 'usd', 9900)).toBeNull()
+    expect(netOf(payment({ amount_after_fees: money('118.80') }), 'usd', 9900)).toBeNull()
   })
 
   test('payment ids', () => {

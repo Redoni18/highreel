@@ -283,10 +283,10 @@ customRows[30].first_gift = '14/02/2026'          // not YYYY-MM-DD
 customRows[101].member_id = customRows[100].member_id // duplicate id
 writeFileSync(join(outDir, 'sample-keepsake-150.csv'), toCsv(CUSTOM_COLUMNS, customRows))
 // The template shows the idea: the two fields we need, then any columns of your own.
-const CUSTOM_TEMPLATE_COLUMNS = ['customer_id', 'first_name', 'email', 'phone', 'visits', 'favourite', 'first_visit', 'personal_note']
+const CUSTOM_TEMPLATE_COLUMNS = ['customer_id', 'first_name', 'email', 'phone', 'visits', 'favorite', 'first_visit', 'personal_note']
 writeFileSync(join(outDir, 'highreel-template-custom.csv'), toCsv(CUSTOM_TEMPLATE_COLUMNS, [
-  { customer_id: 'c_001', first_name: 'Ana', email: 'ana@example.com', phone: '+44 7700 900001', visits: 24, favourite: 'The Saturday class', first_visit: '2025-03-14', personal_note: 'So glad you found us!' },
-  { customer_id: 'c_002', first_name: 'Liam', email: '', visits: 9, favourite: 'Morning yoga', first_visit: '2026-01-08', personal_note: '' },
+  { customer_id: 'c_001', first_name: 'Ana', email: 'ana@example.com', phone: '+44 7700 900001', visits: 24, favorite: 'The Saturday class', first_visit: '2025-03-14', personal_note: 'So glad you found us!' },
+  { customer_id: 'c_002', first_name: 'Liam', email: '', visits: 9, favorite: 'Morning yoga', first_visit: '2026-01-08', personal_note: '' },
 ]))
 
 console.log(`Wrote templates and samples for app, newsletter, shop, visit and custom to ${outDir}`)

@@ -1,4 +1,4 @@
-// The business home (SPEC M2.5 P3): its numbers match the grid, activity,
+// The business home (SPEC M2.5 P3, cards since M2.16): its numbers match the grid, activity,
 // old /app?c= links redirect, Duplicate copies photos (not rows) into the
 // next year, the year switcher, Delete, and a new account's empty state.
 import { BASE, campaignId, demoSession, designItem, expect, finish, FIX, launch, needFixtures, publish, sheetCounts, tab, watchErrors, rowsOf } from './lib.mjs'
@@ -34,8 +34,8 @@ const going = (await page.locator('[data-testid="going"]').innerText()).replace(
 await page.getByRole('link', { name: 'All Highreels' }).click()
 await page.waitForURL(u => new URL(u).pathname === '/app')
 await page.waitForSelector('main[aria-busy="false"] [data-campaign]')
-const summary = (await text('[data-testid="summary"]')).join(' ')
-expect(summary === 'In 2026 you sent 195 Highreels in 1 campaign. 3 were opened (2%) and 1 saved.', 'the year in sentences', summary)
+const cards = await text('[data-card]')
+expect(JSON.stringify(cards) === JSON.stringify(['Sent 195 in 1 campaign', 'Opened 3 2% of those sent', 'Shared 0 1 saved the image', 'Tapped your button 0 0% of those who opened']), 'the year in cards (SPEC M2.16)', cards)
 expect(going.includes('3 of 195 opened') && going.includes('1 saved'), 'the recap\'s Share tab agrees: 3 of 195 opened, 1 saved', going)
 const row = (await text(`[data-campaign="${first}"]`))[0]
 expect(/2026 Highreels customers SaaS and apps published 200 195 2% 1 0 0/.test(row), 'the table row matches', row)

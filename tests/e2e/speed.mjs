@@ -4,7 +4,7 @@
 // (aria-busy until then), edits started meanwhile survive the fresh answer, a
 // new Highreel opens without asking for itself again, and the next session in
 // the same tab sees nothing cached from the last one.
-import { BASE, demoSession, expect, finish, launch, watchErrors } from './lib.mjs'
+import { BASE, demoSession, expect, finish, launch, watchErrors, newHighreel } from './lib.mjs'
 
 const browser = await launch()
 const page = await (await browser.newContext({ viewport: { width: 1280, height: 800 } })).newPage()
@@ -60,7 +60,7 @@ await page.unroute('**/api/home?**')
 // A new Highreel: creating it is the only wait.
 asked.length = 0
 await page.getByRole('button', { name: 'New Highreel' }).first().click()
-await page.getByRole('dialog').getByRole('button', { name: 'Create' }).click()
+await newHighreel(page)
 await page.waitForSelector('text=Use sample data')
 const again = asked.filter(a => /^GET \/api\/campaigns\/[\w-]+(?:\/recipients)?$/.test(a))
 expect(asked.includes('POST /api/campaigns') && again.length === 0, 'a new Highreel opens with what creating it answered', asked)

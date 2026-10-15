@@ -1,8 +1,10 @@
 <script setup lang="ts">
-// Every Highreel on the admin pages (SPEC M2.15): all accounts' campaigns,
-// newest first, with their reach and whether they were paid for. Filters in
-// the URL (?show=, ?demos=1); a row opens its owner's page (the admin pages
-// don't open a business's workspace).
+// Every Highreel on the admin pages (SPEC M2.15, fewer columns since M2.16):
+// all accounts' campaigns, newest first: the Highreel (template and year
+// under it), its owner (business, address under it), status, customers,
+// opens and payment. Filters in the URL (?show=, ?demos=1); a row opens its
+// owner's page with this Highreel's numbers open (the admin pages don't open
+// a business's workspace).
 import { Search } from '@lucide/vue'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
@@ -40,7 +42,8 @@ const MATCH: Record<Show, (h: AdminHighreel) => boolean> = {
   all: () => true,
   draft: h => h.status === 'draft',
   published: h => h.status === 'published',
-  unpaid: h => h.status === 'published' && !h.payments,
+  // A business's own Highreel is free (SPEC §10).
+  unpaid: h => h.kind === 'customers' && h.status === 'published' && !h.payments,
   paid: h => h.payments > 0,
 }
 const options = computed(() => {
@@ -63,18 +66,12 @@ const shown = computed(() => {
 const when = (iso: string | null) => (iso ? timeAgo(iso) : null)
 const columns: AdminColumn<AdminHighreel>[] = [
   { key: 'name', label: 'Highreel', value: h => h.name },
-  { key: 'business', label: 'Business', value: h => h.business },
-  { key: 'owner', label: 'Account', value: h => h.owner_email ?? 'demo' },
-  { key: 'template', label: 'Template', value: h => getTemplate(h.template_key).label },
-  { key: 'year', label: 'Year', value: h => String(h.year), sort: h => h.year, num: true },
+  { key: 'owner', label: 'Owner', value: h => h.business, title: 'The business, with its account under it' },
   { key: 'status', label: 'Status', value: h => h.status },
-  { key: 'rows', label: 'Rows', value: h => h.rows, num: true },
-  { key: 'live', label: 'Customers', value: h => h.live, num: true, title: 'Customers\' Highreels with a link' },
-  { key: 'opened', label: 'Opened', value: h => (h.kind === 'business' ? `${h.views.toLocaleString('en-US')} views` : h.live ? `${h.opened.toLocaleString('en-US')} · ${percent(h.opened, h.live)}` : null), sort: h => h.opened, num: true },
-  { key: 'shared', label: 'Shared', value: h => h.shared, num: true },
-  { key: 'paid', label: 'Paid', value: h => (h.payments ? formatMoney(h.paid) : h.status === 'published' ? 'not paid' : null), sort: h => moneySize(h.paid), num: true },
+  { key: 'live', label: 'Customers', value: h => (h.kind === 'business' ? null : h.live), num: true, title: 'Customers\' Highreels with a link' },
+  { key: 'opened', label: 'Opened', value: h => (h.kind === 'business' ? `${h.views.toLocaleString('en-US')} views` : h.live ? percent(h.opened, h.live) : null), sort: h => (h.kind === 'business' ? h.views : h.opened), num: true },
+  { key: 'paid', label: 'Paid', value: h => (h.kind === 'business' ? 'free' : h.payments ? formatMoney(h.paid) : h.status === 'published' ? 'not paid' : null), sort: h => moneySize(h.paid), num: true },
   { key: 'created', label: 'Made', value: h => when(h.created_at), sort: h => h.created_at },
-  { key: 'published_at', label: 'Published', value: h => when(h.published_at), sort: h => h.published_at },
 ]
 </script>
 
@@ -100,13 +97,29 @@ const columns: AdminColumn<AdminHighreel>[] = [
         :columns="columns"
         :rows="shown"
         :row-key="h => h.id"
-        :to="h => `/app/admin/users/${h.owner_id}`"
+        :to="h => `/app/admin/users/${h.owner_id}?highreel=${h.id}`"
         label="Highreels"
-        :min-width="1280"
+        :min-width="900"
+        tall
         :empty="search ? 'No Highreel matches that.' : 'None here.'"
       >
+        <template #cell-name="{ row }">
+          <NuxtLink :to="`/app/admin/users/${row.owner_id}?highreel=${row.id}`" class="flex max-w-[320px] min-w-0 flex-col gap-0.5 leading-tight">
+            <span class="truncate font-medium hover:underline">{{ row.name }}</span>
+            <span class="truncate text-[12px] text-muted-foreground">{{ row.kind === 'business' ? 'Their business year' : getTemplate(row.template_key).label }} · {{ row.year }}</span>
+          </NuxtLink>
+        </template>
+        <template #cell-owner="{ row }">
+          <span class="flex max-w-[280px] min-w-0 flex-col gap-0.5 leading-tight">
+            <span class="truncate" data-business>{{ row.business }}</span>
+            <span class="truncate text-[12px] text-muted-foreground" data-email>{{ row.owner_email ?? 'demo' }}</span>
+          </span>
+        </template>
+        <template #cell-status="{ row }">
+          <span class="inline-flex h-6 items-center rounded-full px-2.5 text-[12px] font-medium" :class="row.status === 'published' ? 'bg-ok/12 text-ok-text' : 'bg-muted text-muted-foreground'">{{ row.status }}</span>
+        </template>
         <template #cell-paid="{ row, value }">
-          <PaidCell :unpaid="row.status === 'published' && !row.payments" :value="value" />
+          <PaidCell :unpaid="MATCH.unpaid(row)" :value="value" />
         </template>
       </AdminTable>
       <p v-if="data?.more" class="text-[13px] text-muted-foreground">Showing the newest {{ data.highreels.length.toLocaleString('en-US') }}.</p>

@@ -3,7 +3,7 @@
 // (English and Albanian), and rename rows once the business confirms.
 
 import type { CustomColumn, SlideSetting, Template } from '../templates/types'
-import { addedKey, MAX_OWN_COLUMNS, type OwnSettings, RESERVED_KEYS } from '../templates/own'
+import { addedKey, MAX_OWN_COLUMNS, type OwnColumns, type OwnSettings, RESERVED_KEYS } from '../templates/own'
 import { plainNumber } from './validate'
 
 export type ColumnMapping = Record<string, string | null>
@@ -205,7 +205,7 @@ export function preselect(extras: SheetExtra[]): SheetExtra[] {
  * ones get a slide each), plus earlier ones a slide still uses. A column the
  * sheet brings but the business unticked goes, with its slides.
  */
-export function settingsForSheet(base: Template, settings: OwnSettings, extras: SheetExtra[]): Required<OwnSettings> {
+export function settingsForSheet(base: Template, settings: OwnSettings, extras: SheetExtra[]): OwnColumns {
   const kept = extras.filter(e => e.keep)
   const inSheet = new Set(kept.map(e => e.key))
   const dropped = new Set(extras.filter(e => e.existing && !e.keep).map(e => e.key))

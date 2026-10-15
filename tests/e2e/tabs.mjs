@@ -2,7 +2,7 @@
 // Design jumps the phone to the slide being edited and keeps a draft across
 // tabs until saved; Share publishes and explains; Your brand saves once for
 // every recap; switching recaps keeps the tab.
-import { BASE, campaignId, demoSession, designItem, expect, finish, FIX, launch, needFixtures, sheetCounts, tab, tokenFor, watchErrors } from './lib.mjs'
+import { BASE, campaignId, demoSession, designItem, expect, finish, FIX, launch, needFixtures, sheetCounts, tab, tokenFor, watchErrors, newHighreel } from './lib.mjs'
 
 needFixtures()
 
@@ -91,11 +91,10 @@ await page.locator('[data-testid="logo-shape"] [data-value="square"]').click()
 const squared = await mark()
 expect(squared.radius !== '50%' && squared.padding === '0px', 'Square previews as a rounded square', squared)
 await page.getByLabel('Business name').fill('Kafe Lumi')
-await page.getByRole('button', { name: 'Use #9A3412' }).click()
 await page.getByRole('button', { name: 'Save', exact: true }).click()
 await page.waitForSelector('text=Brand saved')
 const brand = await page.evaluate(async () => (await (await fetch('/api/business')).json()).business)
-expect(brand.name === 'Kafe Lumi' && brand.accent_color === '#9A3412' && brand.logo_shape === 'square', 'Your brand saves the name, colour and logo shape', brand)
+expect(brand.name === 'Kafe Lumi' && brand.logo_shape === 'square' && !('accent_color' in brand), 'Your brand saves the name and logo shape (no colour: it belongs to the design)', brand)
 const pub = await (await fetch(`${BASE}/api/r/${token}`)).json()
 expect(pub.business.logo_shape === 'square' && pub.business.logo_url, 'published recaps get the logo and its shape', pub.business)
 const og = await fetch(`${BASE}/api/r/${token}/og.png`)
@@ -107,12 +106,17 @@ await page.goto(`${BASE}/app/c/${recap}/design`)
 await page.waitForSelector('[data-slide]')
 await page.waitForTimeout(500)
 const bg = await page.locator('aside[aria-label="Highreel preview"] .recap .slide').last().evaluate(el => getComputedStyle(el).backgroundColor)
-expect(bg === 'rgb(154, 52, 18)' && (await page.locator('header').first().innerText()).includes('Kafe Lumi'), 'every recap follows Your brand', bg)
+expect(bg === 'rgb(79, 70, 229)' && (await page.locator('header').first().innerText()).includes('Kafe Lumi'), 'every recap follows Your brand\'s name, in its own look\'s colour (SPEC M2.17)', bg)
+// Its colour comes from its look: another of the design's colours repaints it.
+await page.locator('[data-testid="look"] [data-colorway="rust"]').click()
+await page.waitForFunction(() => getComputedStyle([...document.querySelectorAll('aside[aria-label="Highreel preview"] .recap .slide')].at(-1)).backgroundColor === 'rgb(154, 52, 18)')
+expect(true, 'picking rust in Design\'s Look repaints it')
+await page.getByRole('button', { name: 'Discard' }).click()
 
 // Switching recaps keeps the tab.
 await page.getByRole('button', { name: 'Switch campaign' }).click()
 await page.getByRole('menuitem', { name: 'New Highreel' }).click()
-await page.getByRole('dialog').getByRole('button', { name: 'Create' }).click()
+await newHighreel(page)
 await page.waitForURL(u => new URL(u).pathname.endsWith('/design') && !new URL(u).pathname.includes(recap))
 expect(true, 'a new recap opens on the same tab')
 await tab(page, 'Sheet')

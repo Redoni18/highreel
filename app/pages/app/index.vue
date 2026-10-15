@@ -1,7 +1,8 @@
 <script setup lang="ts">
-// The business home, "Your year" (SPEC M2.5 P3): the year at a glance in
-// sentences, the drafts that need attention, the year's recaps as a table and
-// the latest opens, saves and shares. No cards or charts (SPEC §6).
+// The business home, "Your year" (SPEC M2.5 P3): the year at a glance in a
+// few cards (M2.16, owner 2026-10-15; sentences before), the drafts that need
+// attention, the year's recaps as a table and the latest opens, saves and
+// shares. No charts (SPEC §6).
 // Client-only (see routeRules). Old /app?c=… links go to /app/c/….
 import { ArrowRight, ChevronDown, Loader2, Palette, Plus, Sparkles } from '@lucide/vue'
 import { useEventListener } from '@vueuse/core'
@@ -10,7 +11,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import type { Business, Campaign, CampaignKind, CreatedCampaign, HomeCampaign, HomeData } from '#shared/types/recap'
-import { activityText, attention, timeAgo, yearSummary } from '#shared/utils/home'
+import type { Look } from '#shared/templates/designs'
+import { activityText, attention, timeAgo, yearCards } from '#shared/utils/home'
 
 definePageMeta({
   middleware: [to => (typeof to.query.c === 'string' ? navigateTo(`/app/c/${to.query.c}`, { replace: true }) : undefined)],
@@ -86,7 +88,7 @@ function pickYear(y: number) {
   load()
 }
 
-const summary = computed(() => (data.value ? yearSummary(year.value, data.value.campaigns) : []))
+const cards = computed(() => (data.value ? yearCards(year.value, data.value.campaigns) : []))
 const todo = computed(() => (data.value ? attention(data.value.campaigns) : []))
 const names = computed(() => new Map((data.value?.campaigns ?? []).map(c => [c.id, c.name])))
 
@@ -98,7 +100,7 @@ function startNew(kind: CampaignKind = 'customers') {
   newOpen.value = true
 }
 
-async function create(input: { name: string, year: number, template_key: string, starter?: string }, query: Record<string, string> = {}): Promise<boolean> {
+async function create(input: { name: string, year: number, template_key: string, starter?: string, look?: Look }, query: Record<string, string> = {}): Promise<boolean> {
   try {
     const { business, ...c } = await api<CreatedCampaign>('/api/campaigns', { method: 'POST', body: input })
     // The workspace opens it with these, without asking again (SPEC §7.7).
@@ -186,10 +188,10 @@ async function saveName() {
       <span class="wordmark"><Wordmark /></span>
       <span class="mx-1 h-5 w-px shrink-0 bg-border" aria-hidden="true" />
       <template v-if="data">
-        <span class="truncate text-[15px] font-medium">{{ data.business.name }}</span>
+        <span class="min-w-0 truncate text-[15px] font-medium">{{ data.business.name }}</span>
         <DropdownMenu>
           <DropdownMenuTrigger as-child>
-            <button type="button" class="ml-1 flex h-8 items-center gap-1 rounded-full bg-muted px-3 font-mono text-[13px] hover:bg-accent" aria-label="Switch year">
+            <button type="button" class="ml-1 flex h-8 shrink-0 items-center gap-1 rounded-full bg-muted px-3 font-mono text-[13px] hover:bg-accent" aria-label="Switch year">
               {{ year }} <ChevronDown class="size-3.5 text-muted-foreground" />
             </button>
           </DropdownMenuTrigger>
@@ -198,12 +200,13 @@ async function saveName() {
           </DropdownMenuContent>
         </DropdownMenu>
       </template>
-      <div class="ml-auto flex items-center gap-1">
-        <Button variant="ghost" size="sm" class="px-3 text-[14px]" as-child>
-          <NuxtLink to="/app/brand"><Palette /> Your brand</NuxtLink>
+      <!-- On a phone the two buttons go short, so the bar fits. -->
+      <div class="ml-auto flex shrink-0 items-center gap-1">
+        <Button variant="ghost" size="sm" class="px-2.5 text-[14px] sm:px-3" as-child>
+          <NuxtLink to="/app/brand" aria-label="Your brand"><Palette /> <span class="max-sm:hidden">Your brand</span></NuxtLink>
         </Button>
-        <Button size="sm" class="px-4 text-[14px]" :disabled="!data" @click="startNew()">
-          <Plus /> New Highreel
+        <Button size="sm" class="px-3 text-[14px] sm:px-4" :disabled="!data" aria-label="New Highreel" @click="startNew()">
+          <Plus /> New<span class="max-sm:hidden"> Highreel</span>
         </Button>
         <AccountMenu :anonymous="!!data?.anonymous" />
       </div>
@@ -257,12 +260,10 @@ async function saveName() {
       <template v-else-if="data">
         <section class="flex flex-col gap-3" aria-labelledby="year-title">
           <h1 id="year-title" class="note-hand text-[26px]">Your {{ year }}</h1>
-          <div v-if="summary.length" class="flex max-w-[36ch] flex-col gap-1 text-[30px] leading-[1.22] font-semibold tracking-[-0.022em] text-balance text-muted-foreground">
-            <p v-for="(line, i) in summary" :key="i" data-testid="summary">
-              <template v-for="(part, j) in line" :key="j"><span v-if="typeof part === 'string'">{{ part }}</span><span v-else class="font-bold text-foreground">{{ part.n }}</span></template>
-            </p>
+          <div v-if="cards.length" class="mt-1 grid grid-cols-2 gap-3" :class="cards.length > 4 ? 'lg:grid-cols-5' : 'lg:grid-cols-4'" data-testid="cards">
+            <StatCard v-for="c in cards" :key="c.key" :label="c.label" :value="c.value" :detail="c.detail" :data-card="c.key" />
           </div>
-          <p v-else class="text-[30px] leading-[1.22] font-semibold tracking-[-0.022em]">No Highreels in {{ year }} yet.</p>
+          <p v-else-if="!data.campaigns.length" class="text-[30px] leading-[1.22] font-semibold tracking-[-0.022em]">No Highreels in {{ year }} yet.</p>
           <ul v-if="todo.length" class="mt-2 flex flex-col gap-1 text-[14px]" aria-label="Needs attention">
             <li v-for="t in todo" :key="t.id" data-testid="attention">
               <NuxtLink :to="`/app/c/${t.id}`" class="group inline-flex items-center gap-x-2 text-muted-foreground hover:text-foreground">

@@ -30,7 +30,7 @@ const next = computed(() => safeNext(route.query.next))
 
 // What Google's errors mean (Better Auth sends ?error= back here).
 const GOOGLE_ERRORS: Record<string, string> = {
-  access_denied: 'Google sign-in was cancelled.',
+  access_denied: 'Google sign-in was canceled.',
   account_not_linked: 'That email already signs in with an email link. Use the link once, then Google works too.',
   email_not_found: 'Google didn\'t share an email address. Use an email link instead.',
 }

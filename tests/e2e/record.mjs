@@ -9,7 +9,7 @@
 //   node tests/e2e/record.mjs visit      # one
 import { execFileSync } from 'node:child_process'
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
-import { BASE, demoSession, designItem, FIX, launch, needFixtures, OUT, publish, tab, tokenFor } from './lib.mjs'
+import { BASE, demoSession, designItem, FIX, launch, needFixtures, OUT, publish, tab, tokenFor, newHighreel } from './lib.mjs'
 
 needFixtures()
 const which = process.argv[2]
@@ -111,9 +111,7 @@ if (!which || which === 'visit') {
   const page = await workspace('Green Valley Farm')
   await page.getByRole('button', { name: 'Switch campaign' }).click()
   await page.getByRole('menuitem', { name: 'New Highreel' }).click()
-  await page.getByLabel('Name').fill('Summer farm days')
-  await page.getByRole('radio', { name: /Summer camp/ }).click()
-  await page.getByRole('button', { name: 'Create' }).click()
+  await newHighreel(page, { name: 'Summer farm days', type: /Summer camp/ })
   await page.waitForSelector('text=Visits and camps template')
   await page.getByRole('button', { name: 'Use sample data' }).click()
   await page.waitForSelector('[data-row-id]')

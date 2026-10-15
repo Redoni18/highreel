@@ -7,7 +7,9 @@ import { mix, readableOn } from '#shared/utils/color'
 
 const props = defineProps<{
   channel: 'email' | 'chat'
-  business: { name: string, accent_color: string }
+  business: { name: string }
+  /** the Highreel's colour (its look) */
+  accent: string
   /** who it's for */
   person: string
   /** the email: its subject and HTML */
@@ -19,7 +21,7 @@ const props = defineProps<{
 }>()
 
 const initial = (s: string) => s.trim().charAt(0).toUpperCase() || '·'
-const accent = computed(() => props.business.accent_color)
+const accent = computed(() => props.accent)
 const onAccent = computed(() => readableOn(accent.value))
 
 // The email is laid out for a real phone (402 pt wide) and scaled to the frame.

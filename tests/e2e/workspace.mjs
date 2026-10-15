@@ -1,7 +1,7 @@
 // M1 "done when" (SPEC §8): sample → exactly 5 red rows, slides skip, publish
 // → 195 links, export CSV, fixing a row, 20+ rows visible, 10,000 rows scroll.
 import { readFileSync } from 'node:fs'
-import { BASE, demoSession, expect, finish, FIX, launch, log, needFixtures, OUT, publish, rowLoc, sheetCounts, watchErrors } from './lib.mjs'
+import { BASE, demoSession, expect, finish, FIX, launch, log, needFixtures, OUT, publish, rowLoc, sheetCounts, watchErrors, newHighreel } from './lib.mjs'
 
 needFixtures()
 const browser = await launch()
@@ -75,8 +75,7 @@ expect((await page.locator('header').getByRole('button', { name: /Publish/ }).in
 // 10,000 rows in a new campaign
 await page.getByRole('button', { name: 'Switch campaign' }).click()
 await page.getByRole('menuitem', { name: 'New Highreel' }).click()
-await page.getByLabel('Name').fill('10k test')
-await page.getByRole('button', { name: 'Create' }).click()
+await newHighreel(page, { name: '10k test' })
 await page.waitForSelector('text=Use sample data')
 const t0 = Date.now()
 await page.locator('[data-testid="file-input"]').setInputFiles(`${FIX}/sample-10000.csv`)

@@ -4,7 +4,7 @@ import { describe, expect, test } from 'vitest'
 import { copyKeysOf, getTemplate, templates } from '../shared/templates'
 import { getStarter, starters, startersFor, withStarter } from '../shared/templates/starters'
 import { buildSlides } from '../shared/utils/slides'
-import { normalizeHex } from '../shared/utils/color'
+import { cleanLook } from '../shared/templates/designs'
 import { normalizeSettings } from '../shared/utils/recap'
 
 describe('starters', () => {
@@ -39,11 +39,12 @@ describe('starters', () => {
     }
   })
 
-  test('a count label where the template has one, a valid colour, a note', () => {
+  test('a count label where the template has one, a look that exists, a note', () => {
     for (const s of starters) {
       const t = getTemplate(s.template)
       expect(!!s.settings.items_label, s.key).toBe(!!t.itemsLabel)
-      expect(normalizeHex(s.accent), s.key).toBe(s.accent.toUpperCase())
+      // Its suggested design and colourway are real ones (cleanLook would change anything else).
+      expect(cleanLook(s.look), s.key).toEqual(s.look)
       expect(s.settings.founder_note.length, s.key).toBeGreaterThan(0)
       expect(s.settings.founder_note.length, s.key).toBeLessThanOrEqual(280)
       expect(s.settings.cta_label.length, s.key).toBeLessThanOrEqual(32)
@@ -55,7 +56,7 @@ describe('starters', () => {
     const base = { ...getTemplate('visit').defaultSettings, photos: [{ id: 'p', path: 'b/c/p.webp', caption: '', width: 10, height: 10 }] } as any
     const out = withStarter(base, s)
     expect(out.photos).toHaveLength(1)
-    expect(normalizeSettings(out)).toMatchObject({ items_label: 'classes taken', theme: 'stories', copy: { cover: '{first_name}, your {year} at {business}' } })
+    expect(normalizeSettings(out)).toMatchObject({ items_label: 'classes taken', look: { design: 'stories', colorway: 'pink' }, copy: { cover: '{first_name}, your {year} at {business}' } })
   })
 
   test('a starter\'s copy reaches the slides', () => {
@@ -64,7 +65,7 @@ describe('starters', () => {
     const slides = buildSlides(t, {
       template_key: t.key,
       year: 2026,
-      business: { name: 'Kafe Lumi', accent_color: s.accent, logo_url: null, website_url: null },
+      business: { name: 'Kafe Lumi', logo_url: null, website_url: null },
       settings: withStarter(t.defaultSettings as any, s),
       recipient: { first_name: 'Ana', values: { orders: 52, favorite_product: 'Flat white' } },
     } as any)

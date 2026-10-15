@@ -2,9 +2,11 @@
 // sent home from /app/admin, gets a 404 from every admin route and can't make
 // itself an admin through Better Auth. Made an admin by hand (as the owner
 // does), the same account gets the menu entry and the sidebar's four
-// sections: the overview's figures, its row on Users with what it made,
-// published and paid, its own page, Highreels filtered by paid / not paid, and
-// Payments. Another account is blocked from its row's menu (signed out, no
+// sections (SPEC M2.16's layout): the overview's cards, alert and panels, its
+// row on Users (address over business, stage, made, published, spent), its own
+// page (cards, a Highreel's numbers in a sheet, ?highreel= links), Highreels
+// filtered by paid / not paid, and Payments with its four cards and Whop's
+// fee. Another account is blocked from its row's menu (signed out, no
 // sign-in link, its Highreel stops opening), unblocked from the Blocked list,
 // then removed from its page with its address blocked. Admins can't be
 // blocked. Taken back to client, the routes 404 again. On a phone the sidebar
@@ -68,22 +70,29 @@ const nav = await texts('nav[aria-label="Admin"] a')
 expect(JSON.stringify(nav) === JSON.stringify(['Overview', 'Users', 'Highreels', 'Payments']), 'the admin pages have four sections', nav)
 const [side, main] = await Promise.all([page.locator('aside').boundingBox(), page.locator('main').boundingBox()])
 expect(side.x === 0 && side.height >= 890 && main.x >= side.x + side.width && await page.locator('nav[aria-label="Admin"] a[aria-current="page"]').innerText() === 'Overview', 'they\'re in a sidebar on the left, the page on the right', { side, main })
-// Figures, one a row: no sentences, no handwriting.
+// Cards first, then panels of figures, one a row: no sentences, no handwriting (SPEC M2.16).
 const figure = (group, label) => page.locator(`[data-figures="${group}"] [data-figure="${label}"] [data-value]`).innerText()
-const groups = await texts('[data-figures] h2')
-expect(JSON.stringify(groups) === JSON.stringify(['People', 'Highreels', 'Their customers', 'Money']), 'the overview\'s figures: people, Highreels, their customers, money', groups)
-const accounts = Number((await figure('People', 'Accounts')).replace(/,/g, ''))
-const got = Number((await figure('Their customers', 'Got a Highreel')).replace(/,/g, ''))
-expect(accounts >= 1 && got >= 195, 'with numbers in them', { accounts, got })
-expect(await page.locator('[data-figure="Not paid for"] .rounded-full').count() === 1, 'unpaid published Highreels are flagged')
+const stat = label => page.locator(`main [data-stat="${label}"] [data-value]`).innerText()
+const statNames = await page.locator('main [data-stat]').evaluateAll(els => els.map(e => e.dataset.stat))
+expect(JSON.stringify(statNames) === JSON.stringify(['Accounts', 'Published Highreels', 'Customers reached', 'Taken home']), 'the overview opens with four cards', statNames)
+const groups = await page.locator('[data-figures]').evaluateAll(els => els.map(e => e.dataset.figures))
+expect(JSON.stringify(groups) === JSON.stringify(['From sign-up to paid', 'What their customers did', 'People', 'Money']), 'then panels: from sign-up to paid, what customers did, people, money', groups)
+const accounts = Number((await stat('Accounts')).replace(/,/g, ''))
+const got = Number((await figure('What their customers did', 'Got a Highreel')).replace(/,/g, ''))
+const signedUp = Number((await figure('From sign-up to paid', 'Signed up')).replace(/,/g, ''))
+expect(accounts >= 1 && got >= 195 && signedUp === accounts, 'with numbers in them', { accounts, got, signedUp })
+const [cardsBox, panelBox] = await Promise.all([page.getByTestId('cards').boundingBox(), page.locator('[data-figures]').first().boundingBox()])
+expect(cardsBox.y + cardsBox.height <= panelBox.y && (await page.locator('main [data-stat]').evaluateAll(els => new Set(els.map(e => Math.round(e.getBoundingClientRect().top))).size)) === 1, 'the cards sit in one row above the panels', { cardsBox, panelBox })
+const alert = await texts('[data-testid="alert"]')
+expect(alert.length === 1 && /^Needs a look: \d+ Highreels? published without a payment$/.test(alert[0]), 'unpaid published Highreels need a look', alert)
 expect(await page.locator('main .note-hand').count() === 0 && await page.locator('main p').evaluateAll(ps => ps.every(p => p.innerText.length < 120)), 'no handwriting, no long sentences')
 expect((await texts('[data-testid="newest"]'))[0]?.startsWith(email), 'the newest account is this one', (await texts('[data-testid="newest"]'))[0])
 await page.screenshot({ path: `${OUT}admin-overview.png`, fullPage: true })
 
 // A payment, as checkout's webhook will record it.
 const payment = crypto.randomUUID()
-sql(`insert into payments (id, business_id, campaign_id, provider_id, tier, amount, currency, status, paid_at)
-  values ('${payment}', '${business}', '${campaign}', 'pay_test_${payment.slice(0, 8)}', 'founding', 9900, 'usd', 'paid', '${new Date().toISOString()}')`)
+sql(`insert into payments (id, business_id, campaign_id, provider_id, tier, amount, net, currency, status, paid_at)
+  values ('${payment}', '${business}', '${campaign}', 'pay_test_${payment.slice(0, 8)}', 'founding', 9900, 9368, 'usd', 'paid', '${new Date().toISOString()}')`)
 
 // Users: this account's row.
 await page.locator('nav[aria-label="Admin"]').getByRole('link', { name: 'Users' }).click()
@@ -91,7 +100,10 @@ await page.waitForURL(u => new URL(u).pathname === '/app/admin/users')
 await page.getByLabel('Search users').fill(email)
 await page.waitForFunction(() => document.querySelectorAll('tbody [data-row]').length === 1)
 const cells = Object.fromEntries(await page.locator(`[data-row="${me.id}"] td`).evaluateAll(tds => tds.map(td => [td.dataset.col, td.innerText.trim()])))
-expect(cells.email === email && cells.role === 'admin' && cells.highreels === '1' && cells.published === '1' && cells.unpaid === '0' && cells.live === '195' && cells.payments === '1' && cells.spent === '$99', 'Users: made 1, published 1, 195 customers, paid $99', cells)
+const who = { email: await page.locator(`[data-row="${me.id}"] [data-email]`).innerText(), business: await page.locator(`[data-row="${me.id}"] [data-business]`).innerText() }
+const heads = await texts('table[aria-label="Users"] thead th')
+expect(JSON.stringify(heads) === JSON.stringify(['Account', 'Stage', 'Highreels', 'Published', 'Spent', 'Signed up', 'Last seen', 'Actions']), 'Users has eight columns', heads)
+expect(who.email === email && who.business.length > 0 && cells.email.includes('admin') && cells.stage === 'Paying' && cells.highreels === '1' && cells.published === '1' && cells.spent === '$99', 'Users: the address over its business, an admin badge, Paying, made 1, published 1, spent $99', { ...cells, ...who })
 const kinds = await texts('[aria-label="Which users"] button')
 expect(kinds.length === 4 && /^Accounts \d/.test(kinds[0]) && /^Demos \d/.test(kinds[1]) && /^Admins \d/.test(kinds[2]) && /^Blocked \d/.test(kinds[3]), 'Accounts, Demos, Admins and Blocked with their counts', kinds)
 expect(await page.locator(`[data-row="${me.id}"] [data-testid="user-actions"]`).count() === 0, 'an admin\'s row has no block or remove menu')
@@ -107,18 +119,24 @@ await page.waitForFunction(() => document.querySelectorAll('tbody [data-row]').l
 await page.screenshot({ path: `${OUT}admin-users.png` })
 // Wider than the page, the table scrolls sideways without a scrollbar (owner,
 // 2026-10-13); a mouse wheel can't, so an arrow on the edge with hidden columns does.
+// Its eight columns fit a wide screen (SPEC M2.16), so this is on a small laptop.
+await page.setViewportSize({ width: 1024, height: 800 })
+await page.waitForFunction(() => document.querySelector('[data-scroll="right"]'))
 const sideways = () => page.locator('[data-table-scroll] > div').first().evaluate(el => ({ bar: getComputedStyle(el).scrollbarWidth, left: el.scrollLeft, max: el.scrollWidth - el.clientWidth, arrows: [...el.parentElement.querySelectorAll('[data-scroll]')].map(b => b.dataset.scroll).join() }))
 const narrow = await sideways()
 expect(narrow.bar === 'none' && narrow.max > 0 && narrow.left === 0 && narrow.arrows === 'right', 'Users is wider than the page: no scrollbar, an arrow on the right', narrow)
 await page.locator('[data-scroll="right"]').click()
 await page.waitForFunction(() => document.querySelector('[data-scroll="left"]') && !document.querySelector('[data-scroll="right"]'))
 const scrolled = await sideways()
-const spent = await page.locator('th', { hasText: 'Spent' }).evaluate(th => ({ right: th.getBoundingClientRect().right, pinned: th.closest('tr').querySelector('.pinned').getBoundingClientRect().left }))
+const seen = await page.locator('th', { hasText: 'Last seen' }).evaluate(th => ({ right: th.getBoundingClientRect().right, pinned: th.closest('tr').querySelector('.pinned').getBoundingClientRect().left }))
 // Within a pixel: scrollLeft can stop a fraction short of the end.
-expect(scrolled.left >= scrolled.max - 1 && scrolled.arrows === 'left' && spent.right <= spent.pinned + 1, 'the arrow brings in the last columns, and one appears on the left to go back', { ...scrolled, spent })
+expect(scrolled.left >= scrolled.max - 1 && scrolled.arrows === 'left' && seen.right <= seen.pinned + 1, 'the arrow brings in the last columns, and one appears on the left to go back', { ...scrolled, seen })
 await page.locator('[data-scroll="left"]').click()
 await page.waitForFunction(() => !document.querySelector('[data-scroll="left"]'))
 expect((await sideways()).left <= 1, 'and back', await sideways())
+await page.setViewportSize({ width: 1440, height: 900 })
+await page.waitForFunction(() => !document.querySelector('[data-scroll]'))
+expect(true, 'on a wide screen all eight fit, with no arrow')
 
 // Sorting by a header.
 await page.getByLabel('Search users').fill('')
@@ -128,15 +146,29 @@ expect(firstSpent !== '–' && await page.locator('th[aria-sort="descending"]', 
 
 // Its own page.
 await page.getByLabel('Search users').fill(email)
-await page.locator(`[data-row="${me.id}"] td[data-col="business"]`).click()
+await page.locator(`[data-row="${me.id}"] td[data-col="stage"]`).click()
 await page.waitForURL(u => new URL(u).pathname === `/app/admin/users/${me.id}`)
-await page.waitForSelector('[data-figures]')
-const mine = { made: await figure('Highreels', 'Made'), published: await figure('Highreels', 'Published'), got: await figure('Their customers', 'Got a Highreel'), spent: await figure('Money', 'Spent') }
-expect(mine.made === '1' && mine.published === '1' && mine.got === '195' && mine.spent === '$99', 'the user\'s page: made 1, published 1, 195 customers, spent $99', mine)
-expect((await page.locator('h1').innerText()) === email, 'with the address as its title')
+await page.waitForSelector('[data-testid="cards"]')
+const detail = label => page.locator(`main [data-stat="${label}"] [data-detail]`).innerText()
+const mine = { made: await stat('Highreels'), published: await detail('Highreels'), got: await stat('Customers reached'), spent: await stat('Spent') }
+expect(mine.made === '1' && mine.published === '1 published' && mine.got === '195' && mine.spent === '$99', 'the user\'s page opens with cards: made 1, published 1, 195 customers, spent $99', mine)
+expect((await page.locator('h1').innerText()) === email && await page.locator('main [data-stage="paying"]').count() === 1, 'with the address as its title, and its stage')
+const facts = await texts('[data-testid="facts"] dt')
+const [mainCol, aside] = await Promise.all([page.locator('[aria-labelledby="user-highreels"]').boundingBox(), page.locator('aside[class*="flex"]').last().boundingBox()])
+expect(JSON.stringify(facts) === JSON.stringify(['Signed up', 'Last seen', 'Open sessions', 'Id']) && aside.x > mainCol.x + mainCol.width - 1, 'the account and business details sit in a side panel', { facts, mainCol, aside })
 const theirs = Object.fromEntries(await page.locator(`[aria-label="Their Highreels"] [data-row="${campaign}"] td`).evaluateAll(tds => tds.map(td => [td.dataset.col, td.innerText.trim()])))
-expect(theirs.status === 'published' && theirs.live === '195' && theirs.paid === '$99' && theirs.emailed === '0', 'its Highreel: published, 195 customers, paid $99', theirs)
-expect(await page.locator(`[aria-label="Their payments"] [data-row="${payment}"]`).count() === 1, 'and its payment')
+expect(theirs.status === 'published' && theirs.live === '195' && theirs.paid === '$99' && Object.keys(theirs).length === 6, 'its Highreel in six columns: published, 195 customers, paid $99', theirs)
+expect(await page.locator(`[aria-label="Their payments"] [data-row="${payment}"] [data-col="fee"]`).innerText() === '$5.32', 'and its payment, with Whop\'s fee')
+// A row opens all its numbers in a sheet, and the address says which.
+await page.locator(`[aria-label="Their Highreels"] [data-row="${campaign}"] td[data-col="live"]`).click()
+await page.waitForSelector('[data-testid="highreel-sheet"] [data-figures="Sent"]')
+const inSheet = label => page.locator(`[data-testid="highreel-sheet"] [data-figure="${label}"] [data-value]`).innerText()
+const sheetNums = { rows: await inSheet('Rows'), live: await inSheet('With a link'), email: await inSheet('By email'), paid: await inSheet('Paid') }
+expect(new URL(page.url()).searchParams.get('highreel') === campaign && sheetNums.rows === '200' && sheetNums.live === '195' && sheetNums.email === '0' && sheetNums.paid === '$99', 'a Highreel\'s row opens its numbers in a sheet (?highreel=)', sheetNums)
+await page.screenshot({ path: `${OUT}admin-user-sheet.png` })
+await page.keyboard.press('Escape')
+await page.waitForURL(u => !new URL(u).searchParams.has('highreel'))
+expect(true, 'closing it takes ?highreel= off')
 const pageText = await page.locator('main').innerText()
 const firstRow = sql(`select first_name from recipients where campaign_id = '${campaign}' and first_name is not null limit 1`)[0].first_name
 expect(!pageText.includes(firstRow), 'no customer\'s name from the sheet is shown', firstRow)
@@ -151,17 +183,29 @@ await page.waitForURL(u => new URL(u).searchParams.get('show') === 'unpaid')
 expect(await page.locator(`[data-row="${campaign}"]`).count() === 0 && await page.locator('tbody [data-col="paid"]', { hasText: '$' }).count() === 0, 'Not paid leaves it out')
 await page.getByLabel('Include demos').click()
 await page.waitForURL(u => new URL(u).searchParams.get('demos') === '1')
-await page.waitForFunction(() => [...document.querySelectorAll('tbody [data-col="owner"]')].some(td => td.textContent.trim() === 'demo'))
+await page.waitForFunction(() => [...document.querySelectorAll('tbody [data-col="owner"] [data-email]')].some(el => el.textContent.trim() === 'demo'))
 expect(true, 'Include demos adds demo sessions\' Highreels')
+const hrHeads = await texts('table[aria-label="Highreels"] thead th')
+expect(JSON.stringify(hrHeads) === JSON.stringify(['Highreel', 'Owner', 'Status', 'Customers', 'Opened', 'Paid', 'Made']), 'Highreels has seven columns', hrHeads)
 await page.screenshot({ path: `${OUT}admin-highreels.png` })
+await page.goto(`${BASE}/app/admin/highreels?show=paid`)
+await page.locator(`[data-row="${campaign}"] td[data-col="status"]`).click()
+await page.waitForURL(u => new URL(u).pathname === `/app/admin/users/${me.id}` && new URL(u).searchParams.get('highreel') === campaign)
+await page.waitForSelector('[data-testid="highreel-sheet"]')
+expect(true, 'a row opens its owner\'s page with its numbers open')
+await page.keyboard.press('Escape')
+await page.waitForURL(u => !new URL(u).searchParams.has('highreel'))
 
 // Payments.
 await page.locator('nav[aria-label="Admin"]').getByRole('link', { name: 'Payments' }).click()
 await page.waitForURL(u => new URL(u).pathname === '/app/admin/payments')
 await page.waitForSelector(`[data-row="${payment}"]`)
 const pay = Object.fromEntries(await page.locator(`[data-row="${payment}"] td`).evaluateAll(tds => tds.map(td => [td.dataset.col, td.innerText.trim()])))
-expect(pay.owner === email && pay.amount === '$99' && pay.tier === 'founding' && pay.status === 'paid', 'Payments lists it with the account and amount', pay)
-expect(/^[^\d\s]+[\d,]+(\.\d\d)?( \+ .+)? from \d+ payments?/.test((await texts('[data-testid="summary"]'))[0]), 'and the total (the biggest currency first)', await texts('[data-testid="summary"]'))
+const payWho = { email: await page.locator(`[data-row="${payment}"] [data-email]`).innerText(), tier: await page.locator(`[data-row="${payment}"] [data-tier]`).innerText() }
+expect(payWho.email === email && payWho.tier === 'founding' && pay.amount === '$99' && pay.fee === '$5.32' && pay.net === '$93.68' && pay.status === 'paid', 'Payments lists it with the account, amount, Whop\'s fee and what\'s taken home', { ...pay, ...payWho })
+const payCards = await page.locator('main [data-stat]').evaluateAll(els => els.map(e => [e.dataset.stat, e.querySelector('[data-value]').textContent.trim()]))
+expect(JSON.stringify(payCards.map(c => c[0])) === JSON.stringify(['Paid', 'Whop\'s fees', 'Taken home', 'Refunded']) && payCards.every(c => /^[$€£¥]/.test(c[1])), 'four cards: paid, Whop\'s fees, taken home, refunded', payCards)
+await page.screenshot({ path: `${OUT}admin-payments.png` })
 
 // On a phone: no sideways page scroll; the tables scroll in their box.
 await page.setViewportSize({ width: 390, height: 844 })
@@ -176,6 +220,8 @@ for (const path of ['/app/admin', '/app/admin/users', `/app/admin/users/${me.id}
 }
 await page.goto(`${BASE}/app/admin`)
 await page.waitForSelector('[data-figures]')
+const cols = await page.locator('main [data-stat]').evaluateAll(els => new Set(els.map(e => Math.round(e.getBoundingClientRect().left))).size)
+expect(cols === 2, 'on a phone the cards go two by two', cols)
 const [bar, top] = await Promise.all([page.locator('nav[aria-label="Admin"]').boundingBox(), page.locator('main').boundingBox()])
 expect(bar.y + bar.height <= top.y && bar.width > 300, 'on a phone the sections are a row above the page', { bar, top })
 await page.screenshot({ path: `${OUT}admin-phone.png`, fullPage: true })
@@ -243,7 +289,7 @@ expect(selfBlock[0] === 409 && sql(`select count(*) as n from blocked_emails whe
 // Remove it from its page, blocking the address too.
 const theirBusiness = sql(`select id from businesses where owner_id = '${them.id}'`)[0].id
 await page.goto(`${BASE}/app/admin/users/${them.id}`)
-await page.waitForSelector('[data-figures]')
+await page.waitForSelector('[data-testid="cards"]')
 await page.getByRole('button', { name: 'Remove account' }).click()
 const dialog = page.getByRole('dialog')
 expect(await dialog.getByTestId('remove-block').getAttribute('data-state') === 'checked', 'Remove offers to block the address too, ticked')

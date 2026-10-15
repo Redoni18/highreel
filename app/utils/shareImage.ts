@@ -9,6 +9,7 @@ import { mix, recapPalette } from '#shared/utils/color'
 import { seeded } from '#shared/utils/scenes'
 import { shareStats, shareTexts } from '#shared/utils/slides'
 import { getTemplate, templateFor } from '#shared/templates'
+import { resolveLook } from '#shared/templates/designs'
 
 export type ShareFormat = 'story' | 'square'
 
@@ -135,8 +136,9 @@ export async function renderShareImage(p: RecapPayload, format: ShareFormat = 's
   canvas.width = W
   canvas.height = H
   const ctx = canvas.getContext('2d')!
-  const paper = p.settings.theme === 'paper'
-  const tone = recapPalette(p.business.accent_color, p.settings.theme).accent
+  const look = resolveLook(p.settings.look)
+  const paper = look.theme === 'paper'
+  const tone = recapPalette(look.accent, look.theme).accent
   // Paper sets pure numbers in mono; words ("Top 17%", "Pony rider") stay in Geist.
   const numFont = (v: string) => (paper && /^[\d,.%€$£+]+$/.test(v) ? MONO : SANS)
 

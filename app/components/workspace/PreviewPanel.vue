@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // Live recap preview for the selected row (SPEC §6.1). Unpublished data and
 // unsaved brand edits are allowed here, never on the public page.
+import { resolveLook } from '#shared/templates/designs'
 import { ChevronLeft, ChevronRight, ExternalLink, Pause, Play, X } from '@lucide/vue'
 import { useElementSize } from '@vueuse/core'
 import RecapPlayer from '~/components/recap/RecapPlayer.vue'
@@ -19,7 +20,7 @@ const phoneWidth = computed(() => `${Math.floor(Math.max(0, Math.min(stageW.valu
 const ink = computed(() => player.value?.tone?.fg ?? '#FFFFFF')
 // Like the landing's example stage, the phone sits on the business's colour
 // (a faint tint here, next to the grid); unsaved Brand edits recolour it.
-const accent = computed(() => payload.value?.business.accent_color ?? 'transparent')
+const accent = computed(() => (payload.value ? resolveLook(payload.value.settings.look).accent : 'transparent'))
 
 // Resize by dragging the left edge.
 function startResize(e: PointerEvent) {

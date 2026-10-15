@@ -13,6 +13,7 @@ import { usePreferredReducedMotion } from '@vueuse/core'
 import type { RecapEventType, RecapPayload } from '#shared/types/recap'
 import { recapPalette } from '#shared/utils/color'
 import { templateFor } from '#shared/templates'
+import { resolveLook } from '#shared/templates/designs'
 import { buildSlides, shareTexts } from '#shared/utils/slides'
 import { RECAP_CLOCK } from '~/lib/recap'
 
@@ -34,10 +35,12 @@ const template = computed(() => templateFor(props.payload.template_key, props.pa
 const slides = computed(() => buildSlides(template.value, props.payload))
 const index = ref(0)
 const slide = computed(() => slides.value[Math.min(index.value, slides.value.length - 1)]!)
-const theme = computed(() => props.payload.settings.theme ?? 'stories')
+// Its design and colourway (SPEC M2.17): the renderer and the colour the tones come from.
+const look = computed(() => resolveLook(props.payload.settings.look))
+const theme = computed(() => look.value.theme)
 // "Ana's 2026 with Habitly", "Our 2026 at Green Valley Farm": the template's share title.
 const label = computed(() => shareTexts(template.value, props.payload).title)
-const palette = computed(() => recapPalette(props.payload.business.accent_color, theme.value))
+const palette = computed(() => recapPalette(look.value.accent, theme.value))
 const tone = computed(() => palette.value[slide.value.tone])
 
 const motion = usePreferredReducedMotion()

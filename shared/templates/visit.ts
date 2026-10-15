@@ -3,6 +3,7 @@
 // not a leaderboard. Pairs well with the campaign's group photos (M2c).
 // Keep scripts/generate-sample.mjs in sync.
 
+import { DEFAULT_LOOK } from './designs'
 import type { Template } from './types'
 
 export const visitTemplate: Template = {
@@ -53,7 +54,7 @@ export const visitTemplate: Template = {
     photos: [],
     photo_in_share_image: false,
     photos_consent_at: null,
-    theme: 'stories',
+    look: { ...DEFAULT_LOOK },
     guess_first: false,
   },
 }
