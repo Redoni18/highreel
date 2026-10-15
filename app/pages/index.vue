@@ -540,9 +540,9 @@ onMounted(() => {
       <NuxtLink to="/login?demo=1" class="btn rise" style="--d: 300ms">Try the demo <ArrowRight class="size-[18px]" /></NuxtLink>
     </section>
 
-    <!-- Questions -->
+    <!-- FAQ -->
     <section class="faq" data-pop>
-      <h2 class="faq-title rise">Questions</h2>
+      <h2 class="faq-title rise">FAQ</h2>
       <details v-for="(f, i) in faqs" :key="f.q" class="qa rise" :style="{ '--d': `${60 + i * 60}ms` }">
         <summary>{{ f.q }}<ChevronDown class="chev" /></summary>
         <p>{{ f.a }}</p>
@@ -1249,6 +1249,7 @@ body.landing-page {
 }
 .faq-title {
   margin-bottom: 28px;
+  text-align: center;
   font-size: clamp(2.2rem, 4.6vw, 3.25rem);
   font-weight: 700;
   letter-spacing: -0.03em;

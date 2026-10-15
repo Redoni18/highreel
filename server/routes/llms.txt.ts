@@ -31,7 +31,7 @@ export default defineEventHandler((event) => {
     '',
     ...INCLUDES.map(c => `- **${c.title}.** ${c.body}`),
     '',
-    '## Questions',
+    '## FAQ',
     '',
     ...FAQS.flatMap(f => [`### ${f.q}`, '', f.a, '']),
     '## Examples',
