@@ -107,7 +107,7 @@ await a.getByLabel('Email to keep this work').fill(email)
 await a.getByRole('button', { name: 'Keep my work' }).click()
 await a.waitForSelector(`text=Check ${email}`)
 const keepMail = (await (await fetch(`http://127.0.0.1:54424/api/v1/search?query=${encodeURIComponent(`to:${email}`)}`)).json()).messages[0]
-expect(keepMail?.Subject === 'Keep your Highreel demo' && keepMail.From.Address === 'hello@highreel.app', 'the keep-work email comes from hello@highreel.app', keepMail?.Subject)
+expect(keepMail?.Subject === 'Keep your Highreel demo' && keepMail.From.Address === 'noreply@highreel.app' && keepMail.ReplyTo?.[0]?.Address === 'hello@highreel.app', 'the keep-work email comes from noreply@highreel.app, replies to hello@', { subject: keepMail?.Subject, from: keepMail?.From?.Address, replyTo: keepMail?.ReplyTo })
 await a.goto(await latestLink(email))
 await a.waitForURL(inApp, { timeout: 15000 })
 await openFirstCampaign(a)

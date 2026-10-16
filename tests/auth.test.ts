@@ -5,9 +5,9 @@ import { DatabaseSync } from 'node:sqlite'
 import type { D1Database } from '@cloudflare/workers-types'
 import { betterAuth } from 'better-auth'
 import { getMigrations } from 'better-auth/db/migration'
-import { describe, expect, test } from 'vitest'
+import { describe, expect, test, vi } from 'vitest'
 import { authOptions } from '../server/utils/auth'
-import { SIGN_IN_LINK_MINUTES, signInEmail } from '../server/utils/signin'
+import { SIGN_IN_LINK_MINUTES, sendSignInEmail, signInEmail } from '../server/utils/signin'
 import { safeNext } from '../shared/utils/next'
 
 const migrations = new URL('../migrations/', import.meta.url)
@@ -125,6 +125,41 @@ describe('the sign-in email', () => {
     const mail = signInEmail(url, true)
     expect(mail.subject).toBe('Keep your Highreel demo')
     expect(mail.text).toContain('keep the work from your demo session')
+  })
+
+  test('with a Resend key it goes through Resend, from noreply@ with replies to hello@', async () => {
+    const calls: { url: string, init: RequestInit }[] = []
+    vi.stubGlobal('fetch', async (u: string, init: RequestInit) => {
+      calls.push({ url: u, init })
+      return new Response(JSON.stringify({ id: 'email_1' }), { status: 200 })
+    })
+    const binding = { send: vi.fn() }
+    try {
+      await sendSignInEmail({ resendKey: 're_test', binding: binding as never }, 'ana@example.com', url)
+    }
+    finally { vi.unstubAllGlobals() }
+    expect(binding.send).not.toHaveBeenCalled()
+    expect(calls).toHaveLength(1)
+    expect(calls[0]!.url).toBe('https://api.resend.com/emails')
+    expect((calls[0]!.init.headers as Record<string, string>).Authorization).toBe('Bearer re_test')
+    const body = JSON.parse(String(calls[0]!.init.body))
+    expect(body).toMatchObject({ from: 'Highreel <noreply@highreel.app>', to: ['ana@example.com'], reply_to: 'hello@highreel.app', subject: 'Your Highreel sign-in link' })
+    expect(body.text).toContain(url)
+  })
+
+  test('Resend\'s refusal reaches the logs with its reason', async () => {
+    vi.stubGlobal('fetch', async () => new Response(JSON.stringify({ statusCode: 403, name: 'validation_error', message: 'The highreel.app domain is not verified.' }), { status: 403 }))
+    try {
+      await expect(sendSignInEmail({ resendKey: 're_test' }, 'ana@example.com', url)).rejects.toThrow('Resend didn\'t take the email (403 validation_error): The highreel.app domain is not verified.')
+    }
+    finally { vi.unstubAllGlobals() }
+  })
+
+  test('without a Resend key, Email Sending\'s binding sends it from hello@', async () => {
+    const binding = { send: vi.fn(async () => ({ messageId: 'x' })) }
+    await sendSignInEmail({ binding: binding as never }, 'ana@example.com', url)
+    expect(binding.send).toHaveBeenCalledWith(expect.objectContaining({ from: { name: 'Highreel', email: 'hello@highreel.app' }, to: 'ana@example.com' }))
+    await expect(sendSignInEmail({}, 'ana@example.com', url)).rejects.toThrow('NUXT_RESEND_API_KEY')
   })
 })
 

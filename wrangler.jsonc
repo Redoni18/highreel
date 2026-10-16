@@ -45,8 +45,8 @@
     { "binding": "MEDIA", "bucket_name": "highreel-media", "jurisdiction": "eu" }
   ],
   // Public settings. Secrets (NUXT_SECRETS_KEY, NUXT_AUTH_SECRET, NUXT_TURNSTILE_SECRET,
-  // NUXT_WHOP_API_KEY, NUXT_WHOP_WEBHOOK_SECRET) are Worker secrets, from
-  // .secrets.production.json (gitignored).
+  // NUXT_WHOP_API_KEY, NUXT_WHOP_WEBHOOK_SECRET, NUXT_RESEND_API_KEY) are Worker
+  // secrets, from .secrets.production.json (gitignored).
   // Locally .env overrides these (Turnstile's test keys there always pass).
   "vars": {
     // The highreel.app Turnstile widget (Managed), made 2026-10-13.
@@ -66,9 +66,10 @@
   "triggers": {
     "crons": ["0 * * * *", "0 3 * * *"]
   },
-  // Sign-in emails (P3), from hello@highreel.app once the domain is onboarded for
-  // Email Sending. Highlight reel emails never use this: they go through the
-  // business's own account.
+  // Sign-in emails go through Resend since 2026-10-16 (NUXT_RESEND_API_KEY,
+  // server/utils/signin.ts); this Email Sending binding, from hello@highreel.app
+  // (onboarded in P0), only sends them when that key isn't set. Highreels never
+  // use either: they go through the business's own account.
   "send_email": [
     { "name": "EMAIL", "allowed_sender_addresses": ["hello@highreel.app"] }
   ]

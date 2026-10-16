@@ -124,7 +124,8 @@ const mail = `mailto:${CONTACT_EMAIL}`
     <h2 id="sharing">7. Who we share data with</h2>
     <p>We use a few providers to run Highreel. They process data only for us, under data processing agreements:</p>
     <ul>
-      <li><strong>Cloudflare</strong>: hosting and delivering the site, our database (accounts and sign-in included) and the logos and photos businesses upload, stored in the EU; the bot check on signing in (Turnstile); sending our sign-in emails; and counting visits to our public pages (Web Analytics). Like any host, it handles visitors' IP addresses to deliver pages and block attacks.</li>
+      <li><strong>Cloudflare</strong>: hosting and delivering the site, our database (accounts and sign-in included) and the logos and photos businesses upload, stored in the EU; the bot check on signing in (Turnstile); and counting visits to our public pages (Web Analytics). Like any host, it handles visitors' IP addresses to deliver pages and block attacks.</li>
+      <li><strong>Resend</strong>: sending our sign-in emails. It gets the address the email goes to and the email itself, with its sign-in link.</li>
       <li><strong>Whop</strong>: payments, for businesses that buy a campaign. Whop is the seller of record for those payments: it takes them, collects sales tax or VAT where it applies, and looks after the payment details you give it under its own privacy policy. Whop also keeps a customer account for the email address you pay with, which you can claim on Whop to see your receipts. We share with it which business and campaign a payment is for, and fill in your account's email address in its checkout.</li>
     </ul>
     <p>If you sign in with Google, Google tells us your name and email address under its own privacy policy; we use them only to sign you in.</p>

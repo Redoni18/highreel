@@ -8,7 +8,7 @@ import type { D1Database, R2Bucket, SendEmail } from '@cloudflare/workers-types'
 export interface Bindings {
   DB: D1Database
   MEDIA: R2Bucket
-  /** Email Sending, for sign-in emails only (server/utils/signin.ts) */
+  /** Email Sending, for sign-in emails when Resend has no key (server/utils/signin.ts) */
   EMAIL?: SendEmail
 }
 

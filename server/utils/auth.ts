@@ -16,13 +16,13 @@
 // on a sign-in link. A blocked address (migrations/0005_blocks.sql) gets no
 // sign-in link, no new user and no session, whichever way it signs in.
 
-import type { D1Database, R2Bucket, SendEmail } from '@cloudflare/workers-types'
+import type { D1Database, R2Bucket } from '@cloudflare/workers-types'
 import type { H3Event } from 'h3'
 import type { Business } from '#shared/types/recap'
 import { betterAuth, type BetterAuthOptions } from 'better-auth'
 import { APIError, getSessionFromCtx } from 'better-auth/api'
 import { anonymous, captcha, magicLink } from 'better-auth/plugins'
-import { SIGN_IN_LINK_MINUTES, sendSignInEmail } from './signin'
+import { SIGN_IN_LINK_MINUTES, sendSignInEmail, type SignInSender } from './signin'
 
 export interface UserContext {
   /** The user's business's view of the database. */
@@ -44,7 +44,8 @@ export interface AuthSetup {
   /** D1: Better Auth's tables and ours. (tests/auth.test.ts passes SQLite to check the schema.) */
   database: D1Database
   media?: R2Bucket
-  email?: SendEmail
+  /** Resend's key or Email Sending's binding (signin.ts) */
+  email?: SignInSender
   secret: string
   /** The site's origin: email links and the error page point here. */
   baseURL: string
@@ -139,7 +140,7 @@ export function authOptions(s: AuthSetup) {
           link.searchParams.set('next', safeNext(new URL(url).searchParams.get('callbackURL')))
           if (keep)
             link.searchParams.set('keep', '1')
-          await sendSignInEmail(s.email, email, link.toString(), keep)
+          await sendSignInEmail(s.email ?? {}, email, link.toString(), keep)
         },
       }),
       anonymous({
@@ -184,7 +185,7 @@ export function authFor(event: H3Event): Auth {
     auth = makeAuth({
       database: env.DB,
       media: env.MEDIA,
-      email: env.EMAIL,
+      email: { resendKey: String(config.resendApiKey || ''), binding: env.EMAIL },
       secret: authSecret(event),
       baseURL,
       trustedOrigins: [...new Set([baseURL, String(config.public.siteOrigin)])],

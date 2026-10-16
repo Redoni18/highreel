@@ -75,6 +75,10 @@ export default defineNuxtConfig({
     // webhook's signing secret, `ws_…` (NUXT_WHOP_WEBHOOK_SECRET).
     whopApiKey: '',
     whopWebhookSecret: '',
+    // Resend's API key (NUXT_RESEND_API_KEY, server/utils/resend.ts): sends
+    // Highreel's own emails (sign-in links) on Cloudflare. A development server
+    // sends them to Mailpit whatever this says.
+    resendApiKey: '',
     public: {
       // Base for recap links in the export; blank means "the current origin".
       siteUrl: '',

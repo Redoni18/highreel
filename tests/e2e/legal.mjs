@@ -66,7 +66,7 @@ expect(terms.includes('laws of the Republic of Kosovo') && terms.includes('Whop'
 await page.getByRole('main').getByRole('link', { name: 'privacy policy' }).first().click()
 await page.waitForURL('**/privacy')
 const privacy = (await page.locator('main').innerText()).replace(/\s+/g, ' ')
-const named = ['Cloudflare', 'Turnstile', 'Whop', '06/L-082', 'Information and Privacy Agency', 'Article 28']
+const named = ['Cloudflare', 'Turnstile', 'Resend', 'Whop', '06/L-082', 'Information and Privacy Agency', 'Article 28']
 expect(named.every(t => privacy.includes(t)), 'privacy names the providers, the law, the authority and the processing terms', named.filter(t => !privacy.includes(t)))
 expect(privacy.includes('Never an email address, phone number or customer ID') && privacy.includes('no recipient addresses'), 'privacy says what a recap never shows and what the send log never holds')
 expect(privacy.includes('count visits with Cloudflare Web Analytics, which sets no cookies') && privacy.includes('Highreels and unsubscribe pages don\'t load it') && privacy.includes('counting visits to our public pages (Web Analytics)'), 'privacy says the public pages count visits with Cloudflare Web Analytics, without cookies, and Highreels don\'t')

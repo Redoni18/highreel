@@ -1,14 +1,27 @@
-// The sign-in email (SPEC M2.14 P3): Highreel's own, from hello@highreel.app,
-// never a business's. Cloudflare Email Sending (the EMAIL binding) delivers it
-// on Cloudflare; a development server sends it to Mailpit over SMTP instead,
-// so the link can be opened from http://127.0.0.1:54424.
+// The sign-in email (SPEC M2.14 P3): Highreel's own, never a business's.
+// Resend delivers it on Cloudflare (resend.ts, NUXT_RESEND_API_KEY, since
+// 2026-10-16), from noreply@highreel.app with replies going to hello@. Without
+// that key, Cloudflare Email Sending (the EMAIL binding) still can, from hello@.
+// A development server sends it to Mailpit over SMTP instead, so the link can
+// be opened from http://127.0.0.1:54424.
 
 import type { SendEmail } from '@cloudflare/workers-types'
+import { sendWithResend } from './resend'
 
 /** How long a sign-in link works. The email states it, so both read this. */
 export const SIGN_IN_LINK_MINUTES = 60
 
-const SIGN_IN_FROM = { name: 'Highreel', email: 'hello@highreel.app' }
+/** Nobody needs to answer a sign-in link; a reply still reaches the contact address. */
+const SIGN_IN_FROM = { name: 'Highreel', email: 'noreply@highreel.app' }
+const REPLY_TO = 'hello@highreel.app'
+/** Email Sending's binding may only send from this address (wrangler.jsonc). */
+const EMAIL_SENDING_FROM = { name: 'Highreel', email: 'hello@highreel.app' }
+
+/** How sign-in emails leave the Worker: Resend when its key is set, else Email Sending. */
+export interface SignInSender {
+  resendKey?: string
+  binding?: SendEmail
+}
 
 const escape = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
@@ -31,8 +44,8 @@ export function signInEmail(url: string, keep = false): { subject: string, html:
   return { subject, html, text }
 }
 
-/** Send it: through Email Sending on Cloudflare, to Mailpit on a development server. */
-export async function sendSignInEmail(binding: SendEmail | undefined, to: string, url: string, keep = false) {
+/** Send it: through Resend (or Email Sending) on Cloudflare, to Mailpit on a development server. */
+export async function sendSignInEmail(via: SignInSender, to: string, url: string, keep = false) {
   const mail = signInEmail(url, keep)
   if (import.meta.dev) {
     const [sent] = await sendMails({
@@ -44,7 +57,7 @@ export async function sendSignInEmail(binding: SendEmail | undefined, to: string
       password: '',
       from_email: SIGN_IN_FROM.email,
       from_name: SIGN_IN_FROM.name,
-      reply_to: null,
+      reply_to: REPLY_TO,
       daily_limit: 2000,
       verified_at: null,
     }, [{ to, ...mail }])
@@ -52,7 +65,11 @@ export async function sendSignInEmail(binding: SendEmail | undefined, to: string
       throw new Error(`Mailpit didn't take the sign-in email (is it running? \`corepack pnpm mail\`): ${sent?.error ?? 'no answer'}`)
     return
   }
-  if (!binding)
-    throw new Error('No EMAIL binding for sign-in emails (wrangler.jsonc)')
-  await binding.send({ from: SIGN_IN_FROM, to, subject: mail.subject, html: mail.html, text: mail.text })
+  if (via.resendKey) {
+    await sendWithResend(via.resendKey, { from: `${SIGN_IN_FROM.name} <${SIGN_IN_FROM.email}>`, to, replyTo: REPLY_TO, ...mail })
+    return
+  }
+  if (!via.binding)
+    throw new Error('No way to send sign-in emails: set NUXT_RESEND_API_KEY, or the EMAIL binding (wrangler.jsonc)')
+  await via.binding.send({ from: EMAIL_SENDING_FROM, to, subject: mail.subject, html: mail.html, text: mail.text })
 }
