@@ -58,7 +58,10 @@ expect(unpaid.status === 402 && unpaid.body?.message === 'Pay for this campaign 
 await page.locator('[data-testid="share-publish"]').getByRole('button', { name: /^Publish \d/ }).click()
 const dialog = page.getByRole('dialog')
 await dialog.getByText('Pay once, then publish').waitFor()
-expect((await dialog.innerText()).includes('$99, the founding price (usually $199)'), 'the dialog names the size and price')
+// Wide, two columns: what's bought on the left, Whop's payment on the right,
+// its summary cut to the promo code and details link (owner, 2026-10-16).
+const summary = await dialog.locator('[data-testid="checkout-summary"]').innerText()
+expect(['$99', '$199', 'Founding price', 'Up to 1,000 customers', '195', '5 rows need fixing'].every(t => summary.includes(t)), 'the left column names the price, size and skipped rows', summary)
 expect(await dialog.getByText('Test mode.').waitFor({ timeout: 15000 }).then(() => true, () => false), 'and says it\'s the sandbox')
 
 // Whop takes the tab to its return page once the checkout completes, and from
@@ -80,6 +83,27 @@ await page.route('https://sandbox.whop.com/checkout/return**', async (route) => 
 })
 const checkout = page.frameLocator('iframe[src*="/checkout/checkout/"]')
 await checkout.locator('input[name="email"]').waitFor({ timeout: 30000 })
+const shown = async part => checkout.locator(`.whop-${part}`).first().isVisible()
+expect(!(await shown('CheckoutTotal')) && !(await shown('CheckoutSeller')), 'beside it, Whop\'s form shows no price of its own')
+await page.screenshot({ path: 'tests/e2e/.out/checkout-wide.png' })
+// Its "Promo code & details" stays (owner, 2026-10-16) and opens Whop's order details over our dialog.
+expect(await shown('CheckoutDetailsToggle'), 'but keeps its promo code and details link')
+await checkout.locator('.whop-CheckoutDetailsToggle').first().click()
+const details = page.locator('iframe[src*="/checkoutDetails/"]')
+const opened = await page.frameLocator('iframe[src*="/checkoutDetails/"]').getByText('Total due today').waitFor({ timeout: 15000 }).then(() => true, () => false)
+expect(opened, 'which opens Whop\'s order details')
+await page.waitForTimeout(500)
+await page.keyboard.press('Escape')
+const closed = await details.waitFor({ state: 'detached', timeout: 10000 }).then(() => true, () => false)
+expect(closed && await page.getByRole('dialog', { name: 'Pay once, then publish' }).isVisible(), 'and Escape closes them, not the publish dialog')
+// A phone keeps one column: the price in words, Whop's whole summary under it.
+await page.setViewportSize({ width: 390, height: 844 })
+await dialog.locator('[data-testid="checkout-summary"]').waitFor({ state: 'detached' })
+expect((await dialog.innerText()).includes('$99, the founding price (usually $199)'), 'a phone gets the price in a sentence')
+await checkout.locator('.whop-CheckoutSeller').first().waitFor()
+expect(await shown('CheckoutSeller') && await shown('CheckoutTotal'), 'and Whop\'s order summary')
+await page.setViewportSize({ width: 1440, height: 1000 })
+await dialog.locator('[data-testid="checkout-summary"]').waitFor()
 const prefilled = await checkout.locator('input[name="email"]').inputValue()
 expect(prefilled === owner, 'the account\'s email is filled in for Whop\'s receipt', prefilled)
 await checkout.locator('input[name="email"]').fill(owner)

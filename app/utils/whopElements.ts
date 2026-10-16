@@ -27,6 +27,8 @@ interface WhopElement {
 export interface WhopCheckoutHandle {
   /** `buyerEmail` prefills the email field; the buyer can still change it. */
   create: (kind: 'checkout', props?: { buyerEmail?: string }) => WhopElement
+  /** Restyles the mounted elements in place (`appearance`). */
+  update: (options: Pick<WhopCheckoutOptions, 'appearance'>) => void
   destroy: () => void
 }
 interface WhopElementsInstance {
