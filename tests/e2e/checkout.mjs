@@ -88,14 +88,35 @@ expect(!(await shown('CheckoutTotal')) && !(await shown('CheckoutSeller')), 'bes
 await page.screenshot({ path: 'tests/e2e/.out/checkout-wide.png' })
 // Its "Promo code & details" stays (owner, 2026-10-16) and opens Whop's order details over our dialog.
 expect(await shown('CheckoutDetailsToggle'), 'but keeps its promo code and details link')
-await checkout.locator('.whop-CheckoutDetailsToggle').first().click()
 const details = page.locator('iframe[src*="/checkoutDetails/"]')
+// The link shows before Whop has wired it up: press until its order details frame appears (once:
+// a second press would stack a second one).
+for (let i = 0; i < 6 && !(await details.count()); i++) {
+  await checkout.locator('.whop-CheckoutDetailsToggle').first().click()
+  await details.waitFor({ timeout: 3000 }).catch(() => {})
+}
 const opened = await page.frameLocator('iframe[src*="/checkoutDetails/"]').getByText('Total due today').waitFor({ timeout: 15000 }).then(() => true, () => false)
 expect(opened, 'which opens Whop\'s order details')
 await page.waitForTimeout(500)
 await page.keyboard.press('Escape')
 const closed = await details.waitFor({ state: 'detached', timeout: 10000 }).then(() => true, () => false)
 expect(closed && await page.getByRole('dialog', { name: 'Pay once, then publish' }).isVisible(), 'and Escape closes them, not the publish dialog')
+// Wallet sheets (Apple Pay's QR code, Google Pay's) mount on <body>, beside the app: they must take
+// clicks, typing and Escape while the paying dialog stays open (2026-10-16: Apple Pay's sheet couldn't).
+expect(await page.evaluate(() => document.getElementById('__nuxt').inert), 'the app behind the paying dialog is inert')
+await page.evaluate(() => {
+  const sheet = document.createElement('wallet-sheet')
+  sheet.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:grid;place-items:center;background:rgb(0 0 0/.4)'
+  sheet.innerHTML = '<div><input id="sheet-input"><button id="sheet-close">Close</button></div>'
+  sheet.querySelector('button').onclick = () => sheet.remove()
+  document.body.appendChild(sheet)
+})
+await page.locator('#sheet-input').click()
+await page.keyboard.type('4242')
+await page.keyboard.press('Escape')
+const typed = await page.locator('#sheet-input').inputValue()
+await page.locator('#sheet-close').click()
+expect(typed === '4242' && !(await page.locator('wallet-sheet').count()) && await page.getByRole('dialog', { name: 'Pay once, then publish' }).isVisible(), 'a wallet sheet over it takes clicks, typing and Escape, and the dialog stays', typed)
 // A phone keeps one column: the price in words, Whop's whole summary under it.
 await page.setViewportSize({ width: 390, height: 844 })
 await dialog.locator('[data-testid="checkout-summary"]').waitFor({ state: 'detached' })

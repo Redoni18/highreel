@@ -35,6 +35,34 @@ watch(open, (isOpen) => {
 })
 const paid = computed(() => bestTier(ws.campaign.value?.paid ?? []))
 const size = (x: number) => `up to ${fmt(x)} customers`
+
+// Payment sheets (Apple Pay's QR code, Google Pay's, Whop's order details)
+// mount on <body>, beside the app rather than in this dialog. A modal dialog
+// turns pointer events off on <body> and pulls focus back to itself, so they
+// couldn't be clicked or typed in (2026-10-16, Apple Pay's QR sheet). So the
+// paying dialog isn't modal: its own backdrop, the app behind it inert, and it
+// stays open when a sheet is clicked, focused or gets Escape. The plain
+// publish dialog stays modal.
+const paying = computed(() => open.value && !!charge.value)
+function appInert(on: boolean) {
+  const app = import.meta.client ? document.getElementById('__nuxt') : null
+  if (app)
+    app.inert = on
+}
+watch(paying, appInert)
+onBeforeUnmount(() => appInert(false))
+/** A press on the backdrop (or the app) closes the dialog; anything else outside it is a payment sheet's. */
+function keepForSheets(event: CustomEvent<{ originalEvent: Event }>) {
+  const target = event.target instanceof Element ? event.target : null
+  if (event.detail.originalEvent.type !== 'pointerdown' || !target?.closest('#__nuxt, [data-checkout-backdrop]'))
+    event.preventDefault()
+}
+/** Escape closes the dialog, unless it was meant for a payment sheet that has the focus. */
+function escapeHere(event: KeyboardEvent) {
+  const target = event.target instanceof Element ? event.target : null
+  if (target && target !== document.body && !target.closest('[data-slot="dialog-content"]'))
+    event.preventDefault()
+}
 /** Tailwind's md: the two columns. */
 const split = useMediaQuery('(min-width: 768px)')
 /** The left column's label-value list. */
@@ -89,8 +117,11 @@ async function onPaid(payment: string, tries = 0) {
 </script>
 
 <template>
-  <Dialog v-model:open="open">
-    <DialogContent v-if="charge" class="max-h-[92dvh] max-w-[calc(100%-1rem)] gap-5 overflow-y-auto px-0 pt-6 pb-4 sm:max-w-[620px] md:max-w-[960px] md:grid-cols-[340px_minmax(0,1fr)] md:gap-0 md:rounded-[16px] md:p-0 lg:grid-cols-[380px_minmax(0,1fr)]">
+  <Dialog v-model:open="open" :modal="!charge">
+    <Teleport to="body">
+      <div v-if="paying" data-checkout-backdrop class="fixed inset-0 isolate z-[49] animate-in bg-black/10 duration-100 fade-in-0 supports-backdrop-filter:backdrop-blur-xs" />
+    </Teleport>
+    <DialogContent v-if="charge" @interact-outside="keepForSheets" @escape-key-down="escapeHere" class="max-h-[92dvh] max-w-[calc(100%-1rem)] gap-5 overflow-y-auto px-0 pt-6 pb-4 sm:max-w-[620px] md:max-w-[960px] md:grid-cols-[340px_minmax(0,1fr)] md:gap-0 md:rounded-[16px] md:p-0 lg:grid-cols-[380px_minmax(0,1fr)]">
       <div class="min-w-0 px-4 md:border-r md:bg-subtle md:p-8">
         <div class="flex flex-col gap-6 md:sticky md:top-8">
           <DialogHeader>
