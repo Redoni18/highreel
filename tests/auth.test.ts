@@ -7,7 +7,7 @@ import { betterAuth } from 'better-auth'
 import { getMigrations } from 'better-auth/db/migration'
 import { describe, expect, test, vi } from 'vitest'
 import { authOptions } from '../server/utils/auth'
-import { SIGN_IN_LINK_MINUTES, sendSignInEmail, signInEmail } from '../server/utils/signin'
+import { EMAIL_LOGO, SIGN_IN_LINK_MINUTES, sendSignInEmail, signInEmail } from '../server/utils/signin'
 import { safeNext } from '../shared/utils/next'
 
 const migrations = new URL('../migrations/', import.meta.url)
@@ -125,6 +125,17 @@ describe('the sign-in email', () => {
     const mail = signInEmail(url, true)
     expect(mail.subject).toBe('Keep your Highreel demo')
     expect(mail.text).toContain('keep the work from your demo session')
+    expect(mail.html).toContain('>Keep my work</a>')
+  })
+
+  test('the slide: its logo from the link\'s own site, a preview line, the headline kept together', () => {
+    const mail = signInEmail(url)
+    expect(mail.html).toContain(`<img src="https://highreel.app${EMAIL_LOGO}"`)
+    expect(signInEmail('http://localhost:3040/confirm?token=abc').html).toContain(`<img src="http://localhost:3040${EMAIL_LOGO}"`)
+    expect(readFileSync(new URL(`../public${EMAIL_LOGO.split('?')[0]}`, import.meta.url)).subarray(1, 4).toString()).toBe('PNG')
+    expect(mail.html).toMatch(/<div style="display:none[^>]*>It works once, within the next hour\./)
+    expect(mail.html).toContain('Let’s get you signed&nbsp;in.')
+    expect(mail.html).toContain('>Sign in to Highreel</a>')
   })
 
   test('with a Resend key it goes through Resend, from noreply@ with replies to hello@', async () => {

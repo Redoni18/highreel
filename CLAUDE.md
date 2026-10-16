@@ -29,7 +29,7 @@ E2E_BASE=http://localhost:3047 node tests/e2e/budgets.mjs   # recap budgets, aga
 E2E_BASE=http://localhost:3047 node tests/e2e/record.mjs  # phone-size MP4s of an app and a visit recap → tests/e2e/.out
 node scripts/perf-home.mjs  # GET /api/home at 10 campaigns × 10k rows on local D1 (budget 300 ms; needs the dev server)
 node scripts/og-landing.mjs # redraw public/og.png (the public pages' link preview, the landing's hero), then bump OG_IMAGE in app/data/brand.ts so chat apps fetch it again
-node scripts/icons.mjs      # redraw favicon.ico, icon.svg, the touch/manifest icons, site.webmanifest and the logo files in brand/ (logo outlines: scripts/brand.mjs)
+node scripts/icons.mjs      # redraw favicon.ico, icon.svg, the touch/manifest icons, site.webmanifest, the logo files in brand/ and the sign-in email's logo in public/email/ (then bump EMAIL_LOGO in signin.ts; logo outlines: scripts/brand.mjs)
 npx lighthouse@12.8.2 http://localhost:3047/ --form-factor=mobile --throttling-method=simulate --chrome-flags="--headless=new"   # and --preset=desktop; on the built Worker (SPEC §7.6)
 python3 scripts/subset-caveat.py  # rebuild the landing's handwriting font subset (fonttools + brotli)
 ```

@@ -10,6 +10,8 @@
 //                                        wordmark for light backgrounds and white
 //                                        for dark ones (SVG, PNG)
 //   brand/README.md                      which is which, and how to switch
+//   public/email/                        the white wordmark the sign-in email
+//                                        shows (server/utils/signin.ts)
 //
 //   node scripts/icons.mjs
 
@@ -85,6 +87,8 @@ const files = {
     ],
   }, null, 2)}\n`,
   'brand/README.md': README,
+  // Shown 96 px wide in the email; three times that for sharp phones.
+  'public/email/highreel-wordmark-white.png': png(siteLogo.wordmarkWhite, 288),
   ...Object.fromEntries(Object.entries(logos).flatMap(([name, logo]) => {
     const dir = `brand/${name}/`
     const icons = Object.entries(logo.icons).flatMap(([kind, svg]) => [

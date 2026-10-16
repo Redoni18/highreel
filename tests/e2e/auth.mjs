@@ -108,6 +108,11 @@ await a.getByRole('button', { name: 'Keep my work' }).click()
 await a.waitForSelector(`text=Check ${email}`)
 const keepMail = (await (await fetch(`http://127.0.0.1:54424/api/v1/search?query=${encodeURIComponent(`to:${email}`)}`)).json()).messages[0]
 expect(keepMail?.Subject === 'Keep your Highreel demo' && keepMail.From.Address === 'noreply@highreel.app' && keepMail.ReplyTo?.[0]?.Address === 'hello@highreel.app', 'the keep-work email comes from noreply@highreel.app, replies to hello@', { subject: keepMail?.Subject, from: keepMail?.From?.Address, replyTo: keepMail?.ReplyTo })
+// The email's card shows the wordmark from the site it links to (public/email/).
+const keepHtml = (await (await fetch(`http://127.0.0.1:54424/api/v1/message/${keepMail.ID}`)).json()).HTML
+const logoSrc = keepHtml.match(/<img src="([^"]+)"/)?.[1]?.replaceAll('&amp;', '&')
+const logoRes = logoSrc && await fetch(logoSrc)
+expect(logoSrc?.startsWith(`${BASE}/email/`) && logoRes.status === 200 && logoRes.headers.get('content-type') === 'image/png', 'the email\'s logo loads from the site', { logoSrc, status: logoRes?.status })
 await a.goto(await latestLink(email))
 await a.waitForURL(inApp, { timeout: 15000 })
 await openFirstCampaign(a)
